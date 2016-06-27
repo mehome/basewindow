@@ -1,0 +1,9 @@
+*.obj
+*.tlog
+*.user
+*.filters
+*.sdf
+*.suo
+*/Debug/*
+*/Release/*
+ipch/*
