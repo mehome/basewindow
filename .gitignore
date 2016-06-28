@@ -1,9 +1,9 @@
 *.obj
 *.tlog
 *.user
-*.filters
 *.sdf
 *.suo
+*.opensdf
 */Debug/*
 */Release/*
 ipch/*
