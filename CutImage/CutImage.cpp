@@ -265,6 +265,11 @@ void ClipRegion::MouseTravel(POINT point, unsigned int flag)
 	SetCursor(m_hCursor);
 }
 
+CCutImageScene::CCutImageScene():CShadowScene(5)
+{
+
+}
+
 bool CCutImageScene::Init()
 {
 	RECT rect=GetRect();
@@ -563,7 +568,7 @@ void CCutImageWindow::InitCutImage()
 	//style &= ~WS_MINIMIZEBOX;
 	SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
 
-	ReSize(600+6, 450+6, true);
+	ReSize(600+10, 450+10, true);
 	//ReSize(50, 50, true);
 
 	RECT r;

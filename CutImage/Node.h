@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <list>
 #include <tuple>
 #include "View.h"
 
@@ -21,7 +20,6 @@ public:
 	explicit CNode(CNode* pParent=NULL);
 	CNode(CNode&& rr);
 	virtual ~CNode();
-	virtual void SetInitialized(bool b);
 	virtual bool IsInitialized()const;
 	virtual void SetVisible(bool b);
 	virtual bool IsVisible()const;
@@ -105,8 +103,6 @@ public:
 	virtual void       SetDirector(CDirector*);
 	virtual LRESULT    MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 	virtual void DrawScene();
-	virtual void ClearScene();
-	virtual void SwapScene();
 protected:
 	CGDIView*  m_pView;
 	CDirector* m_pDir;
@@ -172,7 +168,7 @@ public:
 	void SetFont(HFONT h);
 	HFONT GetFont();
 	void SetTextColor(COLORREF color);
-	COLORREF GetColor()const;
+	COLORREF GetTextColor()const;
 	void SetAlignment(DWORD align);
 	DWORD GetAlignment()const;
 	void SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize=false);

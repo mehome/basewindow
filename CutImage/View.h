@@ -5,6 +5,16 @@
 #include <GdiPlus.h>
 #include "Log.h"
 
+class GdiplusInit
+{
+public:
+	static GdiplusInit& Instance();
+	GdiplusInit();
+	~GdiplusInit();
+protected:
+	ULONG_PTR m_token;
+};
+
 class CGDIView
 {
 public:
@@ -34,7 +44,6 @@ protected:
 	unsigned char* pBmpData_;
 	BITMAPINFOHEADER bitmapHeader_;
 	bool m_bRefresh_;
-	ULONG_PTR m_GdiplusToken;
 };
 
 class CGDIViewAlpha :public CGDIView

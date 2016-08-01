@@ -53,6 +53,7 @@ public:
 		TagMain,
 		TagHead
 	};
+	CCutImageScene();
 	bool Init();
 	void MouseTravel(POINT point, unsigned int flag);
 	void MouseUp(POINT point, unsigned int flag, bool l);

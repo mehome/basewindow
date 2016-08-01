@@ -66,11 +66,6 @@ CNode::CNode(CNode&& rr)
 	m_pCurrentNode = rr.m_pCurrentNode;
 }
 
-void CNode::SetInitialized(bool b)
-{
-	m_bInitialized=b;
-}
-
 bool CNode::IsInitialized()const
 {
 	return m_bInitialized;
@@ -355,7 +350,7 @@ bool CNode::Init()
 		}
 	}
 	SortChild();
-	SetInitialized(true);
+	m_bInitialized=true;
 	return true;
 }
 
@@ -368,6 +363,7 @@ bool CNode::Destroy()
 		if(pNode)
 			pNode->Destroy();
 	}
+	m_bInitialized=false;
 
 	TRACE("destroy CNode\n");
 	return true;
@@ -570,18 +566,8 @@ void CScene::DrawScene()
 	assert(m_pView != NULL);
 	assert(m_pDir  != NULL);
 
-	ClearScene();
-	DrawNode();
-	SwapScene();
-}
-
-void CScene::ClearScene()
-{
 	m_pView->ClearBuffer();
-}
-
-void CScene::SwapScene()
-{
+	DrawNode();
 	m_pView->SwapBuffer();
 }
 
@@ -701,8 +687,6 @@ void CShadowScene::SwapScene()
 
 	sw = rect1.right - rect1.left;
 	sh = rect1.bottom - rect1.top;
-	//w = rect2.right - rect2.left;
-	//h = rect2.bottom - rect2.top;
 	w=m_iShadowSize + (int)GetSize().first;
 	h=m_iShadowSize + (int)GetSize().second;
 
@@ -737,7 +721,7 @@ void CShadowScene::DrawShadow()
 
 	for(j=0; j<m_iShadowSize; ++j)
 	{
-		a[3]=(unsigned char)(10+j*150/m_iShadowSize);
+		a[3]=(unsigned char)(10+j*100/m_iShadowSize);
 
 		p1=pData+(sh-1-j)*sw*4;
 		p2=pData+(sh-h+j)*sw*4;
@@ -1071,7 +1055,7 @@ void CTextLayer::SetTextColor(COLORREF color)
 	m_dwColor=color;
 }
 
-COLORREF CTextLayer::GetColor()const
+COLORREF CTextLayer::GetTextColor()const
 {
 	return m_dwColor;
 }

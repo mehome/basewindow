@@ -15,5 +15,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	CCutImageWindow win;
 	win.InitWindow(hInstance);
 	win.RunWindow();
+
 	return 0;
 }

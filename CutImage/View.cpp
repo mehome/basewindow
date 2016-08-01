@@ -1,6 +1,22 @@
 #include "View.h"
 #pragma comment(lib, "gdiplus.lib")
 
+GdiplusInit& GdiplusInit::Instance()
+{
+	static GdiplusInit instance;
+	return instance;
+}
+
+GdiplusInit::GdiplusInit()
+{
+	Gdiplus::GdiplusStartupInput input;
+	Gdiplus::GdiplusStartup(&m_token, &input, NULL);
+}
+GdiplusInit::~GdiplusInit()
+{
+	Gdiplus::GdiplusShutdown(m_token);
+}
+
 CGDIView::CGDIView() :m_Wnd(NULL),
 	m_DC(NULL),
 	m_MemDC(NULL),
@@ -16,8 +32,7 @@ CGDIView::~CGDIView()
 bool CGDIView::Init(HWND hWnd)
 {
 	assert(IsWindow(hWnd));
-	Gdiplus::GdiplusStartupInput input;
-	Gdiplus::GdiplusStartup(&m_GdiplusToken, &input, NULL);
+	GdiplusInit::Instance();
 
 	GetClientRect(hWnd, &m_rectWnd);
 	GetClientRect(GetDesktopWindow(), &m_rectScreen);
@@ -75,7 +90,6 @@ void CGDIView::Clear()
 	}
 
 	m_Wnd = NULL;
-	Gdiplus::GdiplusShutdown(m_GdiplusToken);
 }
 
 void CGDIView::ClearBuffer()
