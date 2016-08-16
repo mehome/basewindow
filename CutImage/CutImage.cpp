@@ -286,7 +286,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -562,7 +562,7 @@ LRESULT CCutImageWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 void CCutImageWindow::InitCutImage()
 {
 	LONG_PTR style=GetWindowLong(GetHWND(), GWL_STYLE);
-	style &= ~WS_CAPTION;    // 去除非标题栏
+	style &= ~WS_CAPTION;    // 去除非客户区域
 	style &= ~WS_SIZEBOX;    // 禁止更改窗口大小, same as WS_THICKFRAME
 	style &= ~WS_MAXIMIZEBOX;
 	//style &= ~WS_MINIMIZEBOX;

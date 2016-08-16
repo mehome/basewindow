@@ -817,7 +817,12 @@ CDirector::~CDirector()
 
 void CDirector::RunScene(CScene* scene)
 {
-	//assert(scene != NULL);
+	if(!scene)
+	{
+		assert(0 && "scene pointer is null");
+		return;
+	}
+
 	scene->SetView(m_pCurrentView);
 	scene->SetDirector(this);
 	if(scene->Init())
@@ -826,6 +831,7 @@ void CDirector::RunScene(CScene* scene)
 	}
 	else
 	{
+		assert(0 && "failed to init scene");
 		delete scene;
 	}
 }

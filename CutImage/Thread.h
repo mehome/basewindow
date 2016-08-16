@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Windows.h>
-#include <map>
 
 void SetThreadName(unsigned int threadId, const char* pName);
 
@@ -10,16 +9,43 @@ class CSimpleLock
 public:
 	CSimpleLock() { InitializeCriticalSection(&m_cs); }
 	~CSimpleLock() { DeleteCriticalSection(&m_cs); }
-	void Enter() { EnterCriticalSection(&m_cs); }
-	void Leave() { LeaveCriticalSection(&m_cs); }
+	void Lock() { EnterCriticalSection(&m_cs); }
+	void UnLock() { LeaveCriticalSection(&m_cs); }
 protected:
 	CRITICAL_SECTION m_cs;
 };
 
-class CApplication
+template<typename T>
+class CLockGuard
 {
 public:
-	CApplication();
-	virtual ~CApplication();
+	explicit CLockGuard(T* pObj):m_pObj(pObj)
+	{
+		if(m_pObj) m_pObj->Lock();
+	}
+	~CLockGuard()
+	{
+		if(m_pObj) m_pObj->UnLock();
+	}
+private:
+	CLockGuard(const CLockGuard& r);
+protected:
+	T* m_pObj;
+};
+
+class CThread
+{
+public:
+	CThread();
+	virtual ~CThread();
 	virtual int Run();
+	virtual bool Init();
+	virtual void Destroy();
+	bool IsRunning()const { return m_bRunning; }
+	unsigned int ThreadId()const { return m_threadId; }
+protected:
+	bool m_bRunning;
+	HANDLE m_hThread;
+	unsigned int m_threadId;
+	CSimpleLock m_lock;
 };

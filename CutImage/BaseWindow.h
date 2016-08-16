@@ -12,9 +12,7 @@ public:
 
 	HWND GetHWND();
 	void ReSize(int w, int h,bool bCenterWindow=false);
-	virtual void InitWindow(HINSTANCE hInstance,
-		HWND hWnd=NULL,
-		bool bAsChildOrOwned=true);
+	virtual void InitWindow(HINSTANCE hInstance, HWND hWnd=NULL, bool bAsChildOrOwned=true);
 	virtual void Show();
 	virtual LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
 protected:

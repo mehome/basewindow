@@ -1,5 +1,6 @@
 #include "Thread.h"
 #include "Log.h"
+#include <process.h>
 
 void SetThreadName(unsigned int threadId, const char* pName)
 {
@@ -31,36 +32,75 @@ void SetThreadName(unsigned int threadId, const char* pName)
 	__except (EXCEPTION_EXECUTE_HANDLER) 
 	{
 	}
+#pragma warning(default: 6320 6322)
 #pragma warning(pop)
 }
 
-CApplication::CApplication()
-{
-	SetThreadName(GetCurrentThreadId(), "gui");
-}
-
-CApplication::~CApplication()
+CThread::CThread():m_bRunning(false),
+	m_hThread(NULL),
+	m_threadId(0)
 {
 }
 
-int CApplication::Run()
+CThread::~CThread()
 {
-	MSG msg;
-	BOOL bRet;
-
-	while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+	if(m_hThread)
 	{
-		if (bRet == -1)
+		WaitForSingleObject(m_hThread, 1000);
+		CloseHandle(m_hThread);
+		m_hThread=NULL;
+	}
+}
+
+int CThread::Run()
+{
+	TRACE("worker thread start\n");
+
+	BOOL bRet;
+	MSG msg;
+	while(1)
+	{
+		bRet=GetMessage(&msg, (HWND)-1, 0, 0);
+		if(bRet==0 || bRet==-1)
 		{
-			TRACE1("GetMessage return -1:%u\n", GetLastError());
+			m_bRunning=false;
 			break;
-		}
-		if (!TranslateAccelerator(msg.hwnd, NULL, &msg))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
 		}
 	}
 
+	TRACE("worker thread stop\n");
+	m_bRunning=false;
 	return 0;
+}
+
+unsigned int __stdcall ThreadFunc(void* p)
+{
+	CThread* pThread=static_cast<CThread*>(p);
+	if(!pThread)
+		return 0;
+	return pThread->Run();
+}
+
+bool CThread::Init()
+{
+	CLockGuard<CSimpleLock> guard(&m_lock);
+	
+	if(m_bRunning || m_hThread != NULL)
+		return false;
+
+	if(m_hThread)
+	{
+		CloseHandle(m_hThread);
+		m_hThread=NULL;
+	}
+	m_hThread=(HANDLE)_beginthreadex(NULL, 0, ThreadFunc, this, 0, &m_threadId);
+	m_bRunning=true;
+	return true;
+}
+
+void CThread::Destroy()
+{
+	CLockGuard<CSimpleLock> guard(&m_lock);
+	if(m_bRunning)
+		PostThreadMessage(ThreadId(), WM_QUIT, 0, 0);
 }
