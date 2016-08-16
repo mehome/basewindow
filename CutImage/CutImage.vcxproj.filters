@@ -23,6 +23,7 @@
     <ClCompile Include="WeatherScene.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Thread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseWindow.h">
@@ -46,6 +47,7 @@
     <ClInclude Include="WeatherScene.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Thread.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="头文件">

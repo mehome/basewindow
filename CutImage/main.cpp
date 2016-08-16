@@ -1,12 +1,15 @@
 #include <Windows.h>
 #include <tchar.h>
 #include "CutImage.h"
+#include "Thread.h"
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
                      int       nCmdShow)
 {
+	CApplication app;
+
 	//CTestSubControl* p=new CTestSubControl();
 	//p->InitWindow(hInstance, NULL);
 	//p->ReSize(600, 400, true);
@@ -14,7 +17,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	CCutImageWindow win;
 	win.InitWindow(hInstance);
-	win.RunWindow();
+	win.Show();
 
-	return 0;
+	return app.Run();
 }

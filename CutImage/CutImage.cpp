@@ -596,6 +596,7 @@ void CCutImageWindow::InitWeather()
 	LONG_PTR style=GetWindowLong(GetHWND(), GWL_STYLE);
 	style &= ~WS_CAPTION;    // 去除非客户区域
 	style &= ~WS_THICKFRAME; // 禁止更改窗口大小
+	style &= ~WS_MAXIMIZEBOX;
 	SetWindowLongPtr(m_hWnd, GWL_STYLE, style);
 
 	//style = GetWindowLong(m_hWnd, GWL_EXSTYLE);

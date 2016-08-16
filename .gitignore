@@ -4,6 +4,7 @@
 *.sdf
 *.suo
 *.opensdf
+*.vc.db
 */Debug/*
 */Release/*
 ipch/*

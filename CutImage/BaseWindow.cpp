@@ -130,7 +130,7 @@ void CBaseWindow::InitWindow(HINSTANCE hInstance,
 	}
 }
 
-void CBaseWindow::RunWindow()
+void CBaseWindow::Show()
 {
 	if(!m_hWnd)
 	{
@@ -140,22 +140,6 @@ void CBaseWindow::RunWindow()
 	SetWindowLong(m_hWnd, GWL_USERDATA, (LONG)this);
 	ShowWindow(m_hWnd, SW_SHOW);
 	UpdateWindow(m_hWnd);
-
-	MSG msg;
-	BOOL bRet;
-	while((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
-	{
-		if(bRet == -1)
-		{
-			TRACE1("GetMessage return -1:%u\n",GetLastError());
-			break;
-		}
-		if (!TranslateAccelerator(msg.hwnd, NULL, &msg))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-	}
 }
 
 LRESULT CBaseWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)

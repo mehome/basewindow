@@ -15,7 +15,7 @@ public:
 	virtual void InitWindow(HINSTANCE hInstance,
 		HWND hWnd=NULL,
 		bool bAsChildOrOwned=true);
-	virtual void RunWindow();
+	virtual void Show();
 	virtual LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
 protected:
 	HWND m_hWnd;

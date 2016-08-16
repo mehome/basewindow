@@ -172,6 +172,22 @@ CNode* CNode::GetParent()const
 	return m_pParent;
 }
 
+void CNode::ChangeParent(CNode* pNew)
+{
+	if (pNew == m_pParent)
+		return;
+	if (!m_pParent)
+	{
+		pNew->AddChild(this);
+	}
+	else
+	{
+		m_pParent->RemoveChild(this, false);
+		pNew->AddChild(this);
+	}
+}
+
+
 void CNode::SetAnchor(float x, float y)
 {
 	if(m_pairAnchor.first != x || m_pairAnchor.second != y)
@@ -182,7 +198,7 @@ void CNode::SetAnchor(float x, float y)
 	}
 }
 
-std::pair<float, float> CNode::GetAnchor()const
+NodePair CNode::GetAnchor()const
 {
 	return m_pairAnchor;
 }
@@ -199,9 +215,45 @@ void CNode::SetSize(int w, int h)
 	SetSize(1.0f*w, 1.0f*h);
 }
 
-std::pair<float, float> CNode::GetSize()const
+NodePair CNode::GetSize()const
 {
 	return m_pairSize;
+}
+
+void CNode::SetMinSize(int x, int y)
+{
+	if (x == m_pairMinSize.first || y == m_pairMinSize.second)
+		return;
+}
+
+void CNode::SetMaxSize(int x, int y)
+{
+	if (x == m_pairMaxSize.first || y == m_pairMaxSize.second)
+		return;
+}
+
+NodePairInt CNode::GetMinSize()const
+{
+	return m_pairMinSize;
+}
+
+NodePairInt CNode::GetMaxSize()const
+{
+	return m_pairMaxSize;
+}
+
+void CNode::SetSizePolicy(NodeSizePolicy policy)
+{
+	if (policy != m_sizePolicy)
+	{
+		m_sizePolicy = policy;
+	}
+}
+
+
+NodeSizePolicy CNode::GetSizePolicy()const
+{
+	return m_sizePolicy;
 }
 
 void CNode::SetPos(float px, float py)
@@ -216,7 +268,7 @@ void CNode::SetPos(int x, int y)
 	SetPos(1.0f*x, 1.0f*y);
 }
 
-std::pair<float, float> CNode::GetPos()const
+NodePair CNode::GetPos()const
 {
 	return m_pairSize;
 }

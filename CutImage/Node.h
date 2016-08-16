@@ -8,6 +8,16 @@
 #include <tuple>
 #include "View.h"
 
+typedef std::pair<float, float> NodePair;
+typedef std::pair<int, int> NodePairInt;
+
+enum NodeSizePolicy
+{
+	SizePolicyFixed,
+	SizePolicyPrefered,
+	SizePolicyExpanding,
+};
+
 class CDirector;
 class CScene;
 class CNode
@@ -20,29 +30,46 @@ public:
 	explicit CNode(CNode* pParent=NULL);
 	CNode(CNode&& rr);
 	virtual ~CNode();
+
 	virtual bool IsInitialized()const;
 	virtual void SetVisible(bool b);
 	virtual bool IsVisible()const;
+
 	virtual void SetData(int data);
 	virtual int  GetData()const;
+
 	virtual void SetTag(int tag);
 	virtual int  GetTag()const;
+
 	virtual void SetZOrder(int order);
-	virtual int  GetZOrder()const;
+	virtual int GetZOrder()const;
+
 	virtual void SetNCHitTest(int value);
-	virtual int  GetNCHitTest()const;
+	virtual int GetNCHitTest()const;
+
 	virtual void SetRect(const RECT& rect);
 	virtual RECT GetRect();
-	virtual void   SetParent(CNode* p);
+
+	virtual void SetParent(CNode* p);
 	virtual CNode* GetParent()const;
+	virtual void ChangeParent(CNode* pNew);
+
 	virtual void SetAnchor(float x, float y);
-	virtual std::pair<float, float> GetAnchor()const;
+	virtual NodePair GetAnchor()const;
+
 	virtual void SetSize(float w, float h);
-	virtual void SetSize(int   w, int   h);
-	virtual std::pair<float, float> GetSize()const;
+	virtual void SetSize(int w, int h);
+	virtual NodePair GetSize()const;
+	virtual void SetMinSize(int x, int y);
+	virtual void SetMaxSize(int x, int y);
+	virtual NodePairInt GetMinSize()const;
+	virtual NodePairInt GetMaxSize()const;
+	virtual void SetSizePolicy(NodeSizePolicy policy);
+	virtual NodeSizePolicy GetSizePolicy()const;
+
 	virtual void SetPos(float px, float py);
-	virtual void SetPos(int    x, int    y);
-	virtual std::pair<float, float> GetPos()const;
+	virtual void SetPos(int x, int y);
+	virtual NodePair GetPos()const;
 	virtual void NeedUpdate();
 
 	virtual bool AddChild(CNode* pNode);
@@ -51,6 +78,7 @@ public:
 	virtual bool RemoveChildAll(bool bDelete=true);
 	virtual void SortChild();
 	virtual CNode* GetChildByTag(int tag);
+
 	virtual bool Init();
 	virtual bool Destroy();
 	virtual void DrawNode();
@@ -79,9 +107,12 @@ protected:
 	int m_iNCHitTest;
 	CNode* m_pParent;
 	RECT m_rect;
-	std::pair<float, float> m_pairAnchor;
-	std::pair<float, float> m_pairSize;
-	std::pair<float, float> m_pairPos;
+	NodePair m_pairAnchor;
+	NodePair m_pairSize;
+	NodePair m_pairPos;
+	NodePairInt m_pairMinSize;
+	NodePairInt m_pairMaxSize;
+	NodeSizePolicy m_sizePolicy;
 	std::vector<CNode* > m_Children;
 
 	POINT m_pointLast;
@@ -96,12 +127,12 @@ class CScene : public CNode
 public:
 	CScene();
 	CScene* GetScene();
-	RECT    GetRect();
-	virtual CGDIView*  GetView();
-	virtual void       SetView(CGDIView*);
+	RECT GetRect();
+	virtual CGDIView* GetView();
+	virtual void SetView(CGDIView*);
 	virtual CDirector* GetDirector();
-	virtual void       SetDirector(CDirector*);
-	virtual LRESULT    MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
+	virtual void SetDirector(CDirector*);
+	virtual LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 	virtual void DrawScene();
 protected:
 	CGDIView*  m_pView;
@@ -111,7 +142,7 @@ protected:
 class CShadowScene : public CScene
 {
 public:
-	CShadowScene(int shadowSize=3);
+	explicit CShadowScene(int shadowSize=3);
 	void SetView(CGDIView*);
 	void DrawScene();
 	void ClearScene();
@@ -124,7 +155,7 @@ protected:
 class CDirector
 {
 public:
-	CDirector(CGDIView* view);
+	explicit CDirector(CGDIView* view);
 	virtual ~CDirector();
 	virtual void RunScene(CScene* scene);
 	virtual LRESULT MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
