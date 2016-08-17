@@ -33,19 +33,55 @@ protected:
 	T* m_pObj;
 };
 
-class CThread
+class CTask
+{
+public:
+	virtual void Do() = 0;
+};
+
+template<typename T>
+class CTask0
+{
+public:
+	typedef void (T::*F)(void);
+public:
+	CTask0(T* pObj, F func):m_pObj(pObj),m_func(func)
+	{
+	}
+	void Do()
+	{
+		(m_pObj->*m_func)();
+	}
+protected:
+	T* m_pObj;
+	F m_func;
+};
+
+class CApplication
+{
+public:
+	CApplication();
+	virtual ~CApplication();
+	virtual int Run(int n=0);
+	virtual int HandleQueueMessage(const MSG& msg);
+	virtual bool Init();
+	virtual void Destroy();
+	unsigned int ThreadId()const { return m_threadId; }
+protected:
+	unsigned int m_threadId;
+};
+
+class CThread : public CApplication
 {
 public:
 	CThread();
-	virtual ~CThread();
-	virtual int Run();
-	virtual bool Init();
-	virtual void Destroy();
+	~CThread();
+	int Run();
+	bool Init();
+	void Destroy();
 	bool IsRunning()const { return m_bRunning; }
-	unsigned int ThreadId()const { return m_threadId; }
 protected:
 	bool m_bRunning;
 	HANDLE m_hThread;
-	unsigned int m_threadId;
 	CSimpleLock m_lock;
 };

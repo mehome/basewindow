@@ -36,9 +36,61 @@ void SetThreadName(unsigned int threadId, const char* pName)
 #pragma warning(pop)
 }
 
-CThread::CThread():m_bRunning(false),
-	m_hThread(NULL),
-	m_threadId(0)
+CApplication::CApplication():m_threadId(0)
+{
+	m_threadId = GetCurrentThreadId();
+	SetThreadName(m_threadId, "gui");
+}
+
+CApplication::~CApplication()
+{
+}
+
+int CApplication::Run(int)
+{
+	MSG msg;
+	
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		if (!msg.hwnd && msg.message>=WM_USER)
+		{
+			HandleQueueMessage(msg);
+			continue;
+		}
+
+		if (!TranslateAccelerator(msg.hwnd, NULL, &msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	TRACE("application run end\n");
+	return 0;
+}
+
+int CApplication::HandleQueueMessage(const MSG& msg)
+{
+	TRACE1("queue message time is %u\n", msg.time);
+	TRACE1("queue message type is %u\n", msg.message);
+	WM_USER;
+	return 0;
+}
+
+bool CApplication::Init()
+{
+	TRACE("application init\n");
+	return true;
+}
+
+void CApplication::Destroy()
+{
+	TRACE("application destroy\n");
+}
+
+CThread::CThread() :
+	m_bRunning(false),
+	m_hThread(NULL)
 {
 }
 
@@ -55,17 +107,25 @@ CThread::~CThread()
 int CThread::Run()
 {
 	TRACE("worker thread start\n");
+	SetThreadName(ThreadId(), "z");
+
 
 	BOOL bRet;
 	MSG msg;
+	int n(0);
 	while(1)
 	{
+		// filter queue message only
 		bRet=GetMessage(&msg, (HWND)-1, 0, 0);
 		if(bRet==0 || bRet==-1)
 		{
 			m_bRunning=false;
 			break;
 		}
+
+		Sleep(5);
+		HandleQueueMessage(msg);
+		++n;
 	}
 
 	TRACE("worker thread stop\n");
