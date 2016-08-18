@@ -2,7 +2,7 @@
 #include <tchar.h>
 #include "CutImage.h"
 #include "Thread.h"
-#include <functional>
+#include "Task.h"
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE,
@@ -18,16 +18,19 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	CTask0<CApplication> task0(&app, &CApplication::Destroy);
 	task0.Do();
-	return 0;
 
-	CThread thread1;
-	thread1.Init();
-	for (int i = 0; i < 10000; ++i)
-	{
-		PostThreadMessage(thread1.ThreadId(), WM_USER +10, 0, 0);
-		Sleep(1);
-	}
-	thread1.Destroy();
+	MSG msg;
+	CTask1<CApplication, const MSG&, int> task1(&app, &CApplication::HandleQueueMessage, msg);
+	task1.Do();
+
+	//CThread thread1;
+	//thread1.Init();
+	//for (int i = 0; i < 10000; ++i)
+	//{
+	//	PostThreadMessage(thread1.ThreadId(), WM_USER +10, 0, 0);
+	//	Sleep(1);
+	//}
+	//thread1.Destroy();
 
 	CCutImageWindow win;
 	win.InitWindow(hInstance);

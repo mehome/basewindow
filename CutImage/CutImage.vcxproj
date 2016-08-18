@@ -82,6 +82,7 @@
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Node.cpp" />
+    <ClCompile Include="Task.cpp" />
     <ClCompile Include="Thread.cpp" />
     <ClCompile Include="View.cpp" />
     <ClCompile Include="WeatherScene.cpp" />
@@ -89,6 +90,7 @@
   <ItemGroup>
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="CutImage.h" />
+    <ClInclude Include="Task.h" />
     <ClInclude Include="HttpBase.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="Node.h" />

@@ -285,6 +285,11 @@ void CNode::NeedUpdate()
 	}
 }
 
+bool CNode::IsUpdateNeeded()const
+{
+	return m_bNeedUpdate;
+}
+
 bool CNode::AddChild(CNode* pNode)
 {
 	if(pNode &&
@@ -387,6 +392,16 @@ CNode* CNode::GetChildByTag(int tag)
 		}
 	}
 
+	return NULL;
+}
+
+CNode* CNode::GetChildByFinder(NodeFinder  func)
+{
+	auto iter = std::find_if(m_Children.begin(), m_Children.end(), func);
+	if (iter != m_Children.end())
+	{
+		return *iter;
+	}
 	return NULL;
 }
 
@@ -568,6 +583,11 @@ POINT CNode::GetLastPoint()const
 	return m_pointLast;
 }
 
+CNode* CNode::GetCurrentNode()
+{
+	return m_pCurrentNode;
+}
+
 CScene::CScene():m_pView(NULL),
 	m_pDir(NULL)
 {
@@ -580,7 +600,7 @@ CScene* CScene::GetScene()
 
 RECT CScene::GetRect()
 {
-	return m_rect;
+	return CNode::GetRect();
 }
 
 CGDIView* CScene::GetView()
@@ -1206,17 +1226,18 @@ CStaticImageNode::CStaticImageNode(int showType, CNode* pParent):CNode(pParent),
 
 void CStaticImageNode::SetImageLayer(CImageLayer* pImage)
 {
-	auto iter=std::find_if(m_Children.rbegin(), m_Children.rend(), [pImage](CNode* pNode)
+	CNode* pNode=GetChildByFinder([pImage](CNode* pNode)
 	{
 		return pNode->GetNodeClassName() == pImage->GetNodeClassName();
 	});
-	if(iter != m_Children.rend())
+
+	if(pNode != NULL)
 	{
 		// É¾³ýÇ°Ò»ÕÅÍ¼Æ¬
-		if(*iter != pImage)
-			RemoveChild(*iter, true);
-		else if(!(*iter)->IsInitialized())
-			(*iter)->Init();
+		if(pNode != pImage)
+			RemoveChild(pNode, true);
+		else if(!pNode->IsInitialized())
+			pNode->Init();
 	}
 	else
 	{

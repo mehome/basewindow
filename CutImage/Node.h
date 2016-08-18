@@ -8,8 +8,13 @@
 #include <tuple>
 #include "View.h"
 
+class CDirector;
+class CScene;
+class CNode;
+
 typedef std::pair<float, float> NodePair;
 typedef std::pair<int, int> NodePairInt;
+typedef std::function<bool(CNode*)> NodeFinder;
 
 enum NodeSizePolicy
 {
@@ -18,8 +23,6 @@ enum NodeSizePolicy
 	SizePolicyExpanding,
 };
 
-class CDirector;
-class CScene;
 class CNode
 {
 private:
@@ -71,6 +74,7 @@ public:
 	virtual void SetPos(int x, int y);
 	virtual NodePair GetPos()const;
 	virtual void NeedUpdate();
+	virtual bool IsUpdateNeeded()const;
 
 	virtual bool AddChild(CNode* pNode);
 	virtual bool AddChild(CNode* pNode, int order);
@@ -78,6 +82,7 @@ public:
 	virtual bool RemoveChildAll(bool bDelete=true);
 	virtual void SortChild();
 	virtual CNode* GetChildByTag(int tag);
+	virtual CNode* GetChildByFinder(NodeFinder  func);
 
 	virtual bool Init();
 	virtual bool Destroy();
@@ -97,7 +102,8 @@ public:
 	virtual bool IsMouseIN()const;
 	virtual bool IsPointINNode(POINT point);
 	virtual POINT GetLastPoint()const;
-protected:
+	virtual CNode* GetCurrentNode();
+private:
 	bool m_bInitialized;
 	bool m_bNeedUpdate;
 	bool m_bVisible;
@@ -106,20 +112,21 @@ protected:
 	int m_iZOrder;
 	int m_iNCHitTest;
 	CNode* m_pParent;
-	RECT m_rect;
 	NodePair m_pairAnchor;
 	NodePair m_pairSize;
 	NodePair m_pairPos;
 	NodePairInt m_pairMinSize;
 	NodePairInt m_pairMaxSize;
 	NodeSizePolicy m_sizePolicy;
-	std::vector<CNode* > m_Children;
 
 	POINT m_pointLast;
 	bool m_bLBDown;
 	bool m_bRBDown;
 	bool m_bMouseIN;
 	CNode* m_pCurrentNode;
+	std::vector<CNode* > m_Children;
+protected:
+	RECT m_rect;
 };
 
 class CScene : public CNode

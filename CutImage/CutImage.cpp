@@ -11,8 +11,9 @@ CircularLayer::CircularLayer(int r, CNode* pParent):CImageLayer(pParent)
 
 void CircularLayer::CreateCircular(unsigned char opcticy)
 {
-	int w=(int)m_pairSize.first;
-	int h=(int)m_pairSize.second;
+	auto size = GetSize();
+	int w=(int)size.first;
+	int h=(int)size.second;
 	int r = w/2;
 	int x, y;
 	unsigned char * pData = ImageData(), *p;
@@ -102,9 +103,10 @@ void ClipRegion::DrawNode()
 
 void ClipRegion::DrawShadow()
 {
-	assert(m_pParent != NULL);
+	CNode* parent = GetParent();
+	assert(parent != NULL);
 	RECT rf  =GetRect();
-	RECT ri=dynamic_cast<CStaticImageNode* >(m_pParent->GetChildByTag(CCutImageScene::TagMain))->GetImageLayer()->GetRect();
+	RECT ri=dynamic_cast<CStaticImageNode* >(parent->GetChildByTag(CCutImageScene::TagMain))->GetImageLayer()->GetRect();
 
 	// left
 	if (rf.left > ri.left)
@@ -124,7 +126,7 @@ void ClipRegion::DrawShadow()
 
 RECT ClipRegion::GetRect()
 {
-	if(m_bNeedUpdate)
+	if(IsUpdateNeeded())
 	{
 		CNode::GetRect();
 		CreateRect8();
@@ -347,10 +349,11 @@ bool CCutImageScene::Init()
 
 void CCutImageScene::MouseTravel(POINT point, unsigned int flag)
 {
-	if(IsLBDown() && m_pCurrentNode && m_pCurrentNode->GetTag()==TagHead)
+	CNode* pCurrentNode = GetCurrentNode();
+	if(IsLBDown() && pCurrentNode && pCurrentNode->GetTag()==TagHead)
 	{
-		int dx = point.x - m_pointLast.x;
-		int dy = point.y - m_pointLast.y;
+		int dx = point.x - GetLastPoint().x;
+		int dy = point.y - GetLastPoint().y;
 		int  n;
 		RECT rect_head = m_pHead->GetRect();
 		RECT rect_show = m_pMain->GetImageLayer()->GetRect();
@@ -444,16 +447,15 @@ void CCutImageScene::MouseTravel(POINT point, unsigned int flag)
 			rect_head.bottom -= n;
 		}
 		m_pHead->SetRect(rect_head);
-		m_pointLast = point;
 		GetView()->Refresh();
-		return;
 	}
 	CScene::MouseTravel(point, flag);
 }
 
 void CCutImageScene::MouseUp(POINT point, unsigned int flag, bool l)
 {
-	if(l && m_pCurrentNode && m_pCurrentNode->GetTag() == TagHead)
+	CNode* pCurrentNode = GetCurrentNode();
+	if(l && pCurrentNode && pCurrentNode->GetTag() == TagHead)
 	{
 		UpdatePreviewImageNode();
 		GetView()->Refresh();

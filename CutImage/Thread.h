@@ -33,30 +33,6 @@ protected:
 	T* m_pObj;
 };
 
-class CTask
-{
-public:
-	virtual void Do() = 0;
-};
-
-template<typename T>
-class CTask0
-{
-public:
-	typedef void (T::*F)(void);
-public:
-	CTask0(T* pObj, F func):m_pObj(pObj),m_func(func)
-	{
-	}
-	void Do()
-	{
-		(m_pObj->*m_func)();
-	}
-protected:
-	T* m_pObj;
-	F m_func;
-};
-
 class CApplication
 {
 public:
