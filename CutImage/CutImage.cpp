@@ -267,7 +267,7 @@ void ClipRegion::MouseTravel(POINT point, unsigned int flag)
 	SetCursor(m_hCursor);
 }
 
-CCutImageScene::CCutImageScene():CShadowScene(5)
+CCutImageScene::CCutImageScene():CShadowScene(3)
 {
 
 }
@@ -288,7 +288,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -570,7 +570,7 @@ void CCutImageWindow::InitCutImage()
 	//style &= ~WS_MINIMIZEBOX;
 	SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
 
-	ReSize(600+10, 450+10, true);
+	ReSize(600+6, 450+6, true);
 	//ReSize(50, 50, true);
 
 	RECT r;

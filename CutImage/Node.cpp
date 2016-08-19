@@ -742,8 +742,9 @@ void CShadowScene::DrawScene()
 
 void CShadowScene::ClearScene()
 {
-	auto pData=m_pView->GetBitmapData();
-	auto rect=m_pView->GetScreenRect();
+	auto pView=GetView();
+	auto pData=pView->GetBitmapData();
+	auto rect=pView->GetScreenRect();
 	memset(pData, 255, (rect.right-rect.left)*(rect.bottom-rect.top)*4);
 }
 
@@ -753,9 +754,10 @@ void CShadowScene::SwapScene()
 	int j, i;
 	int w, h, sw, sh;
 
-	auto rect1=m_pView->GetScreenRect();
-	auto rect2=m_pView->GetWndRect();
-	auto pData=m_pView->GetBitmapData();
+	auto pView=GetView();
+	auto rect1=pView->GetScreenRect();
+	auto rect2=pView->GetWndRect();
+	auto pData=pView->GetBitmapData();
 
 	sw = rect1.right - rect1.left;
 	sh = rect1.bottom - rect1.top;
@@ -772,7 +774,7 @@ void CShadowScene::SwapScene()
 		}
 	}
 
-	m_pView->SwapBuffer();
+	pView->SwapBuffer();
 }
 
 void CShadowScene::DrawShadow()
@@ -782,9 +784,10 @@ void CShadowScene::DrawShadow()
 	int w, h, sw, sh;
 	unsigned char a[4]={0};
 
-	auto rect1=m_pView->GetScreenRect();
-	auto rect2=m_pView->GetWndRect();
-	auto pData=m_pView->GetBitmapData();
+	auto pView=GetView();
+	auto rect1=pView->GetScreenRect();
+	auto rect2=pView->GetWndRect();
+	auto pData=pView->GetBitmapData();
 
 	sw = rect1.right - rect1.left;
 	sh = rect1.bottom - rect1.top;

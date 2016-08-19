@@ -141,7 +141,7 @@ public:
 	virtual void SetDirector(CDirector*);
 	virtual LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 	virtual void DrawScene();
-protected:
+private:
 	CGDIView*  m_pView;
 	CDirector* m_pDir;
 };
