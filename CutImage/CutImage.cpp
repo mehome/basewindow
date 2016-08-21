@@ -128,10 +128,11 @@ RECT ClipRegion::GetRect()
 {
 	if(IsUpdateNeeded())
 	{
-		CNode::GetRect();
+		auto rect=CNode::GetRect();
 		CreateRect8();
+		return rect;
 	}
-	return m_rect;
+	return CNode::GetRect();
 }
 
 void ClipRegion::CreateRect8()
@@ -288,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -465,6 +466,17 @@ void CCutImageScene::MouseUp(POINT point, unsigned int flag, bool l)
 
 void CCutImageScene::OnButton(CNode* pNode)
 {
+	if (pNode->GetTag() == TagOK)
+	{
+		CNode* p = FindFirstNode();
+		while (1)
+		{
+			if (!p)
+				break;
+			TRACE1(L"node name is %s\n", p->GetNodeClassName().c_str());
+			p = FindNextNode();
+		}
+	}
 	PostMessage(GetView()->GetWnd(), WM_CLOSE, 0, 0);
 }
 

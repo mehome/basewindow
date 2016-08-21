@@ -14,7 +14,8 @@ CNode::CNode(CNode* pParent):m_bInitialized(false),
 	m_bLBDown(false),
 	m_bRBDown(false),
 	m_bMouseIN(false),
-	m_pCurrentNode(NULL)
+	m_pCurrentNode(NULL),
+	m_iFindIndex(-1)
 {
 	if(pParent)
 	{
@@ -138,6 +139,8 @@ void CNode::SetRect(const RECT& rect)
 		m_pairSize.second = h*1.0f;
 		NeedUpdate();
 	}
+	else
+		m_rect = rect;
 }
 
 RECT CNode::GetRect()
@@ -321,6 +324,13 @@ bool CNode::RemoveChild(CNode* pNode, bool bDelete)
 		auto iter=std::find(m_Children.begin(), m_Children.end(), pNode);
 		if(iter != m_Children.end())
 		{
+			if (m_iFindIndex != -1)
+			{
+				auto dis = std::distance(m_Children.begin(), iter);
+				if (dis <= m_iFindIndex)
+					--m_iFindIndex;
+			}
+
 			m_Children.erase(iter);
 			if(bDelete)
 			{
@@ -402,6 +412,28 @@ CNode* CNode::GetChildByFinder(NodeFinder  func)
 	{
 		return *iter;
 	}
+	return NULL;
+}
+
+CNode* CNode::FindFirstNode()
+{
+	if (!m_Children.empty())
+	{
+		m_iFindIndex = 0;
+		return m_Children[0];
+	}
+	return NULL;
+}
+
+CNode* CNode::FindNextNode()
+{
+	if (m_iFindIndex < m_Children.size() - 1)
+	{
+		++m_iFindIndex;
+		return m_Children[m_iFindIndex];
+	}
+
+	m_iFindIndex = -1;
 	return NULL;
 }
 
@@ -598,11 +630,6 @@ CScene* CScene::GetScene()
 	return this;
 }
 
-RECT CScene::GetRect()
-{
-	return CNode::GetRect();
-}
-
 CGDIView* CScene::GetView()
 {
 	return m_pView;
@@ -612,13 +639,14 @@ void CScene::SetView(CGDIView* view)
 {
 	assert(view != NULL);
 	m_pView=view;
-	m_rect=view->GetWndRect();
+	auto rect=view->GetWndRect();
 
 	float w,h;
-	w=(float)(m_rect.right-m_rect.left);
-	h=(float)(m_rect.bottom-m_rect.top);
+	w = (float)(rect.right - rect.left);
+	h=(float)(rect.bottom- rect.top);
 	SetSize(w, h);
 	SetPos(w/2.0f, h/2.0f);
+	SetRect(rect);
 }
 
 CDirector* CScene::GetDirector()
@@ -718,18 +746,19 @@ CShadowScene::CShadowScene(int shadowSize):m_iShadowSize(shadowSize)
 void CShadowScene::SetView(CGDIView* view)
 {
 	//assert(dynamic_cast<CGDIViewAlpha* >(view) != NULL);
-
 	CScene::SetView(view);
-	m_rect.left += m_iShadowSize;
-	m_rect.top += m_iShadowSize;
-	m_rect.right -= m_iShadowSize;
-	m_rect.bottom -= m_iShadowSize;
 
-	float w,h;
-	w=GetSize().first - 2.0f*m_iShadowSize;
-	h=GetSize().second - 2.0f*m_iShadowSize;
+	auto rect = view->GetWndRect();
+	rect.left += m_iShadowSize;
+	rect.top += m_iShadowSize;
+	rect.right -= m_iShadowSize;
+	rect.bottom -= m_iShadowSize;
+
+	int w = rect.right - rect.left;
+	int h = rect.bottom - rect.top;
 	SetSize(w, h);
 	SetPos(w/2.0f, h/2.0f);
+	SetRect(rect);
 }
 
 void CShadowScene::DrawScene()

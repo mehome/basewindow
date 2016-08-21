@@ -83,6 +83,8 @@ public:
 	virtual void SortChild();
 	virtual CNode* GetChildByTag(int tag);
 	virtual CNode* GetChildByFinder(NodeFinder  func);
+	virtual CNode* FindFirstNode();
+	virtual CNode* FindNextNode();
 
 	virtual bool Init();
 	virtual bool Destroy();
@@ -115,6 +117,7 @@ private:
 	NodePair m_pairAnchor;
 	NodePair m_pairSize;
 	NodePair m_pairPos;
+	RECT m_rect;
 	NodePairInt m_pairMinSize;
 	NodePairInt m_pairMaxSize;
 	NodeSizePolicy m_sizePolicy;
@@ -125,8 +128,7 @@ private:
 	bool m_bMouseIN;
 	CNode* m_pCurrentNode;
 	std::vector<CNode* > m_Children;
-protected:
-	RECT m_rect;
+	int m_iFindIndex;
 };
 
 class CScene : public CNode
@@ -134,7 +136,6 @@ class CScene : public CNode
 public:
 	CScene();
 	CScene* GetScene();
-	RECT GetRect();
 	virtual CGDIView* GetView();
 	virtual void SetView(CGDIView*);
 	virtual CDirector* GetDirector();
@@ -155,18 +156,18 @@ public:
 	void ClearScene();
 	void SwapScene();
 	virtual void DrawShadow();
-protected:
+private:
 	int m_iShadowSize;
 };
 
-class CDirector
+class CDirector  
 {
 public:
 	explicit CDirector(CGDIView* view);
 	virtual ~CDirector();
 	virtual void RunScene(CScene* scene);
 	virtual LRESULT MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
-protected:
+private:
 	CGDIView* m_pCurrentView;
 	CScene*   m_pCurrentScene;
 };
