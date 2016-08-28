@@ -2,22 +2,27 @@
 #include <WindowsX.h>
 #pragma comment(lib, "msimg32.lib")
 
-CNode::CNode(CNode* pParent):m_bInitialized(false),
-	m_bNeedUpdate(true),
+CNode::CNode(CNode* pParent) :
+	m_bNeedInit(true),
+	m_bNeedUpdateRect(true),
+	m_bNeedSortChild(false),
 	m_bVisible(true),
 	m_iData(0),
 	m_iTag(0),
 	m_iZOrder(0),
 	m_iNCHitTest(HTCLIENT),
 	m_pParent(NULL),
-	m_pairAnchor(0.5f,0.5f),
+	m_pairAnchor(0.5f, 0.5f),
+	m_pairMinSize(1.0f, 1.0f),
+	m_pairMaxSize(5000.0f, 5000.0f),
+	m_sizePolicy(SizePolicyFixed),
 	m_bLBDown(false),
 	m_bRBDown(false),
 	m_bMouseIN(false),
 	m_pCurrentNode(NULL),
 	m_iFindIndex(-1)
 {
-	if(pParent)
+	if (pParent)
 	{
 		pParent->AddChild(this);
 	}
@@ -25,16 +30,16 @@ CNode::CNode(CNode* pParent):m_bInitialized(false),
 
 CNode::~CNode()
 {
-	if(m_pParent)
+	if (m_pParent)
 	{
 		m_pParent->RemoveChild(this, false);
 	}
 
 	CNode* pNode;
-	for(auto iter=m_Children.begin();iter!= m_Children.end();++iter)
+	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
-		pNode=*iter;
-		if(pNode)
+		pNode = *iter;
+		if (pNode)
 		{
 			pNode->SetParent(NULL);
 			delete pNode;
@@ -45,20 +50,24 @@ CNode::~CNode()
 
 CNode::CNode(CNode&& rr)
 {
-	m_bInitialized = rr.m_bInitialized;
-	m_bNeedUpdate = rr.m_bNeedUpdate;
+	m_bNeedInit = rr.m_bNeedInit;
+	m_bNeedUpdateRect = rr.m_bNeedUpdateRect;
+	m_bNeedSortChild = rr.m_bNeedSortChild;
 	m_bVisible = rr.m_bVisible;
 	m_iData = rr.m_iData;
 	m_iTag = rr.m_iTag;
 	m_iZOrder = rr.m_iZOrder;
 	m_iNCHitTest = rr.m_iNCHitTest;
-	m_pParent = rr.m_pParent; 
-	rr.m_pParent=NULL;
+	m_pParent = rr.m_pParent;
+	rr.m_pParent = NULL;
 	m_rect = rr.m_rect;
 	m_pairAnchor = rr.m_pairAnchor;
 	m_pairSize = rr.m_pairSize;
 	m_pairPos = rr.m_pairPos;
 	m_Children = std::move(rr.m_Children);
+	m_pairMaxSize = rr.m_pairMaxSize;
+	m_pairMinSize = rr.m_pairMinSize;
+	m_sizePolicy = rr.m_sizePolicy;
 
 	m_pointLast = rr.m_pointLast;
 	m_bLBDown = rr.m_bLBDown;
@@ -67,14 +76,9 @@ CNode::CNode(CNode&& rr)
 	m_pCurrentNode = rr.m_pCurrentNode;
 }
 
-bool CNode::IsInitialized()const
-{
-	return m_bInitialized;
-}
-
 void CNode::SetVisible(bool b)
 {
-	m_bVisible=true;
+	m_bVisible = true;
 }
 
 bool CNode::IsVisible()const
@@ -84,7 +88,7 @@ bool CNode::IsVisible()const
 
 void CNode::SetData(int data)
 {
-	m_iData=data;
+	m_iData = data;
 }
 
 int  CNode::GetData()const
@@ -94,7 +98,7 @@ int  CNode::GetData()const
 
 void CNode::SetTag(int tag)
 {
-	m_iTag=tag;
+	m_iTag = tag;
 }
 
 int  CNode::GetTag()const
@@ -104,7 +108,13 @@ int  CNode::GetTag()const
 
 void CNode::SetZOrder(int order)
 {
-	m_iZOrder=order;
+	if (order != m_iZOrder)
+	{
+		m_iZOrder = order;
+		auto p = GetParent();
+		if (p)
+			p->NeedUpdate(UpdateFlagReSortchild);
+	}
 }
 
 int  CNode::GetZOrder()const
@@ -114,12 +124,12 @@ int  CNode::GetZOrder()const
 
 void CNode::SetNCHitTest(int value)
 {
-	m_iNCHitTest=value;
+	m_iNCHitTest = value;
 }
 
 int  CNode::GetNCHitTest()const
 {
-	if(m_pCurrentNode)
+	if (m_pCurrentNode)
 	{
 		return m_pCurrentNode->GetNCHitTest();
 	}
@@ -128,16 +138,16 @@ int  CNode::GetNCHitTest()const
 
 void CNode::SetRect(const RECT& rect)
 {
-	if(m_pParent)
+	if (m_pParent)
 	{
-		RECT r=m_pParent->GetRect();
-		int w=rect.right - rect.left;
-		int h=rect.bottom - rect.top;
-		m_pairPos.first = rect.left - r.left + w/2.0f;
-		m_pairPos.second = rect.top - r.top + h/2.0f;
+		RECT r = m_pParent->GetRect();
+		int w = rect.right - rect.left;
+		int h = rect.bottom - rect.top;
+		m_pairPos.first = rect.left - r.left + w / 2.0f;
+		m_pairPos.second = rect.top - r.top + h / 2.0f;
 		m_pairSize.first = w*1.0f;
 		m_pairSize.second = h*1.0f;
-		NeedUpdate();
+		NeedUpdate(UpdateFlagReSize);
 	}
 	else
 		m_rect = rect;
@@ -145,20 +155,20 @@ void CNode::SetRect(const RECT& rect)
 
 RECT CNode::GetRect()
 {
-	if(m_bNeedUpdate)
+	if (m_bNeedUpdateRect)
 	{
-		m_bNeedUpdate=false;
-		if(m_pParent)
+		m_bNeedUpdateRect = false;
+		if (m_pParent)
 		{
-			RECT r= m_pParent->GetRect();
-			float fx=r.left + m_pairPos.first;
-			float fy=r.top + m_pairPos.second;
+			RECT r = m_pParent->GetRect();
+			float fx = r.left + m_pairPos.first;
+			float fy = r.top + m_pairPos.second;
 			fx -= m_pairSize.first * m_pairAnchor.first;
 			fy -= m_pairSize.second * m_pairAnchor.second;
 
 			m_rect.left = static_cast<int>(fx + 0.5f);
 			m_rect.top = static_cast<int>(fy + 0.5f);
-			m_rect.right= static_cast<int>(fx + m_pairSize.first + 0.5f);
+			m_rect.right = static_cast<int>(fx + m_pairSize.first + 0.5f);
 			m_rect.bottom = static_cast<int>(fy + m_pairSize.second + 0.5f);
 		}
 	}
@@ -167,7 +177,7 @@ RECT CNode::GetRect()
 
 void CNode::SetParent(CNode* p)
 {
-	m_pParent=p;
+	m_pParent = p;
 }
 
 CNode* CNode::GetParent()const
@@ -193,12 +203,9 @@ void CNode::ChangeParent(CNode* pNew)
 
 void CNode::SetAnchor(float x, float y)
 {
-	if(m_pairAnchor.first != x || m_pairAnchor.second != y)
-	{
-		m_pairAnchor.first =x;
-		m_pairAnchor.second=y;
-		NeedUpdate();
-	}
+	m_pairAnchor.first = x;
+	m_pairAnchor.second = y;
+	NeedUpdate(UpdateFlagReLocation);
 }
 
 NodePair CNode::GetAnchor()const
@@ -208,9 +215,11 @@ NodePair CNode::GetAnchor()const
 
 void CNode::SetSize(float w, float h)
 {
-	m_pairSize.first =w;
-	m_pairSize.second=h;
-	NeedUpdate();
+	if (w<m_pairMinSize.first || w>m_pairMaxSize.first || h<m_pairMinSize.second || h>m_pairMaxSize.second)
+		return;
+	m_pairSize.first = w;
+	m_pairSize.second = h;
+	NeedUpdate(UpdateFlagReSize);
 }
 
 void CNode::SetSize(int w, int h)
@@ -223,24 +232,68 @@ NodePair CNode::GetSize()const
 	return m_pairSize;
 }
 
-void CNode::SetMinSize(int x, int y)
+void CNode::SetMinSize(float x, float y)
 {
+	if (x < 1.0f || y < 1.0f || x>m_pairMaxSize.first || y>m_pairMaxSize.second)
+		return;
 	if (x == m_pairMinSize.first || y == m_pairMinSize.second)
 		return;
+	m_pairMinSize.first = x;
+	m_pairMinSize.second = y;
+
+	bool b1 = m_pairSize.first < x;
+	bool b2 = m_pairSize.second < y;
+	if (b1 && b2)
+	{
+		SetSize(x, y);
+	}
+	else if (b1)
+	{
+		SetSize(x, m_pairSize.second);
+	}
+	else if (b2)
+	{
+		SetSize(m_pairSize.second, y);
+	}
+
+	auto p = GetParent();
+	if (p)
+		p->NeedUpdate(UpdateFlagReLayout);
 }
 
-void CNode::SetMaxSize(int x, int y)
+void CNode::SetMaxSize(float x, float y)
 {
+	if (x < 1.0f || y < 1.0f || x < m_pairMinSize.first || y < m_pairMinSize.second)
+		return;
 	if (x == m_pairMaxSize.first || y == m_pairMaxSize.second)
 		return;
+	m_pairMaxSize.first = x;
+	m_pairMaxSize.second = y;
+
+	if (m_pairSize.first > x && m_pairSize.second > y)
+	{
+		SetSize(x, y);
+	}
+	else if (m_pairSize.first > x)
+	{
+		SetSize(x, m_pairSize.second);
+	}
+	else if (m_pairSize.second > y)
+	{
+		SetSize(m_pairSize.second, y);
+	}
+
+	auto p = GetParent();
+	if (p)
+		p->NeedUpdate(UpdateFlagReLayout);
 }
 
-NodePairInt CNode::GetMinSize()const
+NodePair CNode::GetMinSize()const
 {
 	return m_pairMinSize;
 }
 
-NodePairInt CNode::GetMaxSize()const
+NodePair CNode::GetMaxSize()const
 {
 	return m_pairMaxSize;
 }
@@ -250,9 +303,11 @@ void CNode::SetSizePolicy(NodeSizePolicy policy)
 	if (policy != m_sizePolicy)
 	{
 		m_sizePolicy = policy;
+		auto p = GetParent();
+		if (p)
+			p->NeedUpdate(UpdateFlagReLayout);
 	}
 }
-
 
 NodeSizePolicy CNode::GetSizePolicy()const
 {
@@ -261,9 +316,9 @@ NodeSizePolicy CNode::GetSizePolicy()const
 
 void CNode::SetPos(float px, float py)
 {
-	m_pairPos.first =px;
-	m_pairPos.second=py;
-	NeedUpdate();
+	m_pairPos.first = px;
+	m_pairPos.second = py;
+	NeedUpdate(UpdateFlagReLocation);
 }
 
 void CNode::SetPos(int x, int y)
@@ -276,29 +331,47 @@ NodePair CNode::GetPos()const
 	return m_pairSize;
 }
 
-void CNode::NeedUpdate()
+void CNode::NeedUpdate(NodeUpdateFlag flag)
 {
-	m_bNeedUpdate=true;
-	CNode* pNode;
-	for(auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
+	if (flag == UpdateFlagReSize)
 	{
-		pNode=*iter;
-		if(pNode)
-			pNode->NeedUpdate();
+		m_bNeedUpdateRect = true;
+
+		CNode* pNode;
+		for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
+		{
+			pNode = *iter;
+			if (pNode)
+				pNode->NeedUpdate(flag);
+		}
+	}
+	else if (flag == UpdateFlagReSortchild)
+	{
+		m_bNeedSortChild = true;
+	}
+	else if (flag == UpdateFlagClean)
+	{
+		m_bNeedSortChild = false;
+		m_bNeedUpdateRect = false;
+		m_bNeedInit = false;
 	}
 }
 
-bool CNode::IsUpdateNeeded()const
+bool CNode::IsNeedUpdateRect()const
 {
-	return m_bNeedUpdate;
+	return m_bNeedUpdateRect;
 }
 
 bool CNode::AddChild(CNode* pNode)
 {
-	if(pNode &&
-		(pNode->GetParent()==NULL || pNode->GetParent()==this) &&
-		std::find(m_Children.begin(), m_Children.end(), pNode)==m_Children.end())
+	if (pNode &&
+		(pNode->GetParent() == NULL || pNode->GetParent() == this) &&
+		std::find(m_Children.begin(), m_Children.end(), pNode) == m_Children.end())
 	{
+		if (!m_Children.empty() && m_Children.back()->GetZOrder() > pNode->GetZOrder())
+		{
+			NeedUpdate(UpdateFlagReSortchild);
+		}
 		m_Children.push_back(pNode);
 		pNode->SetParent(this);
 		return true;
@@ -309,7 +382,7 @@ bool CNode::AddChild(CNode* pNode)
 
 bool CNode::AddChild(CNode* pNode, int order)
 {
-	if(AddChild(pNode))
+	if (AddChild(pNode))
 	{
 		pNode->SetZOrder(order);
 		return true;
@@ -319,10 +392,10 @@ bool CNode::AddChild(CNode* pNode, int order)
 
 bool CNode::RemoveChild(CNode* pNode, bool bDelete)
 {
-	if(pNode && pNode->GetParent() == this)
+	if (pNode && pNode->GetParent() == this)
 	{
-		auto iter=std::find(m_Children.begin(), m_Children.end(), pNode);
-		if(iter != m_Children.end())
+		auto iter = std::find(m_Children.begin(), m_Children.end(), pNode);
+		if (iter != m_Children.end())
 		{
 			if (m_iFindIndex != -1)
 			{
@@ -332,7 +405,7 @@ bool CNode::RemoveChild(CNode* pNode, bool bDelete)
 			}
 
 			m_Children.erase(iter);
-			if(bDelete)
+			if (bDelete)
 			{
 				pNode->Destroy();
 				pNode->SetParent(NULL);
@@ -352,12 +425,12 @@ bool CNode::RemoveChildAll(bool bDelete)
 {
 	CNode* pNode;
 
-	if(bDelete)
+	if (bDelete)
 	{
-		for(auto iter=m_Children.begin();iter != m_Children.end();++iter)
+		for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 		{
-			pNode=*iter;
-			if(pNode)
+			pNode = *iter;
+			if (pNode)
 			{
 				pNode->Destroy();
 				pNode->SetParent(NULL);
@@ -367,36 +440,43 @@ bool CNode::RemoveChildAll(bool bDelete)
 	}
 	else
 	{
-		for(auto iter=m_Children.begin();iter != m_Children.end();++iter)
+		for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 		{
-			pNode=*iter;
-			if(pNode)
+			pNode = *iter;
+			if (pNode)
 				pNode->SetParent(NULL);
 		}
 	}
-	
+
 	m_Children.clear();
 	return true;
 }
 
 void CNode::SortChild()
 {
-	std::stable_sort(m_Children.begin(), m_Children.end(),[](CNode* one, CNode* two)->bool
+	if (!m_bNeedSortChild)
 	{
-		if(one && two)
+		return;
+	}
+
+	std::stable_sort(m_Children.begin(), m_Children.end(), [](CNode* one, CNode* two)->bool
+	{
+		if (one && two)
 			return one->GetZOrder() < two->GetZOrder();
 		else
 			return false;
 	});
+
+	m_bNeedSortChild = false;
 }
 
 CNode* CNode::GetChildByTag(int tag)
 {
 	CNode* pNode(NULL);
-	for(auto iter=m_Children.rbegin();iter != m_Children.rend();++iter)
+	for (auto iter = m_Children.rbegin(); iter != m_Children.rend(); ++iter)
 	{
-		pNode=*iter;
-		if(pNode && pNode->GetTag() == tag)
+		pNode = *iter;
+		if (pNode && pNode->GetTag() == tag)
 		{
 			return pNode;
 		}
@@ -427,7 +507,7 @@ CNode* CNode::FindFirstNode()
 
 CNode* CNode::FindNextNode()
 {
-	if (m_iFindIndex < m_Children.size() - 1)
+	if (m_iFindIndex < (int)m_Children.size() - 1)
 	{
 		++m_iFindIndex;
 		return m_Children[m_iFindIndex];
@@ -439,30 +519,34 @@ CNode* CNode::FindNextNode()
 
 bool CNode::Init()
 {
-	CNode* pNode;
-	for(auto iter=this->m_Children.begin() ; iter != m_Children.end() ; ++iter)
+	if (!m_bNeedInit)
 	{
-		pNode=*iter;
-		if(pNode && !pNode->IsInitialized())
+		return true;
+	}
+
+	CNode* pNode;
+	for (auto iter = this->m_Children.begin(); iter != m_Children.end(); ++iter)
+	{
+		pNode = *iter;
+		if (pNode)
 		{
 			pNode->Init();
 		}
 	}
 	SortChild();
-	m_bInitialized=true;
+	m_bNeedInit = false;
 	return true;
 }
 
 bool CNode::Destroy()
 {
 	CNode* pNode;
-	for(auto iter=m_Children.begin();iter!= m_Children.end();++iter)
+	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
-		pNode=*iter;
-		if(pNode)
+		pNode = *iter;
+		if (pNode)
 			pNode->Destroy();
 	}
-	m_bInitialized=false;
 
 	TRACE("destroy CNode\n");
 	return true;
@@ -471,11 +555,22 @@ bool CNode::Destroy()
 void CNode::DrawNode()
 {
 	CNode* pNode;
-	for(auto iter=m_Children.begin();iter != m_Children.end();++iter)
+
+	SortChild();
+	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
-		pNode=*iter;
-		if(pNode && pNode->IsVisible())
+		pNode = *iter;
+		if (pNode && pNode->IsVisible())
 			pNode->DrawNode();
+	}
+}
+
+void CNode::RefreshNode()
+{
+	auto p = GetView();
+	if (p)
+	{
+		p->Refresh();
 	}
 }
 
@@ -487,66 +582,66 @@ CScene* CNode::GetScene()
 
 CGDIView* CNode::GetView()
 {
-	CScene* pScene=GetScene();
+	CScene* pScene = GetScene();
 	return pScene ? pScene->GetView() : NULL;
 }
 
 CDirector* CNode::GetDirector()
 {
-	CScene* pScene=GetScene();
+	CScene* pScene = GetScene();
 	return pScene ? pScene->GetDirector() : NULL;
 }
 
 const std::wstring& CNode::GetNodeClassName()const
 {
-	static std::wstring name=L"CNode";
+	static std::wstring name = L"CNode";
 	return name;
 }
 
 void CNode::MouseEnter()
 {
 	TRACE1("MouseEnter:0x%x\n", this);
-	m_bMouseIN=true;
+	m_bMouseIN = true;
 }
 
 void CNode::MouseLeave()
 {
 	TRACE1("MouseLeave:0x%x\n", this);
-	m_bMouseIN=false;
+	m_bMouseIN = false;
 }
 
 void CNode::MouseTravel(POINT point, unsigned int flag)
 {
-	m_pointLast=point;
-	if(m_Children.empty())
+	m_pointLast = point;
+	if (m_Children.empty())
 	{
 		return;
 	}
-	
+
 	CNode* pNode(NULL);
-	auto iter=m_Children.rbegin();
-	for(;iter!= m_Children.rend();++iter)
+	auto iter = m_Children.rbegin();
+	for (; iter != m_Children.rend(); ++iter)
 	{
-		pNode=*iter;
-		if(pNode && pNode->IsPointINNode(point))
+		pNode = *iter;
+		if (pNode && pNode->IsPointINNode(point))
 		{
 			break;
 		}
 	}
-	if(iter == m_Children.rend())
+	if (iter == m_Children.rend())
 	{
-		pNode=NULL;
+		pNode = NULL;
 	}
 
-	if(pNode != m_pCurrentNode)
+	if (pNode != m_pCurrentNode)
 	{
-		if(m_pCurrentNode)
+		if (m_pCurrentNode)
 			m_pCurrentNode->MouseLeave();
-		m_pCurrentNode=pNode;
-		if(m_pCurrentNode)
+		m_pCurrentNode = pNode;
+		if (m_pCurrentNode)
 			m_pCurrentNode->MouseEnter();
 	}
-	else if(m_pCurrentNode)
+	else if (m_pCurrentNode)
 	{
 		m_pCurrentNode->MouseTravel(point, flag);
 	}
@@ -554,18 +649,18 @@ void CNode::MouseTravel(POINT point, unsigned int flag)
 
 void CNode::MouseDown(POINT point, unsigned int flag, bool l)
 {
-	if(l)
+	if (l)
 	{
-		m_bLBDown=true;
+		m_bLBDown = true;
 		TRACE1("MouseDown left:0x%x\n", this);
 	}
 	else
 	{
-		m_bRBDown=true;
+		m_bRBDown = true;
 		TRACE1("MouseDown right:0x%x\n", this);
 	}
 
-	if(m_pCurrentNode)
+	if (m_pCurrentNode)
 	{
 		m_pCurrentNode->MouseDown(point, flag, l);
 	}
@@ -573,18 +668,18 @@ void CNode::MouseDown(POINT point, unsigned int flag, bool l)
 
 void CNode::MouseUp(POINT point, unsigned int flag, bool l)
 {
-	if(l)
+	if (l)
 	{
-		m_bLBDown=false;
+		m_bLBDown = false;
 		TRACE1("MouseUp left:0x%x\n", this);
 	}
 	else
 	{
-		m_bRBDown=false;
+		m_bRBDown = false;
 		TRACE1("MouseUp right:0x%x\n", this);
 	}
 
-	if(m_pCurrentNode)
+	if (m_pCurrentNode)
 	{
 		m_pCurrentNode->MouseUp(point, flag, l);
 	}
@@ -620,8 +715,73 @@ CNode* CNode::GetCurrentNode()
 	return m_pCurrentNode;
 }
 
-CScene::CScene():m_pView(NULL),
-	m_pDir(NULL)
+
+CHLayout::CHLayout(CNode* parent) :
+	CNode(parent),
+	m_iMarginLeft(0),
+	m_iMarginTop(0),
+	m_iMarginRight(0),
+	m_iMariginBottom(0),
+	m_iSpaceing(1),
+	m_bNeedReLayout(true)
+{
+}
+
+void CHLayout::NeedUpdate(NodeUpdateFlag flag)
+{
+	if (flag == UpdateFlagReLayout)
+	{
+		m_bNeedReLayout = true;
+	}
+	else if (flag == UpdateFlagReSortchild)
+	{
+	}
+	else
+	{
+		CNode::NeedUpdate(flag);
+	}
+}
+
+RECT CHLayout::GetRect()
+{
+	auto rect = CNode::GetRect();
+	if (!m_bNeedReLayout)
+	{
+		return rect;
+	}
+	m_bNeedReLayout = false;
+
+	auto size = GetSize();
+
+
+	return rect;
+}
+
+void CHLayout::DrawNode()
+{
+	GetRect();
+	CNode::DrawNode();
+}
+
+void CHLayout::SetContentMargin(int l, int t, int r, int b)
+{
+	m_iMarginLeft = l;
+	m_iMarginTop = t;
+	m_iMarginRight = r;
+	m_iMariginBottom = b;
+	NeedUpdate(UpdateFlagReLayout);
+}
+
+void CHLayout::SetSpacing(int spacing)
+{
+	if (spacing < 0)
+		return;
+	m_iSpaceing = spacing;
+	NeedUpdate(UpdateFlagReLayout);
+}
+
+CScene::CScene() :m_pView(NULL),
+m_pDir(NULL)
 {
 }
 
@@ -638,14 +798,14 @@ CGDIView* CScene::GetView()
 void CScene::SetView(CGDIView* view)
 {
 	assert(view != NULL);
-	m_pView=view;
-	auto rect=view->GetWndRect();
+	m_pView = view;
+	auto rect = view->GetWndRect();
 
-	float w,h;
+	float w, h;
 	w = (float)(rect.right - rect.left);
-	h=(float)(rect.bottom- rect.top);
+	h = (float)(rect.bottom - rect.top);
 	SetSize(w, h);
-	SetPos(w/2.0f, h/2.0f);
+	SetPos(w / 2.0f, h / 2.0f);
 	SetRect(rect);
 }
 
@@ -657,14 +817,14 @@ CDirector* CScene::GetDirector()
 void CScene::SetDirector(CDirector* pDir)
 {
 	assert(pDir != NULL);
-	m_pDir=pDir;
+	m_pDir = pDir;
 }
 
 void CScene::DrawScene()
 {
 	TRACE("WM_PAINT\n");
 	assert(m_pView != NULL);
-	assert(m_pDir  != NULL);
+	assert(m_pDir != NULL);
 
 	m_pView->ClearBuffer();
 	DrawNode();
@@ -673,16 +833,16 @@ void CScene::DrawScene()
 
 LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
-	if( message >= WM_MOUSEFIRST && message <= WM_MOUSELAST)
+	if (message >= WM_MOUSEFIRST && message <= WM_MOUSELAST)
 	{
 		POINT po;
 		unsigned int flag;
 
-		po.x=GET_X_LPARAM(lParam);
-		po.y=GET_Y_LPARAM(lParam);
-		flag=wParam;
+		po.x = GET_X_LPARAM(lParam);
+		po.y = GET_Y_LPARAM(lParam);
+		flag = wParam;
 
-		switch(message)
+		switch (message)
 		{
 		case WM_MOUSEMOVE:
 			MouseTravel(po, flag);
@@ -707,10 +867,10 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 		goto End;
 	}
 
-	switch(message)
+	switch (message)
 	{
 	case WM_NCHITTEST:
-		bProcessed=true;
+		bProcessed = true;
 		return GetNCHitTest();
 		break;
 	case WM_PAINT:
@@ -725,21 +885,21 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 		Destroy();
 		break;
 	case WM_NCMOUSEMOVE:
-		{
-			POINT po;
-			po.x=GET_X_LPARAM(lParam);
-			po.y=GET_Y_LPARAM(lParam);
-			ScreenToClient(GetView()->GetWnd(), &po);
-			MouseTravel(po, wParam);
-		}
-		break;
+	{
+		POINT po;
+		po.x = GET_X_LPARAM(lParam);
+		po.y = GET_Y_LPARAM(lParam);
+		ScreenToClient(GetView()->GetWnd(), &po);
+		MouseTravel(po, wParam);
 	}
-End:	
+	break;
+	}
+End:
 	GetView()->DoRefresh();
 	return 0;
 }
 
-CShadowScene::CShadowScene(int shadowSize):m_iShadowSize(shadowSize)
+CShadowScene::CShadowScene(int shadowSize) :m_iShadowSize(shadowSize)
 {
 }
 
@@ -757,7 +917,7 @@ void CShadowScene::SetView(CGDIView* view)
 	int w = rect.right - rect.left;
 	int h = rect.bottom - rect.top;
 	SetSize(w, h);
-	SetPos(w/2.0f, h/2.0f);
+	SetPos(w / 2.0f, h / 2.0f);
 	SetRect(rect);
 }
 
@@ -771,10 +931,10 @@ void CShadowScene::DrawScene()
 
 void CShadowScene::ClearScene()
 {
-	auto pView=GetView();
-	auto pData=pView->GetBitmapData();
-	auto rect=pView->GetScreenRect();
-	memset(pData, 255, (rect.right-rect.left)*(rect.bottom-rect.top)*4);
+	auto pView = GetView();
+	auto pData = pView->GetBitmapData();
+	auto rect = pView->GetScreenRect();
+	memset(pData, 255, (rect.right - rect.left)*(rect.bottom - rect.top) * 4);
 }
 
 void CShadowScene::SwapScene()
@@ -783,19 +943,19 @@ void CShadowScene::SwapScene()
 	int j, i;
 	int w, h, sw, sh;
 
-	auto pView=GetView();
-	auto rect1=pView->GetScreenRect();
-	auto rect2=pView->GetWndRect();
-	auto pData=pView->GetBitmapData();
+	auto pView = GetView();
+	auto rect1 = pView->GetScreenRect();
+	auto rect2 = pView->GetWndRect();
+	auto pData = pView->GetBitmapData();
 
 	sw = rect1.right - rect1.left;
 	sh = rect1.bottom - rect1.top;
-	w=m_iShadowSize + (int)GetSize().first;
-	h=m_iShadowSize + (int)GetSize().second;
+	w = m_iShadowSize + (int)GetSize().first;
+	h = m_iShadowSize + (int)GetSize().second;
 
 	for (j = m_iShadowSize; j < h; ++j)
 	{
-		p1 = pData + (sh-1-j) * sw * 4;
+		p1 = pData + (sh - 1 - j) * sw * 4;
 		for (i = m_iShadowSize; i < w; ++i)
 		{
 			p2 = p1 + i * 4;
@@ -811,56 +971,56 @@ void CShadowScene::DrawShadow()
 	unsigned char *p1, *p2;
 	int j, i;
 	int w, h, sw, sh;
-	unsigned char a[4]={0};
+	unsigned char a[4] = { 0 };
 
-	auto pView=GetView();
-	auto rect1=pView->GetScreenRect();
-	auto rect2=pView->GetWndRect();
-	auto pData=pView->GetBitmapData();
+	auto pView = GetView();
+	auto rect1 = pView->GetScreenRect();
+	auto rect2 = pView->GetWndRect();
+	auto pData = pView->GetBitmapData();
 
 	sw = rect1.right - rect1.left;
 	sh = rect1.bottom - rect1.top;
-	w=rect2.right - rect2.left;
-	h=rect2.bottom - rect2.top;
+	w = rect2.right - rect2.left;
+	h = rect2.bottom - rect2.top;
 
-	for(j=0; j<m_iShadowSize; ++j)
+	for (j = 0; j < m_iShadowSize; ++j)
 	{
-		a[3]=(unsigned char)(10+j*100/m_iShadowSize);
+		a[3] = (unsigned char)(10 + j * 100 / m_iShadowSize);
 
-		p1=pData+(sh-1-j)*sw*4;
-		p2=pData+(sh-h+j)*sw*4;
-		for(i=j; i<w-j; ++i)
+		p1 = pData + (sh - 1 - j)*sw * 4;
+		p2 = pData + (sh - h + j)*sw * 4;
+		for (i = j; i < w - j; ++i)
 		{
 			// 上
-			memcpy(p1+i*4, a, 4);
+			memcpy(p1 + i * 4, a, 4);
 			// 下
-			memcpy(p2+i*4, a, 4);
+			memcpy(p2 + i * 4, a, 4);
 		}
 
-		for(i=j; i<h-j; ++i)
+		for (i = j; i < h - j; ++i)
 		{
-			p1=pData+(sh-1-i)*sw*4;
+			p1 = pData + (sh - 1 - i)*sw * 4;
 			// 左
-			memcpy(p1 + j*4, a, 4);
+			memcpy(p1 + j * 4, a, 4);
 			// 右
-			memcpy(p1 + (w-1-j)*4, a, 4);
+			memcpy(p1 + (w - 1 - j) * 4, a, 4);
 		}
 	}
 }
 
-CDirector::CDirector(CGDIView* view):m_pCurrentView(view),
-	m_pCurrentScene(NULL)
+CDirector::CDirector(CGDIView* view) :m_pCurrentView(view),
+m_pCurrentScene(NULL)
 {
 }
 
 CDirector::~CDirector()
 {
-	if(m_pCurrentScene)
+	if (m_pCurrentScene)
 	{
 		delete m_pCurrentScene;
 	}
 
-	if(m_pCurrentView)
+	if (m_pCurrentView)
 	{
 		m_pCurrentView->Clear();
 		delete m_pCurrentView;
@@ -869,7 +1029,7 @@ CDirector::~CDirector()
 
 void CDirector::RunScene(CScene* scene)
 {
-	if(!scene)
+	if (!scene)
 	{
 		assert(0 && "scene pointer is null");
 		return;
@@ -877,9 +1037,9 @@ void CDirector::RunScene(CScene* scene)
 
 	scene->SetView(m_pCurrentView);
 	scene->SetDirector(this);
-	if(scene->Init())
+	if (scene->Init())
 	{
-		m_pCurrentScene=scene;
+		m_pCurrentScene = scene;
 	}
 	else
 	{
@@ -891,25 +1051,25 @@ void CDirector::RunScene(CScene* scene)
 LRESULT CDirector::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
 	//assert(m_pCurrentScene != NULL);
-	auto res=m_pCurrentScene->MessageProc(message, wParam, lParam, bProcessed);
+	auto res = m_pCurrentScene->MessageProc(message, wParam, lParam, bProcessed);
 
 	return res;
 }
 
-CImageLayer::CImageLayer(CNode* pParent):CNode(pParent),
-	m_pData(NULL),
-	m_hDc(NULL),
-	m_hBitmap(NULL)
+CImageLayer::CImageLayer(CNode* pParent) :CNode(pParent),
+m_pData(NULL),
+m_hDc(NULL),
+m_hBitmap(NULL)
 {
 }
 
 CImageLayer::~CImageLayer()
 {
-	if(m_hBitmap)
+	if (m_hBitmap)
 	{
 		DeleteObject(m_hBitmap);
 	}
-	if(m_hDc)
+	if (m_hDc)
 	{
 		DeleteDC(m_hDc);
 	}
@@ -918,7 +1078,7 @@ CImageLayer::~CImageLayer()
 bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
 {
 	std::unique_ptr<Gdiplus::Bitmap> pBitmap(Gdiplus::Bitmap::FromFile(sFileName.c_str()));
-	if(pBitmap->GetLastStatus() != Gdiplus::Ok)
+	if (pBitmap->GetLastStatus() != Gdiplus::Ok)
 	{
 		return false;
 	}
@@ -929,10 +1089,10 @@ bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
 	Gdiplus::BitmapData data;
 	bool bRes;
 
-	if(size < 24)
+	if (size < 24)
 	{
-		format=PixelFormat24bppRGB;
-		size=24;
+		format = PixelFormat24bppRGB;
+		size = 24;
 	}
 	pBitmap->LockBits(&rect, Gdiplus::ImageLockModeRead | Gdiplus::ImageLockModeWrite, format, &data);
 	if (data.Stride > 0)
@@ -957,25 +1117,25 @@ bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
 
 bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize)
 {
-	assert(pData != NULL && h >0 && w >0 && bitcount >=24);
+	assert(pData != NULL && h > 0 && w > 0 && bitcount >= 24);
 
 	BITMAPINFO bi;
 	int stride;
 	HDC hRealDC;
 
-	if(GetScene() == NULL)
+	if (GetScene() == NULL)
 	{
-		hRealDC=GetDC(NULL);
+		hRealDC = GetDC(NULL);
 	}
 	else
 	{
-		hRealDC=GetView()->GetRealDC();
+		hRealDC = GetView()->GetRealDC();
 	}
 
-	stride=w * bitcount /8;
-	if(stride % 4 != 0)
+	stride = w * bitcount / 8;
+	if (stride % 4 != 0)
 	{
-		stride=stride / 4 * 4 + 4;
+		stride = stride / 4 * 4 + 4;
 	}
 	memset(&m_Info, 0, sizeof(m_Info));
 	m_Info.biSize = sizeof(BITMAPINFOHEADER);
@@ -987,7 +1147,7 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 	m_Info.biSizeImage = h*stride;
 	bi.bmiHeader = m_Info;
 
-	if(m_hBitmap)
+	if (m_hBitmap)
 	{
 		DeleteObject(m_hBitmap);
 	}
@@ -997,7 +1157,7 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 	//	pData,
 	//	&bi,
 	//	DIB_RGB_COLORS);
-	m_hBitmap=CreateDIBSection(hRealDC,
+	m_hBitmap = CreateDIBSection(hRealDC,
 		&bi,
 		DIB_RGB_COLORS,
 		(void**)&m_pData,
@@ -1005,18 +1165,18 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 		0);
 	memcpy(m_pData, pData, m_Info.biSizeImage);
 
-	if(!m_hDc)
+	if (!m_hDc)
 	{
-		m_hDc=CreateCompatibleDC(hRealDC);
+		m_hDc = CreateCompatibleDC(hRealDC);
 	}
 	SelectObject(m_hDc, m_hBitmap);
 
-	if(bUseImageSizeAsNodeSize)
+	if (bUseImageSizeAsNodeSize)
 	{
 		SetSize(w, h);
 	}
 
-	if(GetScene() == NULL)
+	if (GetScene() == NULL)
 	{
 		ReleaseDC(NULL, hRealDC);
 	}
@@ -1026,15 +1186,15 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 
 bool CImageLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
-	unsigned char data[16*16*4];
+	unsigned char data[16 * 16 * 4];
 	unsigned char* p;
-	for(int i=0 ; i<16*16; ++i)
+	for (int i = 0; i < 16 * 16; ++i)
 	{
-		p=data+i*4;
-		*p=b;
-		*(p+1)=g;
-		*(p+2)=r;
-		*(p+3)=a;
+		p = data + i * 4;
+		*p = b;
+		*(p + 1) = g;
+		*(p + 2) = r;
+		*(p + 3) = a;
 	}
 
 	return CreateImageLayerByData(data, 16, 16, 32);
@@ -1042,7 +1202,7 @@ bool CImageLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsi
 
 void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity)
 {
-	if(!m_hBitmap)
+	if (!m_hBitmap)
 	{
 		return;
 	}
@@ -1088,20 +1248,20 @@ void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, in
 
 void CImageLayer::DrawNode()
 {
-	RECT r=GetRect();
-	DrawImage(r.left, r.top, r.right-r.left, r.bottom-r.top);
+	RECT r = GetRect();
+	DrawImage(r.left, r.top, r.right - r.left, r.bottom - r.top);
 }
 
 const std::wstring& CImageLayer::GetNodeClassName()const
 {
-	static std::wstring name=L"CImageLayer";
+	static std::wstring name = L"CImageLayer";
 	return name;
 }
 
-CTextLayer::CTextLayer(CNode* pParent):CNode(pParent),
-	m_hFont(NULL),
-	m_dwColor(RGB(1, 1, 1)),
-	m_dwAlignment(DT_CENTER | DT_SINGLELINE | DT_VCENTER)
+CTextLayer::CTextLayer(CNode* pParent) :CNode(pParent),
+m_hFont(NULL),
+m_dwColor(RGB(1, 1, 1)),
+m_dwAlignment(DT_CENTER | DT_SINGLELINE | DT_VCENTER)
 {
 	m_hFont = CreateFont(20, 0, 0, 0, FW_THIN, FALSE, FALSE, FALSE,
 		GB2312_CHARSET,
@@ -1114,7 +1274,7 @@ CTextLayer::CTextLayer(CNode* pParent):CNode(pParent),
 
 CTextLayer::~CTextLayer()
 {
-	if(m_hFont)
+	if (m_hFont)
 	{
 		DeleteObject(m_hFont);
 	}
@@ -1122,7 +1282,7 @@ CTextLayer::~CTextLayer()
 
 void CTextLayer::SetFont(const LOGFONT& f)
 {
-	if(m_hFont)
+	if (m_hFont)
 	{
 		DeleteObject(m_hFont);
 	}
@@ -1144,10 +1304,10 @@ void CTextLayer::SetFont(const LOGFONT& f)
 
 void CTextLayer::SetFont(HFONT h)
 {
-	if(h && h!=m_hFont)
+	if (h && h != m_hFont)
 	{
 		DeleteObject(m_hFont);
-		m_hFont=h;
+		m_hFont = h;
 	}
 }
 
@@ -1158,11 +1318,11 @@ HFONT CTextLayer::GetFont()
 
 void CTextLayer::SetTextColor(COLORREF color)
 {
-	if(color == RGB(0, 0, 0))
+	if (color == RGB(0, 0, 0))
 	{
-		color=RGB(1, 1, 1);
+		color = RGB(1, 1, 1);
 	}
-	m_dwColor=color;
+	m_dwColor = color;
 }
 
 COLORREF CTextLayer::GetTextColor()const
@@ -1172,7 +1332,7 @@ COLORREF CTextLayer::GetTextColor()const
 
 void CTextLayer::SetAlignment(DWORD align)
 {
-	m_dwAlignment=align;
+	m_dwAlignment = align;
 }
 
 DWORD CTextLayer::GetAlignment()const
@@ -1182,10 +1342,10 @@ DWORD CTextLayer::GetAlignment()const
 
 void CTextLayer::SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize)
 {
-	m_szText=sText;
-	if(bUseTextSizeAsNodeSize)
+	m_szText = sText;
+	if (bUseTextSizeAsNodeSize)
 	{
-		SIZE size=GetTextSize();
+		SIZE size = GetTextSize();
 		SetSize(size.cx, size.cy);
 	}
 }
@@ -1198,23 +1358,23 @@ const std::wstring& CTextLayer::GetText()const
 SIZE CTextLayer::GetTextSize()
 {
 	SIZE size;
-	HDC hMemDC=NULL;
+	HDC hMemDC = NULL;
 
-	if(GetScene())
+	if (GetScene())
 	{
-		hMemDC=GetView()->GetMemDC();
+		hMemDC = GetView()->GetMemDC();
 	}
 	else
 	{
-		hMemDC=GetDC(NULL);
+		hMemDC = GetDC(NULL);
 	}
 
 	SelectObject(hMemDC, m_hFont);
 	GetTextExtentPoint32(hMemDC, m_szText.c_str(), m_szText.length(), &size);
 
-	if(!GetScene())
+	if (!GetScene())
 	{
-		int res=ReleaseDC(NULL, hMemDC);
+		int res = ReleaseDC(NULL, hMemDC);
 		TRACE1("ReleaseDC res:%d", res);
 	}
 
@@ -1223,12 +1383,12 @@ SIZE CTextLayer::GetTextSize()
 
 void CTextLayer::DrawNode()
 {
-	HDC hMemDC=GetView()->GetMemDC();
-	RECT r=GetRect();
+	HDC hMemDC = GetView()->GetMemDC();
+	RECT r = GetRect();
 	::SetTextColor(hMemDC, m_dwColor);
 	SelectObject(hMemDC, m_hFont);
 
-	if(!m_szText.empty())
+	if (!m_szText.empty())
 	{
 		DrawText(hMemDC,
 			m_szText.c_str(),
@@ -1249,26 +1409,26 @@ void CTextLayer::DrawNode()
 	}
 }
 
-CStaticImageNode::CStaticImageNode(int showType, CNode* pParent):CNode(pParent),
-	m_presentType((PresentType)showType),
-	m_sw(1.0f),
-	m_sh(1.0f)
+CStaticImageNode::CStaticImageNode(int showType, CNode* pParent) :CNode(pParent),
+m_presentType((PresentType)showType),
+m_sw(1.0f),
+m_sh(1.0f)
 {
 }
 
 void CStaticImageNode::SetImageLayer(CImageLayer* pImage)
 {
-	CNode* pNode=GetChildByFinder([pImage](CNode* pNode)
+	CNode* pNode = GetChildByFinder([pImage](CNode* pNode)
 	{
 		return pNode->GetNodeClassName() == pImage->GetNodeClassName();
 	});
 
-	if(pNode != NULL)
+	if (pNode != NULL)
 	{
 		// 删除前一张图片
-		if(pNode != pImage)
+		if (pNode != pImage)
 			RemoveChild(pNode, true);
-		else if(!pNode->IsInitialized())
+		else
 			pNode->Init();
 	}
 	else
@@ -1276,88 +1436,88 @@ void CStaticImageNode::SetImageLayer(CImageLayer* pImage)
 		AddChild(pImage);
 		pImage->Init();
 	}
-	
-	auto size=GetSize();
-	m_sw=pImage->GetSize().first / size.first;
-	m_sh=pImage->GetSize().second / size.second;
-	if(m_presentType == PresentCenter)
-	{	
-		m_sw= m_sw > m_sh ? (1.0f>m_sw?1.0f:m_sw) : (1.0f>m_sh?1.0f:m_sh);
-		m_sh= m_sw;
-		pImage->SetSize(pImage->GetSize().first/m_sh, pImage->GetSize().second/m_sh);
+
+	auto size = GetSize();
+	m_sw = pImage->GetSize().first / size.first;
+	m_sh = pImage->GetSize().second / size.second;
+	if (m_presentType == PresentCenter)
+	{
+		m_sw = m_sw > m_sh ? (1.0f > m_sw ? 1.0f : m_sw) : (1.0f > m_sh ? 1.0f : m_sh);
+		m_sh = m_sw;
+		pImage->SetSize(pImage->GetSize().first / m_sh, pImage->GetSize().second / m_sh);
 	}
-	else if(m_presentType == PresentFillNode)
+	else if (m_presentType == PresentFillNode)
 	{
 		pImage->SetSize(size.first, size.second);
 	}
-	pImage->SetPos(size.first/2, size.second/2);
+	pImage->SetPos(size.first / 2, size.second / 2);
 	pImage->SetTag((int)this);
 }
 
 CImageLayer* CStaticImageNode::GetImageLayer()
 {
-	return dynamic_cast<CImageLayer* >(GetChildByTag((int)this));
+	return dynamic_cast<CImageLayer*>(GetChildByTag((int)this));
 }
 
-CButtonNode::CButtonNode(CNode* pParent):CTextLayer(pParent)
+CButtonNode::CButtonNode(CNode* pParent) :CTextLayer(pParent)
 {
-	m_bgNormal=Gdiplus::Color(255, 220, 220, 220);
-	m_bgHighLight=Gdiplus::Color(255, 240, 240, 240);
-	m_iBorderWidth=1;
-	m_borderNormal=Gdiplus::Color(255, 50, 50, 50);
-	m_borderHighLight=Gdiplus::Color(255, 80, 80, 80);
+	m_bgNormal = Gdiplus::Color(255, 220, 220, 220);
+	m_bgHighLight = Gdiplus::Color(255, 240, 240, 240);
+	m_iBorderWidth = 1;
+	m_borderNormal = Gdiplus::Color(255, 50, 50, 50);
+	m_borderHighLight = Gdiplus::Color(255, 80, 80, 80);
 }
 
 void CButtonNode::SetCallback(ButtonCallback ck)
 {
-	m_callback=ck;
+	m_callback = ck;
 }
 
 void CButtonNode::SetBgColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight)
 {
-	m_bgNormal=normal;
-	m_bgHighLight=highlight;
+	m_bgNormal = normal;
+	m_bgHighLight = highlight;
 }
 
 void CButtonNode::SetBorderColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight)
 {
-	m_borderNormal=normal;
-	m_borderHighLight=highlight;
+	m_borderNormal = normal;
+	m_borderHighLight = highlight;
 }
 
 void CButtonNode::SetBorderWidth(int width)
 {
-	m_iBorderWidth=width;
+	m_iBorderWidth = width;
 }
 
 void CButtonNode::DrawNode()
 {
-	RECT r=GetRect();
-	HDC hMemDC=GetView()->GetMemDC();
+	RECT r = GetRect();
+	HDC hMemDC = GetView()->GetMemDC();
 	Gdiplus::Graphics g(hMemDC);
 	Gdiplus::SolidBrush brush(IsMouseIN() ? m_bgHighLight : m_bgNormal);
 	Gdiplus::Pen pen((IsMouseIN() ? m_borderHighLight : m_borderNormal), (float)m_iBorderWidth);
 
-	g.FillRectangle(&brush, r.left, r.top,r.right-r.left, r.bottom-r.top);
+	g.FillRectangle(&brush, r.left, r.top, r.right - r.left, r.bottom - r.top);
 	CTextLayer::DrawNode();
-	g.DrawRectangle(&pen, r.left, r.top, r.right-r.left, r.bottom-r.top);
+	g.DrawRectangle(&pen, r.left, r.top, r.right - r.left, r.bottom - r.top);
 }
 
 void CButtonNode::MouseEnter()
 {
-	GetView()->Refresh();
+	RefreshNode();
 	CNode::MouseEnter();
 }
 
 void CButtonNode::MouseLeave()
 {
-	GetView()->Refresh();
+	RefreshNode();
 	CNode::MouseLeave();
 }
 
 void CButtonNode::MouseUp(POINT point, unsigned int flag, bool l)
 {
-	if(l && IsMouseIN() && m_callback)
+	if (l && IsMouseIN() && m_callback)
 	{
 		m_callback(this);
 	}

@@ -23,6 +23,15 @@ enum NodeSizePolicy
 	SizePolicyExpanding,
 };
 
+enum NodeUpdateFlag
+{
+	UpdateFlagClean,
+	UpdateFlagReSize,
+	UpdateFlagReLocation = 1,
+	UpdateFlagReSortchild,
+	UpdateFlagReLayout
+};
+
 class CNode
 {
 private:
@@ -30,11 +39,10 @@ private:
 	CNode& operator=(const CNode& r);
 	CNode& operator=(CNode&& rr);
 public:
-	explicit CNode(CNode* pParent=NULL);
+	explicit CNode(CNode* pParent = NULL);
 	CNode(CNode&& rr);
 	virtual ~CNode();
 
-	virtual bool IsInitialized()const;
 	virtual void SetVisible(bool b);
 	virtual bool IsVisible()const;
 
@@ -63,23 +71,24 @@ public:
 	virtual void SetSize(float w, float h);
 	virtual void SetSize(int w, int h);
 	virtual NodePair GetSize()const;
-	virtual void SetMinSize(int x, int y);
-	virtual void SetMaxSize(int x, int y);
-	virtual NodePairInt GetMinSize()const;
-	virtual NodePairInt GetMaxSize()const;
+	virtual void SetMinSize(float x, float y);
+	virtual void SetMaxSize(float x, float y);
+	virtual NodePair GetMinSize()const;
+	virtual NodePair GetMaxSize()const;
 	virtual void SetSizePolicy(NodeSizePolicy policy);
 	virtual NodeSizePolicy GetSizePolicy()const;
 
 	virtual void SetPos(float px, float py);
 	virtual void SetPos(int x, int y);
 	virtual NodePair GetPos()const;
-	virtual void NeedUpdate();
-	virtual bool IsUpdateNeeded()const;
+
+	virtual void NeedUpdate(NodeUpdateFlag flag);
+	virtual bool IsNeedUpdateRect()const;
 
 	virtual bool AddChild(CNode* pNode);
 	virtual bool AddChild(CNode* pNode, int order);
-	virtual bool RemoveChild(CNode* pNode, bool bDelete=true);
-	virtual bool RemoveChildAll(bool bDelete=true);
+	virtual bool RemoveChild(CNode* pNode, bool bDelete = true);
+	virtual bool RemoveChildAll(bool bDelete = true);
 	virtual void SortChild();
 	virtual CNode* GetChildByTag(int tag);
 	virtual CNode* GetChildByFinder(NodeFinder  func);
@@ -89,6 +98,7 @@ public:
 	virtual bool Init();
 	virtual bool Destroy();
 	virtual void DrawNode();
+	virtual void RefreshNode();
 	virtual CScene* GetScene();
 	virtual CGDIView* GetView();
 	virtual CDirector* GetDirector();
@@ -106,8 +116,9 @@ public:
 	virtual POINT GetLastPoint()const;
 	virtual CNode* GetCurrentNode();
 private:
-	bool m_bInitialized;
-	bool m_bNeedUpdate;
+	bool m_bNeedInit;
+	bool m_bNeedUpdateRect;
+	bool m_bNeedSortChild;
 	bool m_bVisible;
 	int m_iData;
 	int m_iTag;
@@ -118,8 +129,8 @@ private:
 	NodePair m_pairSize;
 	NodePair m_pairPos;
 	RECT m_rect;
-	NodePairInt m_pairMinSize;
-	NodePairInt m_pairMaxSize;
+	NodePair m_pairMinSize;
+	NodePair m_pairMaxSize;
 	NodeSizePolicy m_sizePolicy;
 
 	POINT m_pointLast;
@@ -129,6 +140,24 @@ private:
 	CNode* m_pCurrentNode;
 	std::vector<CNode* > m_Children;
 	int m_iFindIndex;
+};
+
+class CHLayout :public CNode
+{
+public:
+	explicit CHLayout(CNode* parent = NULL);
+	void NeedUpdate(NodeUpdateFlag flag);
+	RECT GetRect();
+	void DrawNode();
+	void SetContentMargin(int l, int t, int r, int b);
+	void SetSpacing(int spacing);
+private:
+	int m_iMarginLeft;
+	int m_iMarginTop;
+	int m_iMarginRight;
+	int m_iMariginBottom;
+	int m_iSpaceing;
+	bool m_bNeedReLayout;
 };
 
 class CScene : public CNode
@@ -150,7 +179,7 @@ private:
 class CShadowScene : public CScene
 {
 public:
-	explicit CShadowScene(int shadowSize=3);
+	explicit CShadowScene(int shadowSize = 3);
 	void SetView(CGDIView*);
 	void DrawScene();
 	void ClearScene();
@@ -160,7 +189,7 @@ private:
 	int m_iShadowSize;
 };
 
-class CDirector  
+class CDirector
 {
 public:
 	explicit CDirector(CGDIView* view);
@@ -175,12 +204,12 @@ private:
 class CImageLayer : public CNode
 {
 public:
-	explicit CImageLayer(CNode* pParent=NULL);
+	explicit CImageLayer(CNode* pParent = NULL);
 	~CImageLayer();
-	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize=true);
+	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
 	bool CreateImageLayerByFile(const std::wstring& sFileName);
-	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
-	virtual void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity=255);
+	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
+	virtual void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
 	void DrawNode();
 	const std::wstring& GetNodeClassName()const;
 	unsigned char* ImageData()const
@@ -201,7 +230,7 @@ protected:
 class CTextLayer : public CNode
 {
 public:
-	explicit CTextLayer(CNode* pParent=NULL);
+	explicit CTextLayer(CNode* pParent = NULL);
 	~CTextLayer();
 	void SetFont(const LOGFONT& f);
 	void SetFont(HFONT h);
@@ -210,7 +239,7 @@ public:
 	COLORREF GetTextColor()const;
 	void SetAlignment(DWORD align);
 	DWORD GetAlignment()const;
-	void SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize=false);
+	void SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize = false);
 	const std::wstring& GetText()const;
 	SIZE GetTextSize();
 	void DrawNode();
@@ -230,11 +259,11 @@ enum PresentType
 class CStaticImageNode : public CNode
 {
 public:
-	CStaticImageNode(int showType, CNode* pParent=NULL);
+	CStaticImageNode(int showType, CNode* pParent = NULL);
 	void SetImageLayer(CImageLayer* pLayer);
 	CImageLayer* GetImageLayer();
-	float GetImageScaleW(){return m_sw;}
-	float GetImageScaleH(){return m_sh;}
+	float GetImageScaleW() { return m_sw; }
+	float GetImageScaleH() { return m_sh; }
 protected:
 	PresentType m_presentType;
 	float m_sw;
@@ -245,7 +274,7 @@ typedef std::function<void(CNode*)> ButtonCallback;
 class CButtonNode : public CTextLayer
 {
 public:
-	explicit CButtonNode(CNode* pParent=NULL);
+	explicit CButtonNode(CNode* pParent = NULL);
 	void SetCallback(ButtonCallback ck);
 	void SetBgColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight);
 	void SetBorderColor(const Gdiplus::Color&normal, const Gdiplus::Color& highlight);

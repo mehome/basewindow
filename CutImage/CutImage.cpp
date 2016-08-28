@@ -126,7 +126,7 @@ void ClipRegion::DrawShadow()
 
 RECT ClipRegion::GetRect()
 {
-	if(IsUpdateNeeded())
+	if(IsNeedUpdateRect())
 	{
 		auto rect=CNode::GetRect();
 		CreateRect8();
@@ -448,7 +448,7 @@ void CCutImageScene::MouseTravel(POINT point, unsigned int flag)
 			rect_head.bottom -= n;
 		}
 		m_pHead->SetRect(rect_head);
-		GetView()->Refresh();
+		RefreshNode();
 	}
 	CScene::MouseTravel(point, flag);
 }
@@ -459,7 +459,7 @@ void CCutImageScene::MouseUp(POINT point, unsigned int flag, bool l)
 	if(l && pCurrentNode && pCurrentNode->GetTag() == TagHead)
 	{
 		UpdatePreviewImageNode();
-		GetView()->Refresh();
+		RefreshNode();
 	}
 	CScene::MouseUp(point, flag, l);
 }
