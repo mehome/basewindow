@@ -114,6 +114,7 @@ public:
 	virtual bool IsMouseIN()const;
 	virtual bool IsPointINNode(POINT point);
 	virtual POINT GetLastPoint()const;
+	virtual void SetLastPoint(POINT p);
 	virtual CNode* GetCurrentNode();
 private:
 	bool m_bNeedInit;

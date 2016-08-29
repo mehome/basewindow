@@ -710,6 +710,11 @@ POINT CNode::GetLastPoint()const
 	return m_pointLast;
 }
 
+void CNode::SetLastPoint(POINT p)
+{
+	m_pointLast=p;
+}
+
 CNode* CNode::GetCurrentNode()
 {
 	return m_pCurrentNode;
