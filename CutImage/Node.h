@@ -152,13 +152,17 @@ public:
 	void DrawNode();
 	void SetContentMargin(int l, int t, int r, int b);
 	void SetSpacing(int spacing);
+protected:
+	virtual void ReLayout();
 private:
 	int m_iMarginLeft;
 	int m_iMarginTop;
 	int m_iMarginRight;
-	int m_iMariginBottom;
-	int m_iSpaceing;
+	int m_iMarginBottom;
+	int m_iSpacing;
 	bool m_bNeedReLayout;
+	// 作为子控件使用
+	bool m_bUsedAsNode;
 };
 
 class CScene : public CNode

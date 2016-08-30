@@ -200,7 +200,6 @@ void CNode::ChangeParent(CNode* pNew)
 	}
 }
 
-
 void CNode::SetAnchor(float x, float y)
 {
 	m_pairAnchor.first = x;
@@ -353,7 +352,6 @@ void CNode::NeedUpdate(NodeUpdateFlag flag)
 	{
 		m_bNeedSortChild = false;
 		m_bNeedUpdateRect = false;
-		m_bNeedInit = false;
 	}
 }
 
@@ -726,10 +724,14 @@ CHLayout::CHLayout(CNode* parent) :
 	m_iMarginLeft(0),
 	m_iMarginTop(0),
 	m_iMarginRight(0),
-	m_iMariginBottom(0),
-	m_iSpaceing(1),
+	m_iMarginBottom(0),
+	m_iSpacing(1),
 	m_bNeedReLayout(true)
 {
+	if(parent)
+		m_bUsedAsNode=false;
+	else
+		m_bUsedAsNode=true;
 }
 
 void CHLayout::NeedUpdate(NodeUpdateFlag flag)
@@ -749,17 +751,42 @@ void CHLayout::NeedUpdate(NodeUpdateFlag flag)
 
 RECT CHLayout::GetRect()
 {
-	auto rect = CNode::GetRect();
+	RECT rect;
+	
+	CNode* parent=GetParent();
+
+	if(m_bUsedAsNode || !parent)
+	{
+		rect=CNode::GetRect();
+	}
+	else
+	{
+		rect=parent->GetRect();
+		SetRect(rect);
+		NeedUpdate(UpdateFlagClean);
+	}
+
 	if (!m_bNeedReLayout)
 	{
 		return rect;
 	}
 	m_bNeedReLayout = false;
-
-	auto size = GetSize();
-
+	
+	ReLayout();
 
 	return rect;
+}
+
+void CHLayout::ReLayout()
+{
+	CNode* pNode(NULL);
+	auto size=GetSize();
+	float w=size.first() - m_iMarginLeft - m_iMarginRight;
+	float h=size.second() - m_iMarginTop - m_iMarginBottom;
+
+	if(w<0) w=0;
+	if(h<0) h=0;
+
 }
 
 void CHLayout::DrawNode()
@@ -770,10 +797,12 @@ void CHLayout::DrawNode()
 
 void CHLayout::SetContentMargin(int l, int t, int r, int b)
 {
+	if(l<0 || t<0 || r<0 || b<0)
+		return;
 	m_iMarginLeft = l;
 	m_iMarginTop = t;
 	m_iMarginRight = r;
-	m_iMariginBottom = b;
+	m_iMarginBottom = b;
 	NeedUpdate(UpdateFlagReLayout);
 }
 
@@ -781,7 +810,7 @@ void CHLayout::SetSpacing(int spacing)
 {
 	if (spacing < 0)
 		return;
-	m_iSpaceing = spacing;
+	m_iSpacing = spacing;
 	NeedUpdate(UpdateFlagReLayout);
 }
 
@@ -809,8 +838,8 @@ void CScene::SetView(CGDIView* view)
 	float w, h;
 	w = (float)(rect.right - rect.left);
 	h = (float)(rect.bottom - rect.top);
-	SetSize(w, h);
-	SetPos(w / 2.0f, h / 2.0f);
+	//SetSize(w, h);
+	//SetPos(w / 2.0f, h / 2.0f);
 	SetRect(rect);
 }
 
