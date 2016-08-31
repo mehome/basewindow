@@ -15,6 +15,7 @@ class CNode;
 typedef std::pair<float, float> NodePair;
 typedef std::pair<int, int> NodePairInt;
 typedef std::function<bool(CNode*)> NodeFinder;
+typedef std::vector<CNode* > NodeChild;
 
 enum NodeSizePolicy
 {
@@ -70,17 +71,17 @@ public:
 
 	virtual void SetSize(float w, float h);
 	virtual void SetSize(int w, int h);
-	virtual NodePair GetSize()const;
+	virtual const NodePair& GetSize()const;
 	virtual void SetMinSize(float x, float y);
 	virtual void SetMaxSize(float x, float y);
-	virtual NodePair GetMinSize()const;
-	virtual NodePair GetMaxSize()const;
+	virtual const NodePair& GetMinSize()const;
+	virtual const NodePair& GetMaxSize()const;
 	virtual void SetSizePolicy(NodeSizePolicy policy);
 	virtual NodeSizePolicy GetSizePolicy()const;
 
 	virtual void SetPos(float px, float py);
 	virtual void SetPos(int x, int y);
-	virtual NodePair GetPos()const;
+	virtual const NodePair& GetPos()const;
 
 	virtual void NeedUpdate(NodeUpdateFlag flag);
 	virtual bool IsNeedUpdateRect()const;
@@ -94,6 +95,7 @@ public:
 	virtual CNode* GetChildByFinder(NodeFinder  func);
 	virtual CNode* FindFirstNode();
 	virtual CNode* FindNextNode();
+	const NodeChild& Child()const{return m_Children;}
 
 	virtual bool Init();
 	virtual bool Destroy();
@@ -139,7 +141,7 @@ private:
 	bool m_bRBDown;
 	bool m_bMouseIN;
 	CNode* m_pCurrentNode;
-	std::vector<CNode* > m_Children;
+	NodeChild m_Children;
 	int m_iFindIndex;
 };
 

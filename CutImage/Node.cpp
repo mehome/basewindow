@@ -226,7 +226,7 @@ void CNode::SetSize(int w, int h)
 	SetSize(1.0f*w, 1.0f*h);
 }
 
-NodePair CNode::GetSize()const
+const NodePair& CNode::GetSize()const
 {
 	return m_pairSize;
 }
@@ -287,12 +287,12 @@ void CNode::SetMaxSize(float x, float y)
 		p->NeedUpdate(UpdateFlagReLayout);
 }
 
-NodePair CNode::GetMinSize()const
+const NodePair& CNode::GetMinSize()const
 {
 	return m_pairMinSize;
 }
 
-NodePair CNode::GetMaxSize()const
+const NodePair& CNode::GetMaxSize()const
 {
 	return m_pairMaxSize;
 }
@@ -325,7 +325,7 @@ void CNode::SetPos(int x, int y)
 	SetPos(1.0f*x, 1.0f*y);
 }
 
-NodePair CNode::GetPos()const
+const NodePair& CNode::GetPos()const
 {
 	return m_pairSize;
 }
@@ -765,27 +765,63 @@ RECT CHLayout::GetRect()
 		SetRect(rect);
 		NeedUpdate(UpdateFlagClean);
 	}
-
 	if (!m_bNeedReLayout)
 	{
 		return rect;
 	}
 	m_bNeedReLayout = false;
-	
-	ReLayout();
-
+	if(!Child().empty()) ReLayout();
 	return rect;
 }
 
 void CHLayout::ReLayout()
 {
-	CNode* pNode(NULL);
+	auto& children=Child();
+	const int nodesize=children.size();
+	std::vector<float> nodes(nodesize);
+	float t;
+	float content(0);
+
 	auto size=GetSize();
-	float w=size.first() - m_iMarginLeft - m_iMarginRight;
-	float h=size.second() - m_iMarginTop - m_iMarginBottom;
+	float w=size.first - m_iMarginLeft - m_iMarginRight - m_iSpacing*(nodesize-1);
+	float h=size.second - m_iMarginTop - m_iMarginBottom;
 
 	if(w<0) w=0;
 	if(h<0) h=0;
+
+	for(int i=0; i<nodesize; ++i)
+	{
+		t=children[i]->GetSize().first;
+		if(t<1.0f)
+			t=1.0f;
+		nodes[i]=t;
+		content+=t;
+	}
+
+	float sum(0);
+	if(content < w)
+	{
+		std::vector<std::pair<int, float>> expanding,prefered,fixed;
+		float arrange=w-content;
+		for(int i=0; i<nodesize; ++i)
+		{
+			if(children[i]->GetSizePolicy() == SizePolicyFixed)
+				fixed.push_back(std::make_pair(i, children[i]->GetMaxSize().first-nodes[i]));
+			else if(children[i]->GetSizePolicy() == SizePolicyPrefered)
+				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().first-nodes[i]));
+			else if(children[i]->GetSizePolicy() == SizePolicyExpanding)
+				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().first-nodes[i]));
+		}
+		std::vector<std::pair<int, float>>& group=(!expanding.empty()?expanding:(!prefered.empty()?prefered:fixed));
+		if(!expanding.empty())
+		{
+			for(auto iter=group.begin(); iter!=group.end(); ++iter)
+			{
+				sum+=nodes[iter->first];
+			}
+
+		}
+	}
 
 }
 
