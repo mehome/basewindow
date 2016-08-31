@@ -147,10 +147,10 @@ void CNode::SetRect(const RECT& rect)
 		m_pairPos.second = rect.top - r.top + h / 2.0f;
 		m_pairSize.first = w*1.0f;
 		m_pairSize.second = h*1.0f;
-		NeedUpdate(UpdateFlagReSize);
 	}
 	else
 		m_rect = rect;
+	NeedUpdate(UpdateFlagReSize);
 }
 
 RECT CNode::GetRect()
@@ -710,7 +710,7 @@ POINT CNode::GetLastPoint()const
 
 void CNode::SetLastPoint(POINT p)
 {
-	m_pointLast=p;
+	m_pointLast = p;
 }
 
 CNode* CNode::GetCurrentNode()
@@ -728,15 +728,35 @@ CHLayout::CHLayout(CNode* parent) :
 	m_iSpacing(1),
 	m_bNeedReLayout(true)
 {
-	if(parent)
-		m_bUsedAsNode=false;
+	if (parent)
+		m_bUsedAsNode = false;
 	else
-		m_bUsedAsNode=true;
+		m_bUsedAsNode = true;
+}
+
+bool CHLayout::AddChild(CNode* pNode)
+{
+	bool bRes = CNode::AddChild(pNode);
+	if (bRes)
+	{
+		NeedUpdate(UpdateFlagReLayout);
+	}
+	return bRes;
+}
+
+bool CHLayout::RemoveChild(CNode* pNode, bool bDelete)
+{
+	bool bRes = CNode::RemoveChild(pNode, bDelete);
+	if (bRes && !Child().empty())
+	{
+		NeedUpdate(UpdateFlagReLayout);
+	}
+	return bRes;
 }
 
 void CHLayout::NeedUpdate(NodeUpdateFlag flag)
 {
-	if (flag == UpdateFlagReLayout)
+	if (flag == UpdateFlagReSize || flag == UpdateFlagReLayout)
 	{
 		m_bNeedReLayout = true;
 	}
@@ -752,16 +772,16 @@ void CHLayout::NeedUpdate(NodeUpdateFlag flag)
 RECT CHLayout::GetRect()
 {
 	RECT rect;
-	
-	CNode* parent=GetParent();
 
-	if(m_bUsedAsNode || !parent)
+	CNode* parent = GetParent();
+
+	if (m_bUsedAsNode || !parent)
 	{
-		rect=CNode::GetRect();
+		rect = CNode::GetRect();
 	}
 	else
 	{
-		rect=parent->GetRect();
+		rect = parent->GetRect();
 		SetRect(rect);
 		NeedUpdate(UpdateFlagClean);
 	}
@@ -770,59 +790,132 @@ RECT CHLayout::GetRect()
 		return rect;
 	}
 	m_bNeedReLayout = false;
-	if(!Child().empty()) ReLayout();
+	if (!Child().empty()) ReLayout();
 	return rect;
 }
 
 void CHLayout::ReLayout()
 {
-	auto& children=Child();
-	const int nodesize=children.size();
+	auto& children = Child();
+	const int nodesize = children.size();
 	std::vector<float> nodes(nodesize);
 	float t;
+	int i;
 	float content(0);
 
-	auto size=GetSize();
-	float w=size.first - m_iMarginLeft - m_iMarginRight - m_iSpacing*(nodesize-1);
-	float h=size.second - m_iMarginTop - m_iMarginBottom;
+	auto size = GetSize();
+	float w = size.first - m_iMarginLeft - m_iMarginRight - m_iSpacing*(nodesize - 1);
+	float h = size.second - m_iMarginTop - m_iMarginBottom;
 
-	if(w<0) w=0;
-	if(h<0) h=0;
+	if (w < 0) w = 0;
+	if (h < 0) h = 0;
 
-	for(int i=0; i<nodesize; ++i)
+	for (i = 0; i < nodesize; ++i)
 	{
-		t=children[i]->GetSize().first;
-		if(t<1.0f)
-			t=1.0f;
-		nodes[i]=t;
-		content+=t;
+		t = children[i]->GetSize().first;
+		if (t < 0.5f)
+			t = 0.5f;
+		nodes[i] = t;
+		content += t;
 	}
 
 	float sum(0);
-	if(content < w)
+	if (content < w)
 	{
-		std::vector<std::pair<int, float>> expanding,prefered,fixed;
-		float arrange=w-content;
-		for(int i=0; i<nodesize; ++i)
+		std::list<std::pair<int, float>> expanding, prefered, fixed;
+		float arrange = w - content;
+		for (i = 0; i < nodesize; ++i)
 		{
-			if(children[i]->GetSizePolicy() == SizePolicyFixed)
-				fixed.push_back(std::make_pair(i, children[i]->GetMaxSize().first-nodes[i]));
-			else if(children[i]->GetSizePolicy() == SizePolicyPrefered)
-				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().first-nodes[i]));
-			else if(children[i]->GetSizePolicy() == SizePolicyExpanding)
-				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().first-nodes[i]));
+			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+				fixed.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
+			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
+			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
 		}
-		std::vector<std::pair<int, float>>& group=(!expanding.empty()?expanding:(!prefered.empty()?prefered:fixed));
-		if(!expanding.empty())
+		std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
+		while (!group.empty())
 		{
-			for(auto iter=group.begin(); iter!=group.end(); ++iter)
+			sum = 0;
+			for (auto iter = group.begin(); iter != group.end(); ++iter)
 			{
-				sum+=nodes[iter->first];
+				sum += nodes[iter->first];
 			}
-
+			for (auto iter = group.begin(); iter != group.end(); )
+			{
+				t = nodes[iter->first] / sum*arrange;
+				if (t < iter->second)
+				{
+					nodes[iter->first] += t;
+					arrange -= t;
+					++iter;
+				}
+				else
+				{
+					nodes[iter->first] += iter->second;
+					arrange -= iter->second;
+					iter = group.erase(iter);
+				}
+			}
+			if (arrange < 0.5f)
+				break;
+		}
+	}
+	else if (content > w)
+	{
+		std::list<std::pair<int, float>> expanding, prefered, fixed;
+		float arrange = content - w;
+		for (i = 0; i < nodesize; ++i)
+		{
+			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+				fixed.push_back(std::make_pair(i, nodes[i] - children[i]->GetMinSize().first));
+			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+				prefered.push_back(std::make_pair(i, nodes[i] - children[i]->GetMinSize().first));
+			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+				expanding.push_back(std::make_pair(i, nodes[i] - children[i]->GetMinSize().first));
+		}
+		std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
+		while (!group.empty())
+		{
+			sum = 0;
+			for (auto iter = group.begin(); iter != group.end(); ++iter)
+			{
+				sum += nodes[iter->first];
+			}
+			for (auto iter = group.begin(); iter != group.end(); )
+			{
+				t = nodes[iter->first] / sum*arrange;
+				if (t < iter->second)
+				{
+					nodes[iter->first] -= t;
+					arrange -= t;
+					++iter;
+				}
+				else
+				{
+					nodes[iter->first] -= iter->second;
+					arrange -= iter->second;
+					iter = group.erase(iter);
+				}
+			}
+			if (arrange < 0.5f)
+				break;
 		}
 	}
 
+	i = 0;
+	CNode* pNode = FindFirstNode();
+	float x = (float)m_iMarginLeft;
+	float y = (float)m_iMarginTop + h / 2.0f;
+	while (pNode)
+	{
+		pNode -> SetSize(nodes[i], h);
+		pNode->SetPos(x + nodes[i] / 2.0f, y);
+		pNode->NeedUpdate(UpdateFlagReLayout);
+		pNode = FindNextNode();
+		x += (nodes[i] + m_iSpacing);
+		++i;
+	}
 }
 
 void CHLayout::DrawNode()
@@ -833,7 +926,7 @@ void CHLayout::DrawNode()
 
 void CHLayout::SetContentMargin(int l, int t, int r, int b)
 {
-	if(l<0 || t<0 || r<0 || b<0)
+	if (l < 0 || t < 0 || r < 0 || b < 0)
 		return;
 	m_iMarginLeft = l;
 	m_iMarginTop = t;

@@ -1,11 +1,12 @@
 #pragma once
 #include <algorithm>
 #include <functional>
+#include <list>
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 #include <tuple>
+#include <vector>
 #include "View.h"
 
 class CDirector;
@@ -149,6 +150,8 @@ class CHLayout :public CNode
 {
 public:
 	explicit CHLayout(CNode* parent = NULL);
+	bool AddChild(CNode* pNode);
+	bool RemoveChild(CNode* pNode, bool bDelete);
 	void NeedUpdate(NodeUpdateFlag flag);
 	RECT GetRect();
 	void DrawNode();

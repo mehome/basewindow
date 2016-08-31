@@ -289,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -582,28 +582,28 @@ void CCutImageWindow::InitCutImage()
 	style &= ~WS_SIZEBOX;    // 禁止更改窗口大小, same as WS_THICKFRAME
 	style &= ~WS_MAXIMIZEBOX;
 	//style &= ~WS_MINIMIZEBOX;
-	SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
+	//SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
 
 	ReSize(600+6, 450+6, true);
 	//ReSize(50, 50, true);
 
-	RECT r;
-	HRGN hRgn;
-	GetClientRect(GetHWND(), &r);
-	GetWindowRect(GetHWND(), &r);
-	hRgn=CreateRoundRectRgn(0, 0, r.right-r.left, r.bottom-r.top, 5, 5); // 窗口圆角
-	SetWindowRgn(GetHWND(), hRgn, false);
-	DeleteObject(hRgn);
-
-	CGDIView* pView=new CGDIViewAlpha();
-	pView->Init(GetHWND());
-	m_pDir.reset(new CDirector(pView));
-	m_pDir->RunScene(new CCutImageScene());
+	//RECT r;
+	//HRGN hRgn;
+	//GetClientRect(GetHWND(), &r);
+	//GetWindowRect(GetHWND(), &r);
+	//hRgn=CreateRoundRectRgn(0, 0, r.right-r.left, r.bottom-r.top, 5, 5); // 窗口圆角
+	//SetWindowRgn(GetHWND(), hRgn, false);
+	//DeleteObject(hRgn);
 
 	//CGDIView* pView=new CGDIViewAlpha();
 	//pView->Init(GetHWND());
 	//m_pDir.reset(new CDirector(pView));
-	//m_pDir->RunScene(new CTestScene());
+	//m_pDir->RunScene(new CCutImageScene());
+
+	CGDIView* pView=new CGDIView();
+	pView->Init(GetHWND());
+	m_pDir.reset(new CDirector(pView));
+	m_pDir->RunScene(new CTestScene());
 }
 
 void CCutImageWindow::InitWeather()
@@ -634,12 +634,23 @@ void CCutImageWindow::InitWeather()
 
 bool CTestScene::Init()
 {
-
+	CHLayout* pMain = new CHLayout(this);
+	CButtonNode* p1 = new CButtonNode();
+	p1->SetText(L"sd");
+	p1->SetBgColor(Gdiplus::Color(255, 0, 0), Gdiplus::Color(200, 50, 50));
+	pMain->AddChild(p1);
+	CButtonNode* p2 = new CButtonNode();
+	p2->SetText(L"sc");
+	p2->SetBgColor(Gdiplus::Color(0, 255, 0), Gdiplus::Color(50, 200, 50));
+	pMain->AddChild(p2);
+	pMain->SetContentMargin(10, 20, 20, 30);
+	pMain->SetSpacing(10);
 	return CScene::Init();
 }
 
 void CTestScene::DrawNode()
 {
+	return CScene::DrawNode();
 	RECT r=GetRect();
 	HDC hMemDC=GetView()->GetMemDC();
 
