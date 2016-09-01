@@ -756,9 +756,14 @@ bool CHLayout::RemoveChild(CNode* pNode, bool bDelete)
 
 void CHLayout::NeedUpdate(NodeUpdateFlag flag)
 {
-	if (flag == UpdateFlagReSize || flag == UpdateFlagReLayout)
+	if (flag == UpdateFlagReLayout)
 	{
 		m_bNeedReLayout = true;
+	}
+	else if(flag == UpdateFlagReSize)
+	{
+		m_bNeedReLayout = true;
+		CNode::NeedUpdate(flag);
 	}
 	else if (flag == UpdateFlagReSortchild)
 	{
@@ -772,7 +777,6 @@ void CHLayout::NeedUpdate(NodeUpdateFlag flag)
 RECT CHLayout::GetRect()
 {
 	RECT rect;
-
 	CNode* parent = GetParent();
 
 	if (m_bUsedAsNode || !parent)
@@ -782,15 +786,12 @@ RECT CHLayout::GetRect()
 	else
 	{
 		rect = parent->GetRect();
-		SetRect(rect);
-		NeedUpdate(UpdateFlagClean);
+		if(IsNeedUpdateRect())
+		{
+			SetRect(rect);
+			NeedUpdate(UpdateFlagClean);
+		}
 	}
-	if (!m_bNeedReLayout)
-	{
-		return rect;
-	}
-	m_bNeedReLayout = false;
-	if (!Child().empty()) ReLayout();
 	return rect;
 }
 
@@ -819,11 +820,12 @@ void CHLayout::ReLayout()
 		content += t;
 	}
 
-	float sum(0);
+	std::list<std::pair<int, float>> expanding, prefered, fixed;
+	float sum, sum1;
+	float arrange;
+
 	if (content < w)
 	{
-		std::list<std::pair<int, float>> expanding, prefered, fixed;
-		float arrange = w - content;
 		for (i = 0; i < nodesize; ++i)
 		{
 			if (children[i]->GetSizePolicy() == SizePolicyFixed)
@@ -834,6 +836,7 @@ void CHLayout::ReLayout()
 				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
 		}
 		std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
+		arrange = w - content;
 		while (!group.empty())
 		{
 			sum = 0;
@@ -841,30 +844,30 @@ void CHLayout::ReLayout()
 			{
 				sum += nodes[iter->first];
 			}
+			sum1 = 0;
 			for (auto iter = group.begin(); iter != group.end(); )
 			{
 				t = nodes[iter->first] / sum*arrange;
 				if (t < iter->second)
 				{
 					nodes[iter->first] += t;
-					arrange -= t;
+					sum1 += t;
 					++iter;
 				}
 				else
 				{
 					nodes[iter->first] += iter->second;
-					arrange -= iter->second;
+					sum1 += iter->second;
 					iter = group.erase(iter);
 				}
 			}
+			arrange -= sum1;
 			if (arrange < 0.5f)
 				break;
 		}
 	}
 	else if (content > w)
 	{
-		std::list<std::pair<int, float>> expanding, prefered, fixed;
-		float arrange = content - w;
 		for (i = 0; i < nodesize; ++i)
 		{
 			if (children[i]->GetSizePolicy() == SizePolicyFixed)
@@ -875,6 +878,7 @@ void CHLayout::ReLayout()
 				expanding.push_back(std::make_pair(i, nodes[i] - children[i]->GetMinSize().first));
 		}
 		std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
+		arrange = content - w;
 		while (!group.empty())
 		{
 			sum = 0;
@@ -882,22 +886,24 @@ void CHLayout::ReLayout()
 			{
 				sum += nodes[iter->first];
 			}
+			sum1 = 0;
 			for (auto iter = group.begin(); iter != group.end(); )
 			{
 				t = nodes[iter->first] / sum*arrange;
 				if (t < iter->second)
 				{
 					nodes[iter->first] -= t;
-					arrange -= t;
+					sum1 += t;
 					++iter;
 				}
 				else
 				{
 					nodes[iter->first] -= iter->second;
-					arrange -= iter->second;
+					sum1 += iter->second;
 					iter = group.erase(iter);
 				}
 			}
+			arrange -= sum1;
 			if (arrange < 0.5f)
 				break;
 		}
@@ -910,8 +916,7 @@ void CHLayout::ReLayout()
 	while (pNode)
 	{
 		pNode -> SetSize(nodes[i], h);
-		pNode->SetPos(x + nodes[i] / 2.0f, y);
-		pNode->NeedUpdate(UpdateFlagReLayout);
+		pNode -> SetPos(x + nodes[i] / 2.0f, y);
 		pNode = FindNextNode();
 		x += (nodes[i] + m_iSpacing);
 		++i;
@@ -921,6 +926,12 @@ void CHLayout::ReLayout()
 void CHLayout::DrawNode()
 {
 	GetRect();
+	if(m_bNeedReLayout)
+	{
+		m_bNeedReLayout = false;
+		if (!Child().empty())
+			ReLayout();
+	}
 	CNode::DrawNode();
 }
 
@@ -943,8 +954,14 @@ void CHLayout::SetSpacing(int spacing)
 	NeedUpdate(UpdateFlagReLayout);
 }
 
-CScene::CScene() :m_pView(NULL),
-m_pDir(NULL)
+void CVLayout::ReLayout()
+{
+}
+
+CScene::CScene():
+	m_pView(NULL),
+	m_pDir(NULL),
+	m_bCustomNCHitTest(true)
 {
 }
 
@@ -985,13 +1002,20 @@ void CScene::SetDirector(CDirector* pDir)
 
 void CScene::DrawScene()
 {
-	TRACE("WM_PAINT\n");
+	//TRACE("WM_PAINT\n");
 	assert(m_pView != NULL);
 	assert(m_pDir != NULL);
 
 	m_pView->ClearBuffer();
 	DrawNode();
 	m_pView->SwapBuffer();
+}
+
+bool CScene::EnableCustomNCHitTest(bool value)
+{
+	bool oldvalue=m_bCustomNCHitTest;
+	m_bCustomNCHitTest=value;
+	return oldvalue;
 }
 
 LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
@@ -1033,11 +1057,20 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 	switch (message)
 	{
 	case WM_NCHITTEST:
+		if(m_bCustomNCHitTest)
+		{
+			bProcessed = true;
+			return GetNCHitTest();
+		}
+		break;
+	case WM_ERASEBKGND:
 		bProcessed = true;
-		return GetNCHitTest();
+		return 1;
 		break;
 	case WM_PAINT:
 		DrawScene();
+		break;
+	case WM_SIZING:
 		break;
 	case WM_SIZE:
 		// ¸üÐÂ´°¿Ú³ß´ç
@@ -1421,10 +1454,11 @@ const std::wstring& CImageLayer::GetNodeClassName()const
 	return name;
 }
 
-CTextLayer::CTextLayer(CNode* pParent) :CNode(pParent),
-m_hFont(NULL),
-m_dwColor(RGB(1, 1, 1)),
-m_dwAlignment(DT_CENTER | DT_SINGLELINE | DT_VCENTER)
+CTextLayer::CTextLayer(CNode* pParent) :
+	CNode(pParent),
+	m_hFont(NULL),
+	m_dwColor(RGB(1, 1, 1)),
+	m_dwAlignment(DT_CENTER | DT_SINGLELINE | DT_VCENTER)
 {
 	m_hFont = CreateFont(20, 0, 0, 0, FW_THIN, FALSE, FALSE, FALSE,
 		GB2312_CHARSET,

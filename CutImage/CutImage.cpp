@@ -289,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -581,7 +581,6 @@ void CCutImageWindow::InitCutImage()
 	style &= ~WS_CAPTION;    // 去除非客户区域
 	style &= ~WS_SIZEBOX;    // 禁止更改窗口大小, same as WS_THICKFRAME
 	style &= ~WS_MAXIMIZEBOX;
-	//style &= ~WS_MINIMIZEBOX;
 	//SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
 
 	ReSize(600+6, 450+6, true);
@@ -634,23 +633,35 @@ void CCutImageWindow::InitWeather()
 
 bool CTestScene::Init()
 {
+	EnableCustomNCHitTest(false);
+
 	CHLayout* pMain = new CHLayout(this);
 	CButtonNode* p1 = new CButtonNode();
 	p1->SetText(L"sd");
-	p1->SetBgColor(Gdiplus::Color(255, 0, 0), Gdiplus::Color(200, 50, 50));
+	p1->SetSizePolicy(SizePolicyExpanding);
 	pMain->AddChild(p1);
 	CButtonNode* p2 = new CButtonNode();
-	p2->SetText(L"sc");
-	p2->SetBgColor(Gdiplus::Color(0, 255, 0), Gdiplus::Color(50, 200, 50));
+	p2->SetText(L"sc", true);
 	pMain->AddChild(p2);
-	pMain->SetContentMargin(10, 20, 20, 30);
+	pMain->SetContentMargin(1, 20, 1, 30);
 	pMain->SetSpacing(10);
+
+	CButtonNode* p3=new CButtonNode();
+	p3->SetText(L"确定", true);
+	p3->SetPos(200, 200);
+	pMain->AddChild(p3);
+
+
 	return CScene::Init();
 }
 
 void CTestScene::DrawNode()
 {
-	return CScene::DrawNode();
+	{
+		CScene::DrawNode();
+		//TRACE1("interval %d\n", GetRect().right - Child()[0]->Child()[1]->GetRect().right);
+		return;
+	}
 	RECT r=GetRect();
 	HDC hMemDC=GetView()->GetMemDC();
 

@@ -170,6 +170,14 @@ private:
 	bool m_bUsedAsNode;
 };
 
+class CVLayout: public CHLayout
+{
+public:
+	explicit CVLayout(CNode* parent = NULL):CHLayout(parent) {}
+protected:
+	void ReLayout();
+};
+
 class CScene : public CNode
 {
 public:
@@ -181,9 +189,11 @@ public:
 	virtual void SetDirector(CDirector*);
 	virtual LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 	virtual void DrawScene();
+	virtual bool EnableCustomNCHitTest(bool value);
 private:
 	CGDIView*  m_pView;
 	CDirector* m_pDir;
+	bool m_bCustomNCHitTest;
 };
 
 class CShadowScene : public CScene
