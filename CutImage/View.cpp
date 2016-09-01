@@ -99,7 +99,7 @@ void CGDIView::ClearBuffer()
 
 void CGDIView::SwapBuffer()
 {
-	BitBlt(m_DC, 0, 0, m_rectWnd.right - m_rectWnd.left, m_rectWnd.bottom - m_rectWnd.top, m_MemDC, 0, 0, SRCCOPY);
+	BitBlt(m_DC, 0, 0, m_rectScreen.right - m_rectScreen.left, m_rectScreen.bottom - m_rectScreen.top, m_MemDC, 0, 0, SRCCOPY);
 }
 
 void CGDIView::Refresh()

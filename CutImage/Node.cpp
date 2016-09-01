@@ -1002,7 +1002,6 @@ void CScene::SetDirector(CDirector* pDir)
 
 void CScene::DrawScene()
 {
-	//TRACE("WM_PAINT\n");
 	assert(m_pView != NULL);
 	assert(m_pDir != NULL);
 
@@ -1018,6 +1017,7 @@ bool CScene::EnableCustomNCHitTest(bool value)
 	return oldvalue;
 }
 
+RECT rall;
 LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
 	if (message >= WM_MOUSEFIRST && message <= WM_MOUSELAST)
@@ -1068,11 +1068,30 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 		return 1;
 		break;
 	case WM_PAINT:
+		TRACE("WM_PAINT\n");
 		DrawScene();
 		break;
 	case WM_SIZING:
+	{
+		RECT rnow;
+		rnow = *(LPRECT)lParam;
+		int dw = (rnow.right - rnow.left) - (rall.right - rall.left);
+		int dh = (rnow.bottom - rnow.top) - (rall.bottom - rall.top);
+		rall = rnow;
+
+		if (dw != 0 || dh != 0)
+		{
+			rnow = GetRect();
+			rnow.right += dw;
+			rnow.bottom += dh;
+			SetRect(rnow);
+			DrawScene();
+		}
+	}
 		break;
 	case WM_SIZE:
+		TRACE("WM_size\n");
+		::GetWindowRect(GetView()->GetWnd(), &rall);
 		// ¸üÐÂ´°¿Ú³ß´ç
 		GetView()->WndRectChanged();
 		SetView(GetView());
@@ -1572,7 +1591,7 @@ SIZE CTextLayer::GetTextSize()
 	if (!GetScene())
 	{
 		int res = ReleaseDC(NULL, hMemDC);
-		TRACE1("ReleaseDC res:%d", res);
+		TRACE1("ReleaseDC res:%d\n", res);
 	}
 
 	return size;
@@ -1697,7 +1716,7 @@ void CButtonNode::DrawNode()
 
 	g.FillRectangle(&brush, r.left, r.top, r.right - r.left, r.bottom - r.top);
 	CTextLayer::DrawNode();
-	g.DrawRectangle(&pen, r.left, r.top, r.right - r.left, r.bottom - r.top);
+	//g.DrawRectangle(&pen, r.left, r.top, r.right - r.left, r.bottom - r.top);
 }
 
 void CButtonNode::MouseEnter()

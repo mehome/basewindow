@@ -289,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -659,12 +659,20 @@ void CTestScene::DrawNode()
 {
 	{
 		CScene::DrawNode();
-		//TRACE1("interval %d\n", GetRect().right - Child()[0]->Child()[1]->GetRect().right);
+		TRACE1("interval %d\n", GetRect().right - Child()[0]->Child()[1]->GetRect().right);
 		return;
 	}
 	RECT r=GetRect();
 	HDC hMemDC=GetView()->GetMemDC();
+	GetClientRect(GetView()->GetWnd(), &r);
+	r.right -= 0;
 
+	FillRect(hMemDC, &r, (HBRUSH)GetStockObject(DKGRAY_BRUSH));
+
+	r.right -= 1;
+	FillRect(hMemDC, &r, (HBRUSH)GetStockObject(LTGRAY_BRUSH));
+
+	return;
 	
 	int n=10;
 
