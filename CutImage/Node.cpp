@@ -984,8 +984,8 @@ void CScene::SetView(CGDIView* view)
 	float w, h;
 	w = (float)(rect.right - rect.left);
 	h = (float)(rect.bottom - rect.top);
-	//SetSize(w, h);
-	//SetPos(w / 2.0f, h / 2.0f);
+	SetSize(w, h);
+	SetPos(w / 2.0f, h / 2.0f);
 	SetRect(rect);
 }
 
@@ -1071,24 +1071,29 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 		TRACE("WM_PAINT\n");
 		DrawScene();
 		break;
-	case WM_SIZING:
-	{
-		RECT rnow;
-		rnow = *(LPRECT)lParam;
-		int dw = (rnow.right - rnow.left) - (rall.right - rall.left);
-		int dh = (rnow.bottom - rnow.top) - (rall.bottom - rall.top);
-		rall = rnow;
+	//case WM_SIZING:
+	//{
+	//	RECT rnow;
+	//	rnow = *(LPRECT)lParam;
+	//	int dw = (rnow.right - rnow.left) - (rall.right - rall.left);
+	//	int dh = (rnow.bottom - rnow.top) - (rall.bottom - rall.top);
+	//	rall = rnow;
 
-		if (dw != 0 || dh != 0)
-		{
-			rnow = GetRect();
-			rnow.right += dw;
-			rnow.bottom += dh;
-			SetRect(rnow);
-			DrawScene();
-		}
-	}
-		break;
+	//	if (dw != 0 || dh != 0)
+	//	{
+	//		rnow = GetRect();
+	//		rnow.right += dw;
+	//		rnow.bottom += dh;
+
+	//		GetView()->WndRectChanged(&rnow);
+	//		SetView(GetView());
+	//		PAINTSTRUCT ps;
+	//		BeginPaint(GetView()->GetWnd(), &ps);
+	//		DrawScene();
+	//		EndPaint(GetView()->GetWnd(), &ps);
+	//	}
+	//}
+	//	break;
 	case WM_SIZE:
 		TRACE("WM_size\n");
 		::GetWindowRect(GetView()->GetWnd(), &rall);
@@ -1716,7 +1721,7 @@ void CButtonNode::DrawNode()
 
 	g.FillRectangle(&brush, r.left, r.top, r.right - r.left, r.bottom - r.top);
 	CTextLayer::DrawNode();
-	//g.DrawRectangle(&pen, r.left, r.top, r.right - r.left, r.bottom - r.top);
+	g.DrawRectangle(&pen, r.left, r.top, r.right - r.left, r.bottom - r.top);
 }
 
 void CButtonNode::MouseEnter()

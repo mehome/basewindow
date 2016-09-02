@@ -289,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -643,7 +643,7 @@ bool CTestScene::Init()
 	CButtonNode* p2 = new CButtonNode();
 	p2->SetText(L"sc", true);
 	pMain->AddChild(p2);
-	pMain->SetContentMargin(1, 20, 1, 30);
+	pMain->SetContentMargin(1, 20, 5, 30);
 	pMain->SetSpacing(10);
 
 	CButtonNode* p3=new CButtonNode();
@@ -659,7 +659,7 @@ void CTestScene::DrawNode()
 {
 	{
 		CScene::DrawNode();
-		TRACE1("interval %d\n", GetRect().right - Child()[0]->Child()[1]->GetRect().right);
+		TRACE1("interval %d\n", GetRect().right - Child()[0]->Child()[2]->GetRect().right);
 		return;
 	}
 	RECT r=GetRect();

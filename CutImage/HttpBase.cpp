@@ -501,13 +501,14 @@ std::unique_ptr<JsonValue> JsonValue::FormatByUtf16String(const wchar_t *pJT)
 	if (!pJT)
 		return NULL;
 	int i, len, index(0);
-	wchar_t *pTig, wch;
+	wchar_t wch;
+	std::unique_ptr<wchar_t[]>pTig;
 	bool bEnterQuto(false);
 
 	len = wcslen(pJT);
 	if (len < 1)
 		return NULL;
-	pTig = new wchar_t[len];
+	pTig.reset(new wchar_t[len]);
 	for (i = 0; i < len; ++i)
 	{
 		wch = pJT[i];
@@ -520,7 +521,7 @@ std::unique_ptr<JsonValue> JsonValue::FormatByUtf16String(const wchar_t *pJT)
 	}
 	len = index;
 
-	return FormatObject(pTig, 0, len);
+	return FormatObject(pTig.get(), 0, len);
 }
 
 //[start,end),fit to all functions folllowing
@@ -761,6 +762,8 @@ JsonValue JsonValue::FormatNumber(const wchar_t *pNT, int start, int end)
 			if (bfloat)
 				return JsonValue();
 			bfloat = true;
+			wss << pNT[i];
+			continue;
 		}
 		//只接受十进制数字对应的字符
 		if (pNT[i] < L'0' || pNT[i] >L'9')
