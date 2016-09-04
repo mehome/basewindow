@@ -289,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -581,28 +581,28 @@ void CCutImageWindow::InitCutImage()
 	style &= ~WS_CAPTION;    // 去除非客户区域
 	style &= ~WS_SIZEBOX;    // 禁止更改窗口大小, same as WS_THICKFRAME
 	style &= ~WS_MAXIMIZEBOX;
-	//SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
+	SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
 
 	ReSize(600+6, 450+6, true);
 	//ReSize(50, 50, true);
 
-	//RECT r;
-	//HRGN hRgn;
-	//GetClientRect(GetHWND(), &r);
-	//GetWindowRect(GetHWND(), &r);
-	//hRgn=CreateRoundRectRgn(0, 0, r.right-r.left, r.bottom-r.top, 5, 5); // 窗口圆角
-	//SetWindowRgn(GetHWND(), hRgn, false);
-	//DeleteObject(hRgn);
+	RECT r;
+	HRGN hRgn;
+	GetClientRect(GetHWND(), &r);
+	GetWindowRect(GetHWND(), &r);
+	hRgn=CreateRoundRectRgn(0, 0, r.right-r.left, r.bottom-r.top, 5, 5); // 窗口圆角
+	SetWindowRgn(GetHWND(), hRgn, false);
+	DeleteObject(hRgn);
 
-	//CGDIView* pView=new CGDIViewAlpha();
-	//pView->Init(GetHWND());
-	//m_pDir.reset(new CDirector(pView));
-	//m_pDir->RunScene(new CCutImageScene());
-
-	CGDIView* pView=new CGDIView();
+	CGDIView* pView=new CGDIViewAlpha();
 	pView->Init(GetHWND());
 	m_pDir.reset(new CDirector(pView));
-	m_pDir->RunScene(new CTestScene());
+	m_pDir->RunScene(new CCutImageScene());
+
+	//CGDIView* pView=new CGDIView();
+	//pView->Init(GetHWND());
+	//m_pDir.reset(new CDirector(pView));
+	//m_pDir->RunScene(new CTestScene());
 }
 
 void CCutImageWindow::InitWeather()
@@ -636,10 +636,23 @@ bool CTestScene::Init()
 	EnableCustomNCHitTest(false);
 
 	CHLayout* pMain = new CHLayout(this);
-	CButtonNode* p1 = new CButtonNode();
-	p1->SetText(L"sd");
-	p1->SetSizePolicy(SizePolicyExpanding);
-	pMain->AddChild(p1);
+	{
+		//CButtonNode* p1 = new CButtonNode();
+		//p1->SetText(L"sd");
+		CVLayout* p1 = new CVLayout();
+		p1->SetSizePolicy(SizePolicyExpanding);
+		p1->SetSpacing(5);
+		pMain->AddChild(p1);
+
+		CButtonNode* p11 = new CButtonNode();
+		p11->SetText(L"11");
+		p1->AddChild(p11);
+
+		CButtonNode* p12 = new CButtonNode();
+		p12->SetText(L"12");
+		p1->AddChild(p12);
+	}
+
 	CButtonNode* p2 = new CButtonNode();
 	p2->SetText(L"sc", true);
 	pMain->AddChild(p2);
@@ -659,7 +672,6 @@ void CTestScene::DrawNode()
 {
 	{
 		CScene::DrawNode();
-		TRACE1("interval %d\n", GetRect().right - Child()[0]->Child()[2]->GetRect().right);
 		return;
 	}
 	RECT r=GetRect();

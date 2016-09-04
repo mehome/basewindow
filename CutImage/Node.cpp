@@ -138,18 +138,25 @@ int  CNode::GetNCHitTest()const
 
 void CNode::SetRect(const RECT& rect)
 {
+	int w = rect.right - rect.left;
+	int h = rect.bottom - rect.top;
+
+	m_pairSize.first = w*1.0f;
+	m_pairSize.second = h*1.0f;
+
 	if (m_pParent)
 	{
 		RECT r = m_pParent->GetRect();
-		int w = rect.right - rect.left;
-		int h = rect.bottom - rect.top;
 		m_pairPos.first = rect.left - r.left + w / 2.0f;
 		m_pairPos.second = rect.top - r.top + h / 2.0f;
-		m_pairSize.first = w*1.0f;
-		m_pairSize.second = h*1.0f;
 	}
 	else
+	{
 		m_rect = rect;
+		m_pairPos.first = w / 2.0f;
+		m_pairPos.second = h / 2.0f;
+	}
+
 	NeedUpdate(UpdateFlagReSize);
 }
 
@@ -474,7 +481,7 @@ CNode* CNode::GetChildByTag(int tag)
 	for (auto iter = m_Children.rbegin(); iter != m_Children.rend(); ++iter)
 	{
 		pNode = *iter;
-		if (pNode && pNode->GetTag() == tag)
+		if (pNode->GetTag() == tag)
 		{
 			return pNode;
 		}
@@ -558,7 +565,7 @@ void CNode::DrawNode()
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = *iter;
-		if (pNode && pNode->IsVisible())
+		if (pNode->IsVisible())
 			pNode->DrawNode();
 	}
 }
@@ -599,12 +606,30 @@ const std::wstring& CNode::GetNodeClassName()const
 void CNode::MouseEnter()
 {
 	TRACE1("MouseEnter:0x%x\n", this);
+
+	CNode* pNode;
+	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
+	{
+		pNode = *iter;
+		if (pNode->IsPointINNode(m_pointLast))
+		{
+			m_pCurrentNode = pNode;
+			m_pCurrentNode->SetLastPoint(m_pointLast);
+			m_pCurrentNode->MouseEnter();
+			break;
+		}
+	}
 	m_bMouseIN = true;
 }
 
 void CNode::MouseLeave()
 {
 	TRACE1("MouseLeave:0x%x\n", this);
+	if (m_pCurrentNode)
+	{
+		m_pCurrentNode->MouseLeave();
+		m_pCurrentNode = NULL;
+	}
 	m_bMouseIN = false;
 }
 
@@ -621,7 +646,7 @@ void CNode::MouseTravel(POINT point, unsigned int flag)
 	for (; iter != m_Children.rend(); ++iter)
 	{
 		pNode = *iter;
-		if (pNode && pNode->IsPointINNode(point))
+		if (pNode->IsPointINNode(point))
 		{
 			break;
 		}
@@ -637,7 +662,10 @@ void CNode::MouseTravel(POINT point, unsigned int flag)
 			m_pCurrentNode->MouseLeave();
 		m_pCurrentNode = pNode;
 		if (m_pCurrentNode)
+		{
+			m_pCurrentNode->SetLastPoint(point);
 			m_pCurrentNode->MouseEnter();
+		}
 	}
 	else if (m_pCurrentNode)
 	{
@@ -800,9 +828,8 @@ void CHLayout::ReLayout()
 	auto& children = Child();
 	const int nodesize = children.size();
 	std::vector<float> nodes(nodesize);
-	float t;
+	float content(0), t;
 	int i;
-	float content(0);
 
 	auto size = GetSize();
 	float w = size.first - m_iMarginLeft - m_iMarginRight - m_iSpacing*(nodesize - 1);
@@ -822,9 +849,9 @@ void CHLayout::ReLayout()
 
 	std::list<std::pair<int, float>> expanding, prefered, fixed;
 	float sum, sum1;
-	float arrange;
+	float arrange = w - content;
 
-	if (content < w)
+	if (arrange >0)
 	{
 		for (i = 0; i < nodesize; ++i)
 		{
@@ -835,78 +862,48 @@ void CHLayout::ReLayout()
 			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
 				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
 		}
-		std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
-		arrange = w - content;
-		while (!group.empty())
-		{
-			sum = 0;
-			for (auto iter = group.begin(); iter != group.end(); ++iter)
-			{
-				sum += nodes[iter->first];
-			}
-			sum1 = 0;
-			for (auto iter = group.begin(); iter != group.end(); )
-			{
-				t = nodes[iter->first] / sum*arrange;
-				if (t < iter->second)
-				{
-					nodes[iter->first] += t;
-					sum1 += t;
-					++iter;
-				}
-				else
-				{
-					nodes[iter->first] += iter->second;
-					sum1 += iter->second;
-					iter = group.erase(iter);
-				}
-			}
-			arrange -= sum1;
-			if (arrange < 0.5f)
-				break;
-		}
 	}
-	else if (content > w)
+	else if (arrange < 0)
 	{
 		for (i = 0; i < nodesize; ++i)
 		{
 			if (children[i]->GetSizePolicy() == SizePolicyFixed)
-				fixed.push_back(std::make_pair(i, nodes[i] - children[i]->GetMinSize().first));
+				fixed.push_back(std::make_pair(i, children[i]->GetMinSize().first - nodes[i]));
 			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
-				prefered.push_back(std::make_pair(i, nodes[i] - children[i]->GetMinSize().first));
+				prefered.push_back(std::make_pair(i, children[i]->GetMinSize().first - nodes[i]));
 			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
-				expanding.push_back(std::make_pair(i, nodes[i] - children[i]->GetMinSize().first));
+				expanding.push_back(std::make_pair(i, children[i]->GetMinSize().first - nodes[i]));
 		}
-		std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
-		arrange = content - w;
-		while (!group.empty())
+	}
+
+	std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
+	while (!group.empty())
+	{
+		sum = 0;
+		for (auto iter = group.begin(); iter != group.end(); ++iter)
 		{
-			sum = 0;
-			for (auto iter = group.begin(); iter != group.end(); ++iter)
-			{
-				sum += nodes[iter->first];
-			}
-			sum1 = 0;
-			for (auto iter = group.begin(); iter != group.end(); )
-			{
-				t = nodes[iter->first] / sum*arrange;
-				if (t < iter->second)
-				{
-					nodes[iter->first] -= t;
-					sum1 += t;
-					++iter;
-				}
-				else
-				{
-					nodes[iter->first] -= iter->second;
-					sum1 += iter->second;
-					iter = group.erase(iter);
-				}
-			}
-			arrange -= sum1;
-			if (arrange < 0.5f)
-				break;
+			sum += nodes[iter->first];
 		}
+		sum1 = 0;
+		for (auto iter = group.begin(); iter != group.end(); )
+		{
+			t = nodes[iter->first] / sum*arrange;
+			if (std::fabs(t) < std::fabs(iter->second))
+			{
+				nodes[iter->first] += t;
+				sum1 += t;
+				++iter;
+			}
+			else
+			{
+				nodes[iter->first] += iter->second;
+				sum1 += iter->second;
+				iter = group.erase(iter);
+			}
+		}
+		arrange -= sum1;
+		if (arrange < 0.5f &&arrange >-0.5f)
+			break;
 	}
 
 	i = 0;
@@ -956,6 +953,99 @@ void CHLayout::SetSpacing(int spacing)
 
 void CVLayout::ReLayout()
 {
+	auto& children = Child();
+	const int nodesize = children.size();
+	std::vector<float> nodes(nodesize);
+	float content(0), t;
+	int i;
+
+	auto size = GetSize();
+	float w = size.first - m_iMarginLeft - m_iMarginRight;
+	float h = size.second - m_iMarginTop - m_iMarginBottom - m_iSpacing*(nodesize - 1);
+
+	if (w < 0) w = 0;
+	if (h < 0) h = 0;
+
+	for (i = 0; i < nodesize; ++i)
+	{
+		t = children[i]->GetSize().second;
+		if (t < 0.5f)
+			t = 0.5f;
+		nodes[i] = t;
+		content += t;
+	}
+
+	std::list<std::pair<int, float>> expanding, prefered, fixed;
+	float sum, sum1;
+	float arrange = h - content;
+
+	if (arrange >0)
+	{
+		for (i = 0; i < nodesize; ++i)
+		{
+			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+				fixed.push_back(std::make_pair(i, children[i]->GetMaxSize().second - nodes[i]));
+			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().second - nodes[i]));
+			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().second - nodes[i]));
+		}
+	}
+	else if (arrange < 0)
+	{
+		for (i = 0; i < nodesize; ++i)
+		{
+			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+				fixed.push_back(std::make_pair(i, children[i]->GetMinSize().second - nodes[i]));
+			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+				prefered.push_back(std::make_pair(i, children[i]->GetMinSize().second - nodes[i]));
+			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+				expanding.push_back(std::make_pair(i, children[i]->GetMinSize().second - nodes[i]));
+		}
+	}
+
+	std::list<std::pair<int, float>>& group = (!expanding.empty() ? expanding : (!prefered.empty() ? prefered : fixed));
+	while (!group.empty())
+	{
+		sum = 0;
+		for (auto iter = group.begin(); iter != group.end(); ++iter)
+		{
+			sum += nodes[iter->first];
+		}
+		sum1 = 0;
+		for (auto iter = group.begin(); iter != group.end(); )
+		{
+			t = nodes[iter->first] / sum*arrange;
+			if (std::fabs(t) < std::fabs(iter->second))
+			{
+				nodes[iter->first] += t;
+				sum1 += t;
+				++iter;
+			}
+			else
+			{
+				nodes[iter->first] += iter->second;
+				sum1 += iter->second;
+				iter = group.erase(iter);
+			}
+		}
+		arrange -= sum1;
+		if (arrange < 0.5f &&arrange >-0.5f)
+			break;
+	}
+
+	i = 0;
+	CNode* pNode = FindFirstNode();
+	float x = (float)m_iMarginLeft + w / 2.0f;
+	float y = (float)m_iMarginTop;
+	while (pNode)
+	{
+		pNode->SetSize(w, nodes[i]);
+		pNode->SetPos(x, y + nodes[i] / 2.0f);
+		pNode = FindNextNode();
+		y += (nodes[i] + m_iSpacing);
+		++i;
+	}
 }
 
 CScene::CScene():
@@ -981,11 +1071,6 @@ void CScene::SetView(CGDIView* view)
 	m_pView = view;
 	auto rect = view->GetWndRect();
 
-	float w, h;
-	w = (float)(rect.right - rect.left);
-	h = (float)(rect.bottom - rect.top);
-	SetSize(w, h);
-	SetPos(w / 2.0f, h / 2.0f);
 	SetRect(rect);
 }
 
@@ -1071,29 +1156,6 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 		TRACE("WM_PAINT\n");
 		DrawScene();
 		break;
-	//case WM_SIZING:
-	//{
-	//	RECT rnow;
-	//	rnow = *(LPRECT)lParam;
-	//	int dw = (rnow.right - rnow.left) - (rall.right - rall.left);
-	//	int dh = (rnow.bottom - rnow.top) - (rall.bottom - rall.top);
-	//	rall = rnow;
-
-	//	if (dw != 0 || dh != 0)
-	//	{
-	//		rnow = GetRect();
-	//		rnow.right += dw;
-	//		rnow.bottom += dh;
-
-	//		GetView()->WndRectChanged(&rnow);
-	//		SetView(GetView());
-	//		PAINTSTRUCT ps;
-	//		BeginPaint(GetView()->GetWnd(), &ps);
-	//		DrawScene();
-	//		EndPaint(GetView()->GetWnd(), &ps);
-	//	}
-	//}
-	//	break;
 	case WM_SIZE:
 		TRACE("WM_size\n");
 		::GetWindowRect(GetView()->GetWnd(), &rall);
@@ -1134,10 +1196,6 @@ void CShadowScene::SetView(CGDIView* view)
 	rect.right -= m_iShadowSize;
 	rect.bottom -= m_iShadowSize;
 
-	int w = rect.right - rect.left;
-	int h = rect.bottom - rect.top;
-	SetSize(w, h);
-	SetPos(w / 2.0f, h / 2.0f);
 	SetRect(rect);
 }
 
@@ -1539,10 +1597,6 @@ HFONT CTextLayer::GetFont()
 
 void CTextLayer::SetTextColor(COLORREF color)
 {
-	if (color == RGB(0, 0, 0))
-	{
-		color = RGB(1, 1, 1);
-	}
 	m_dwColor = color;
 }
 

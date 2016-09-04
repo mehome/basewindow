@@ -159,14 +159,13 @@ public:
 	void SetSpacing(int spacing);
 protected:
 	virtual void ReLayout();
-private:
 	int m_iMarginLeft;
 	int m_iMarginTop;
 	int m_iMarginRight;
 	int m_iMarginBottom;
 	int m_iSpacing;
+private:
 	bool m_bNeedReLayout;
-	// 作为子控件使用
 	bool m_bUsedAsNode;
 };
 
