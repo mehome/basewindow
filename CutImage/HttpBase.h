@@ -93,34 +93,34 @@ struct JsonValue
 	{
 	}
 
-	JsonValue(const wchar_t *pSZ) :type_(JVString)
+	explicit JsonValue(const wchar_t *pSZ) :type_(JVString)
 	{
 		value_.szValue_ = new std::wstring(pSZ);
 	}
 
-	JsonValue(bool b) :type_(JVBoolean)
+	explicit JsonValue(bool b) :type_(JVBoolean)
 	{
 		value_.bValue_ = b ? 1 : 0;
 	}
 
-	JsonValue(int n) :type_(JVInt)
+	explicit JsonValue(int n) :type_(JVInt)
 	{
 		value_.iValue_ = n;
 	}
 
-	JsonValue(float f) :type_(JVFloat)
+	explicit JsonValue(float f) :type_(JVFloat)
 	{
 		value_.fValue_ = f;
+	}
+
+	explicit JsonValue(JVType t) :type_(t)
+	{
+		Init();
 	}
 
 	JsonValue(const JsonValue & r)
 	{
 		operator=(r);
-	}
-
-	JsonValue(JVType t) :type_(t)
-	{
-		Init();
 	}
 
 	~JsonValue()

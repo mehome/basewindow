@@ -289,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);
@@ -559,8 +559,8 @@ LRESULT CCutImageWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 {
 	if(message == WM_CREATE)
 	{
-		InitCutImage();
-		//InitWeather();
+		//InitCutImage();
+		InitWeather();
 	}
 
 	if(m_pDir.get())

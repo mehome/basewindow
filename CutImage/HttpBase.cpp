@@ -512,6 +512,12 @@ std::unique_ptr<JsonValue> JsonValue::FormatByUtf16String(const wchar_t *pJT)
 	for (i = 0; i < len; ++i)
 	{
 		wch = pJT[i];
+		if(wch == L'\\' && i+1 < len && pJT[i+1] == L'"')
+		{
+			pTig[index++] = L'\\';
+			pTig[index++] = L'\"';
+			++i;
+		}
 		if (wch == L'\"')
 			bEnterQuto = !bEnterQuto;
 		if (!IsBlank(wch) || bEnterQuto)
@@ -542,7 +548,12 @@ std::unique_ptr<JsonValue> JsonValue::FormatObject(const wchar_t * pT, int start
 	for (i = start + 1; i < end - 1;)
 	{
 		ch = pT[i];
-		if (ch == L'"')
+		if(ch == L'\\' && i+1 < end-1 && pT[i+1] == L'"')
+		{
+			i+=2;
+			continue;
+		}
+		else if (ch == L'"')
 			bEnterQuto = !bEnterQuto;
 		else if (ch == L'{')
 			++countBrace;
@@ -561,7 +572,7 @@ std::unique_ptr<JsonValue> JsonValue::FormatObject(const wchar_t * pT, int start
 			kv = FormatPair(pT, index, i);
 			if (kv.first.GetType() != JVString)
 				return NULL;
-			pObj->operator[](kv.first.GetValue().szValue_->c_str()) = std::move(kv.second);
+			pObj->value_.pObjValue_->push_back(std::move(kv));
 			index = i + 1;
 			i = index;
 		}
@@ -572,7 +583,7 @@ std::unique_ptr<JsonValue> JsonValue::FormatObject(const wchar_t * pT, int start
 	kv = FormatPair(pT, index, i);
 	if (kv.first.GetType() != JVString)
 		return NULL;
-	pObj->operator[](kv.first.GetValue().szValue_->c_str()) = std::move(kv.second);
+	pObj->value_.pObjValue_->push_back(std::move(kv));
 
 	return pObj;
 }
@@ -581,7 +592,6 @@ std::pair<JsonValue, JsonValue> JsonValue::FormatPair(const wchar_t *pPair, int 
 {
 	int i;
 	JsonValue k, v;
-	int countBrace(0), countBracket(0);
 	bool bEnterQuto(false);
 	wchar_t ch;
 
@@ -591,18 +601,15 @@ std::pair<JsonValue, JsonValue> JsonValue::FormatPair(const wchar_t *pPair, int 
 	for (i = start; i < end; ++i)
 	{
 		ch = pPair[i];
-		if (ch == L'"')
+		if(ch == L'\\' && i+1 < end && pPair[i+1] == L'\"')
+		{
+			++i;
+			continue;
+		}
+		else if (ch == L'"')
 			bEnterQuto = !bEnterQuto;
-		else if (ch == L'{')
-			++countBrace;
-		else if (ch == L'}')
-			--countBrace;
-		else if (ch == L'[')
-			++countBracket;
-		else if (ch == L']')
-			--countBracket;
 
-		if ((!bEnterQuto && countBrace == 0 && countBracket == 0) && pPair[i] == L':')
+		if (!bEnterQuto && pPair[i] == L':' && i+1<end)
 		{
 			k = FormatString(pPair, start, i);
 			if (k.GetType() != JVString)
@@ -654,11 +661,15 @@ JsonValue JsonValue::FormatArray(const wchar_t *pA, int start, int end)
 	wchar_t ch;
 
 	last = start + 1;
-	i = start + 1;
-	while (1)
+	for(i=last; i<end;)
 	{
 		ch = pA[i];
-		if (ch == L'"')
+		if(ch == L'\\' && i+1 < end && pA[i+1] == L'"')
+		{
+			i+=2;
+			continue;
+		}
+		else if (ch == L'"')
 			bEnterQuto = !bEnterQuto;
 		else if (ch == L'{')
 			++countBrace;
@@ -700,9 +711,6 @@ JsonValue JsonValue::FormatArray(const wchar_t *pA, int start, int end)
 					return JsonValue();
 				arr[index++] = std::move(item);
 			}
-
-			if (i == end - 1)
-				break;
 
 			last = i + 1;
 			i = last;
@@ -811,6 +819,12 @@ JsonValue JsonValue::FormatString(const wchar_t *pKey, int start, int end)
 				wchu = (wchar_t)wcstoul(wcha, NULL, 16);
 				wss << wchu;
 				i += 5;
+				continue;
+			}
+			else if(wchu == L'"')
+			{
+				wss << L'"';
+				++i;
 				continue;
 			}
 		}
