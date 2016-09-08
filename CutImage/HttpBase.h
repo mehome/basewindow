@@ -93,6 +93,8 @@ struct JsonValue
 	{
 	}
 
+	explicit JsonValue(JVType t);
+
 	explicit JsonValue(const wchar_t *pSZ) :type_(JVString)
 	{
 		value_.szValue_ = new std::wstring(pSZ);
@@ -113,14 +115,14 @@ struct JsonValue
 		value_.fValue_ = f;
 	}
 
-	explicit JsonValue(JVType t) :type_(t)
-	{
-		Init();
-	}
-
-	JsonValue(const JsonValue & r)
+	JsonValue(const JsonValue& r)
 	{
 		operator=(r);
+	}
+
+	JsonValue(JsonValue&& rr)
+	{
+		operator=(std::forward<JsonValue>(rr));
 	}
 
 	~JsonValue()
@@ -168,16 +170,14 @@ struct JsonValue
 	const JsonValue & operator=(JsonValue &&r);
 
 	//for object
-	JsonValue & operator[](const std::wstring &sz);
+	JsonValue & operator[](const wchar_t* pSZ);
 
 	//for array
-	JsonValue & operator[](unsigned int index);
-
-	void Init();
+	JsonValue & operator[](int index);
 
 	void Clear();
 
-	std::wstring ToString();
+	std::wstring ToString(bool bAddEscape=true)const;
 
 	static std::unique_ptr<JsonValue> FormatByUtf16String(const wchar_t *pJT);
 

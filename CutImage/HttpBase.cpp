@@ -328,6 +328,25 @@ std::wstring GetTempUniqueName()
 	return buf;
 }
 
+JsonValue::JsonValue(JVType t) :type_(t)
+{
+	switch (type_)
+	{
+	case JVString:
+		value_.szValue_ = new std::wstring();
+		break;
+	case JVObject:
+		value_.pObjValue_ = new std::vector<std::pair<JsonValue, JsonValue>>();
+		break;
+	case JVArray:
+		value_.pArrayValue_ = new std::vector<JsonValue>();
+		break;
+	default:
+		value_.iValue_ = 0;
+		break;
+	}
+}
+
 const JsonValue & JsonValue::operator=(const JsonValue &r)
 {
 	if (this == &r)
@@ -365,12 +384,13 @@ const JsonValue & JsonValue::operator=(JsonValue &&r)
 	type_ = r.type_;
 	value_.iValue_ = r.value_.iValue_;
 	r.type_ = JVEmpty;
+	r.value_.iValue_=0;
 
 	return *this;
 }
 
 //for object
-JsonValue & JsonValue::operator[](const std::wstring &sz)
+JsonValue & JsonValue::operator[](const wchar_t* sz)
 {
 	if (type_ == JVObject)
 	{
@@ -378,7 +398,7 @@ JsonValue & JsonValue::operator[](const std::wstring &sz)
 			value_.pObjValue_->end(),
 			[sz](std::pair<JsonValue, JsonValue> &i)->bool
 		{
-			return *i.first.value_.szValue_ == sz;
+			return wcscmp(i.first.value_.szValue_->c_str(), sz)==0;
 		});
 
 		if (iter != value_.pObjValue_->end())
@@ -386,8 +406,8 @@ JsonValue & JsonValue::operator[](const std::wstring &sz)
 		else
 		{
 			//Ä¬ÈÏ¼Ó×Ö·û´®
-			value_.pObjValue_->push_back(std::make_pair(JsonValue(sz.c_str()), JsonValue()));
-			return value_.pObjValue_->operator[](value_.pObjValue_->size() - 1).second;
+			value_.pObjValue_->push_back(std::make_pair(JsonValue(sz), JsonValue()));
+			return value_.pObjValue_->back().second;
 		}
 	}
 
@@ -395,39 +415,20 @@ JsonValue & JsonValue::operator[](const std::wstring &sz)
 }
 
 //for array
-JsonValue & JsonValue::operator[](unsigned int index)
+JsonValue & JsonValue::operator[](int index)
 {
 	if (type_ == JVArray)
 	{
-		if (index >= value_.pArrayValue_->size())
+		if (index >= (int)value_.pArrayValue_->size())
 		{
 			value_.pArrayValue_->push_back(JsonValue());
-			return value_.pArrayValue_->operator[](value_.pArrayValue_->size() - 1);
+			return value_.pArrayValue_->back();
 		}
 		else
 			return value_.pArrayValue_->operator[](index);
 	}
 
 	return *this;
-}
-
-void JsonValue::Init()
-{
-	switch (type_)
-	{
-	case JVString:
-		value_.szValue_ = new std::wstring();
-		break;
-	case JVObject:
-		value_.pObjValue_ = new std::vector<std::pair<JsonValue, JsonValue>>();
-		break;
-	case JVArray:
-		value_.pArrayValue_ = new std::vector<JsonValue>();
-		break;
-	default:
-		value_.iValue_ = 0;
-		break;
-	}
 }
 
 void JsonValue::Clear()
@@ -446,14 +447,29 @@ void JsonValue::Clear()
 	}
 }
 
-std::wstring JsonValue::ToString()
+std::wstring JsonValue::ToString(bool bAddEscape)const
 {
 	std::wstringstream wss;
 
 	switch (type_)
 	{
 	case JVString:
-		return L'"' + *value_.szValue_ + L'"';
+		if(bAddEscape)
+		{
+			wchar_t ch;
+			for(auto iter=value_.szValue_->begin(); iter != value_.szValue_->end(); ++iter)
+			{
+				ch=*iter;
+				if(ch==L'"')
+					wss<<'\\';
+				wss<<ch;
+			}
+			return L'"' + wss.str() + L'"';
+		}
+		else
+		{
+			return L'"' + *value_.szValue_ + L'"';
+		}
 	case JVBoolean:
 		return value_.bValue_ ? L"true" : L"false";
 	case JVObject:
@@ -463,7 +479,7 @@ std::wstring JsonValue::ToString()
 			for (unsigned int i = 0; i < value_.pObjValue_->size(); ++i)
 			{
 				p = &value_.pObjValue_->operator[](i);
-				wss << p->first.ToString() << L':' << p->second.ToString();
+				wss << p->first.ToString(bAddEscape) << L':' << p->second.ToString(bAddEscape);
 				if (i != value_.pObjValue_->size() - 1)
 					wss << L',';
 			}
@@ -475,7 +491,7 @@ std::wstring JsonValue::ToString()
 			wss << L'[';
 			for (unsigned int i = 0; i < value_.pArrayValue_->size(); ++i)
 			{
-				wss << value_.pArrayValue_->operator[](i).ToString();
+				wss << value_.pArrayValue_->operator[](i).ToString(bAddEscape);
 				if (i != value_.pArrayValue_->size() - 1)
 					wss << L',';
 			}
@@ -645,7 +661,7 @@ std::pair<JsonValue, JsonValue> JsonValue::FormatPair(const wchar_t *pPair, int 
 		}
 	}
 
-	return std::make_pair(k, v);
+	return std::make_pair(std::move(k), std::move(v));
 }
 
 JsonValue JsonValue::FormatArray(const wchar_t *pA, int start, int end)
