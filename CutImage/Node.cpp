@@ -856,7 +856,7 @@ void CHLayout::ReLayout()
 		for (i = 0; i < nodesize; ++i)
 		{
 			if (children[i]->GetSizePolicy() == SizePolicyFixed)
-				fixed.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
+				fixed.push_back(std::make_pair(i, 0.0f));
 			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
 			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
@@ -868,7 +868,7 @@ void CHLayout::ReLayout()
 		for (i = 0; i < nodesize; ++i)
 		{
 			if (children[i]->GetSizePolicy() == SizePolicyFixed)
-				fixed.push_back(std::make_pair(i, children[i]->GetMinSize().first - nodes[i]));
+				fixed.push_back(std::make_pair(i, 0.0f));
 			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMinSize().first - nodes[i]));
 			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
@@ -908,7 +908,7 @@ void CHLayout::ReLayout()
 
 	i = 0;
 	CNode* pNode = FindFirstNode();
-	float x = (float)m_iMarginLeft;
+	float x = (float)m_iMarginLeft + arrange / 2;
 	float y = (float)m_iMarginTop + h / 2.0f;
 	while (pNode)
 	{
@@ -984,7 +984,7 @@ void CVLayout::ReLayout()
 		for (i = 0; i < nodesize; ++i)
 		{
 			if (children[i]->GetSizePolicy() == SizePolicyFixed)
-				fixed.push_back(std::make_pair(i, children[i]->GetMaxSize().second - nodes[i]));
+				fixed.push_back(std::make_pair(i, 0.0f));
 			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().second - nodes[i]));
 			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
@@ -996,7 +996,7 @@ void CVLayout::ReLayout()
 		for (i = 0; i < nodesize; ++i)
 		{
 			if (children[i]->GetSizePolicy() == SizePolicyFixed)
-				fixed.push_back(std::make_pair(i, children[i]->GetMinSize().second - nodes[i]));
+				fixed.push_back(std::make_pair(i, 0.0f));
 			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMinSize().second - nodes[i]));
 			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
@@ -1037,7 +1037,7 @@ void CVLayout::ReLayout()
 	i = 0;
 	CNode* pNode = FindFirstNode();
 	float x = (float)m_iMarginLeft + w / 2.0f;
-	float y = (float)m_iMarginTop;
+	float y = (float)m_iMarginTop + arrange / 2;
 	while (pNode)
 	{
 		pNode->SetSize(w, nodes[i]);
