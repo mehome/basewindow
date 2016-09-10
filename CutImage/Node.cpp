@@ -242,7 +242,7 @@ void CNode::SetMinSize(float x, float y)
 {
 	if (x < 1.0f || y < 1.0f || x>m_pairMaxSize.first || y>m_pairMaxSize.second)
 		return;
-	if (x == m_pairMinSize.first || y == m_pairMinSize.second)
+	if (x == m_pairMinSize.first && y == m_pairMinSize.second)
 		return;
 	m_pairMinSize.first = x;
 	m_pairMinSize.second = y;
@@ -271,7 +271,7 @@ void CNode::SetMaxSize(float x, float y)
 {
 	if (x < 1.0f || y < 1.0f || x < m_pairMinSize.first || y < m_pairMinSize.second)
 		return;
-	if (x == m_pairMaxSize.first || y == m_pairMaxSize.second)
+	if (x == m_pairMaxSize.first && y == m_pairMaxSize.second)
 		return;
 	m_pairMaxSize.first = x;
 	m_pairMaxSize.second = y;
@@ -827,9 +827,10 @@ void CHLayout::ReLayout()
 {
 	auto& children = Child();
 	const int nodesize = children.size();
-	std::vector<float> nodes(nodesize);
+	std::vector<float> nodes(nodesize), v(nodesize);
 	float content(0), t;
 	int i;
+	NodeSizePolicy policy;
 
 	auto size = GetSize();
 	float w = size.first - m_iMarginLeft - m_iMarginRight - m_iSpacing*(nodesize - 1);
@@ -841,10 +842,16 @@ void CHLayout::ReLayout()
 	for (i = 0; i < nodesize; ++i)
 	{
 		t = children[i]->GetSize().first;
-		if (t < 0.5f)
-			t = 0.5f;
+		if (t < 0.5f)t = 0.5f;
 		nodes[i] = t;
 		content += t;
+
+		if (h < children[i]->GetMinSize().second)
+			v[i] = children[i]->GetMinSize().second;
+		else if (h > children[i]->GetMaxSize().second)
+			v[i] = children[i]->GetMaxSize().second;
+		else
+			v[i] = h;
 	}
 
 	std::list<std::pair<int, float>> expanding, prefered, fixed;
@@ -855,11 +862,12 @@ void CHLayout::ReLayout()
 	{
 		for (i = 0; i < nodesize; ++i)
 		{
-			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+			policy = children[i]->GetSizePolicy();
+			if (policy == SizePolicyFixed)
 				fixed.push_back(std::make_pair(i, 0.0f));
-			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+			else if (policy == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
-			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+			else if (policy == SizePolicyExpanding)
 				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().first - nodes[i]));
 		}
 	}
@@ -867,11 +875,12 @@ void CHLayout::ReLayout()
 	{
 		for (i = 0; i < nodesize; ++i)
 		{
-			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+			policy = children[i]->GetSizePolicy();
+			if (policy == SizePolicyFixed)
 				fixed.push_back(std::make_pair(i, 0.0f));
-			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+			else if (policy == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMinSize().first - nodes[i]));
-			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+			else if (policy == SizePolicyExpanding)
 				expanding.push_back(std::make_pair(i, children[i]->GetMinSize().first - nodes[i]));
 		}
 	}
@@ -912,7 +921,7 @@ void CHLayout::ReLayout()
 	float y = (float)m_iMarginTop + h / 2.0f;
 	while (pNode)
 	{
-		pNode -> SetSize(nodes[i], h);
+		pNode -> SetSize(nodes[i], v[i]);
 		pNode -> SetPos(x + nodes[i] / 2.0f, y);
 		pNode = FindNextNode();
 		x += (nodes[i] + m_iSpacing);
@@ -955,9 +964,10 @@ void CVLayout::ReLayout()
 {
 	auto& children = Child();
 	const int nodesize = children.size();
-	std::vector<float> nodes(nodesize);
+	std::vector<float> nodes(nodesize), v(nodesize);
 	float content(0), t;
 	int i;
+	NodeSizePolicy policy;
 
 	auto size = GetSize();
 	float w = size.first - m_iMarginLeft - m_iMarginRight;
@@ -973,6 +983,13 @@ void CVLayout::ReLayout()
 			t = 0.5f;
 		nodes[i] = t;
 		content += t;
+
+		if (children[i]->GetMinSize().first > w)
+			v[i] = children[i]->GetMinSize().first;
+		else if (children[i]->GetMaxSize().first < w)
+			v[i] = children[i]->GetMaxSize().first;
+		else
+			v[i] = w;
 	}
 
 	std::list<std::pair<int, float>> expanding, prefered, fixed;
@@ -983,11 +1000,12 @@ void CVLayout::ReLayout()
 	{
 		for (i = 0; i < nodesize; ++i)
 		{
-			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+			policy = children[i]->GetSizePolicy();
+			if (policy == SizePolicyFixed)
 				fixed.push_back(std::make_pair(i, 0.0f));
-			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+			else if (policy == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMaxSize().second - nodes[i]));
-			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+			else if (policy == SizePolicyExpanding)
 				expanding.push_back(std::make_pair(i, children[i]->GetMaxSize().second - nodes[i]));
 		}
 	}
@@ -995,11 +1013,12 @@ void CVLayout::ReLayout()
 	{
 		for (i = 0; i < nodesize; ++i)
 		{
-			if (children[i]->GetSizePolicy() == SizePolicyFixed)
+			policy = children[i]->GetSizePolicy();
+			if (policy == SizePolicyFixed)
 				fixed.push_back(std::make_pair(i, 0.0f));
-			else if (children[i]->GetSizePolicy() == SizePolicyPrefered)
+			else if (policy == SizePolicyPrefered)
 				prefered.push_back(std::make_pair(i, children[i]->GetMinSize().second - nodes[i]));
-			else if (children[i]->GetSizePolicy() == SizePolicyExpanding)
+			else if (policy == SizePolicyExpanding)
 				expanding.push_back(std::make_pair(i, children[i]->GetMinSize().second - nodes[i]));
 		}
 	}
@@ -1040,7 +1059,7 @@ void CVLayout::ReLayout()
 	float y = (float)m_iMarginTop + arrange / 2;
 	while (pNode)
 	{
-		pNode->SetSize(w, nodes[i]);
+		pNode->SetSize(v[i], nodes[i]);
 		pNode->SetPos(x, y + nodes[i] / 2.0f);
 		pNode = FindNextNode();
 		y += (nodes[i] + m_iSpacing);
