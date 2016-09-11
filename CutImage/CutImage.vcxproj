@@ -81,6 +81,7 @@
     <ClCompile Include="HttpBase.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Mp3Player.cpp" />
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="Task.cpp" />
     <ClCompile Include="Thread.cpp" />
@@ -90,6 +91,7 @@
   <ItemGroup>
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="CutImage.h" />
+    <ClInclude Include="Mp3Player.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="HttpBase.h" />
     <ClInclude Include="Log.h" />
