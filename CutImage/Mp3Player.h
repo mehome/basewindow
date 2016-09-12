@@ -23,7 +23,7 @@ public:
 	void SamplePosition(int &samplePos);
 	void CopyPosition(int &pos, int &length);
 	//获得尚未被播放的数据的时长(毫秒)
-	unsigned int GetRemainderTime()const;
+	unsigned int GetRemainderTime();
 protected:
 	//type=0代表清空整个缓冲区
 	void ClearBuffer(int type);
@@ -57,18 +57,13 @@ public:
 
 	void Clear();
 	bool Initialize(std::string zFileName, bool bDiscrete = false);
-	//override
 	bool SetFileName(std::string szName);
-	bool IsValid();
 	int OutputData(char *pDest, int iWantLen);
 	PCMWAVEFORMAT SoundInfo();
 	void Seek(unsigned int uiMS);
 	unsigned int GetSoundLength();
 	unsigned int GetCurrentPos();
-
 protected:
-	bool bOpened_;
-	wchar_t *wstrName_;
 	IWMSyncReader *pWMSyncReader_;
 	IWMHeaderInfo *pHeaderInfo_;
 	INSSBuffer *pNSSBuffer_;
@@ -77,9 +72,14 @@ protected:
 	bool bHasAudio_;
 	unsigned int dwOutput_;
 	WORD wStream_;
-	bool bProtected_;
 	LARGE_INTEGER liDuration_;
 	LARGE_INTEGER liReadedDuration_;
 
 	unsigned int dwLastRead_;
+};
+
+class CMp3PlayerWindow : public CBaseWindow
+{
+public:
+	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
 };

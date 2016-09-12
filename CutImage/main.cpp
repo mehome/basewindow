@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <tchar.h>
 #include "CutImage.h"
+#include "Mp3Player.h"
 #include "Thread.h"
 #include "Task.h"
 
@@ -32,9 +33,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	//}
 	//thread1.Destroy();
 
-	CCutImageWindow win;
+	//CCutImageWindow win;
+	//win.InitWindow(hInstance);
+	//win.Show();
+
+	CoInitialize(NULL);
+	CMp3PlayerWindow win;
 	win.InitWindow(hInstance);
 	win.Show();
 
-	return app.Run();
+	auto res=app.Run();
+	CoUninitialize();
+	return res;
 }

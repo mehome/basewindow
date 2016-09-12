@@ -1,6 +1,6 @@
 #include "Mp3Player.h"
 
-#pragma comment(lib,"dsound.lib")
+#pragma comment(lib, "dsound.lib")
 #pragma comment(lib, "wmvcore.lib")
 
 CSound::CSound()
@@ -37,7 +37,6 @@ bool CSound::Initialize(WAVEFORMAT wf, WORD wBitsPerSample, DWORD dwBufferLen, H
 	hr = DirectSoundCreate(NULL, &lpDS_, NULL);
 	if (FAILED(hr))
 	{
-		TRACE("failed DirectSoundCreate\n");
 		return false;
 	}
 	if (hWnd == NULL)
@@ -47,7 +46,6 @@ bool CSound::Initialize(WAVEFORMAT wf, WORD wBitsPerSample, DWORD dwBufferLen, H
 	hr = lpDS_->SetCooperativeLevel(hWnd, DSSCL_PRIORITY);
 	if (FAILED(hr))
 	{
-		TRACE("failed SetCooperativeLevel\n");
 		Clear();
 		return FALSE;
 	}
@@ -69,52 +67,7 @@ bool CSound::Initialize(WAVEFORMAT wf, WORD wBitsPerSample, DWORD dwBufferLen, H
 	hr = lpDS_->CreateSoundBuffer(&dsbd, &lpDSB_, NULL);
 	if (FAILED(hr))
 	{
-		TRACE("failed CreateSoundBuffer\n");
 		Clear();
-		if (DSERR_ALLOCATED == hr)
-		{
-			TRACE("DSERR_ALLOCATED:The request failed because resources, such as a priority level, were already in use by another caller. ");
-		}
-		else if (hr == DSERR_BADFORMAT)
-		{
-			TRACE("DSERR_BADFORMAT:The specified wave format is not supported.");
-		}
-		else if (hr == DSERR_BUFFERTOOSMALL)
-		{
-			TRACE("DSERR_BUFFERTOOSMALL:The buffer size is not great enough to enable effects processing.");
-		}
-		else if (hr == DSERR_CONTROLUNAVAIL)
-		{
-			TRACE("DSERR_CONTROLUNAVAIL:The buffer control (volume, pan, and so on) requested by the caller is not available.");
-		}
-		else if (hr == DSERR_DS8_REQUIRED)
-		{
-			TRACE("DSERR_DS8_REQUIRED:A DirectSound object of class CLSID_DirectSound8 or later is required for the requested functionality.");
-		}
-		else if (hr == DSERR_INVALIDCALL)
-		{
-			TRACE("DSERR_INVALIDCALL :This function is not valid for the current state of this object.");
-		}
-		else if (hr == DSERR_INVALIDPARAM)
-		{
-			TRACE("DSERR_INVALIDPARAM :An invalid parameter was passed to the returning function.");
-		}
-		else if (hr == DSERR_NOAGGREGATION)
-		{
-			TRACE("DSERR_NOAGGREGATION :The object does not support aggregation. ");
-		}
-		else if (hr == DSERR_OUTOFMEMORY)
-		{
-			TRACE("DSERR_OUTOFMEMORY :The DirectSound subsystem could not allocate sufficient memory to complete the caller's request. ");
-		}
-		else if (hr == DSERR_UNINITIALIZED)
-		{
-			TRACE("DSERR_UNINITIALIZED:Initialize method has not been called or has not been called successfully before other methods were called. ");
-		}
-		else if (hr == DSERR_UNSUPPORTED)
-		{
-			TRACE("DSERR_UNSUPPORTED The function called is not supported at this time. ");
-		}
 		return false;
 	}
 	return true;
@@ -156,15 +109,8 @@ int CSound::Start()
 	if (hr == DSERR_BUFFERLOST)
 	{
 		hr = lpDSB_->Restore();
-		if (hr == DS_OK)
-		{
-			ClearBuffer(0);
-		}
-		else
-		{
-			TRACE("failed Play\n");
+		if (FAILED(hr))
 			return FALSE;
-		}
 	}
 	ClearBuffer(0);
 	bPlaying_ = true;
@@ -178,7 +124,6 @@ void CSound::Stop()
 		lpDSB_->Stop();
 		bPlaying_ = FALSE;
 	}
-
 }
 
 DWORD CSound::BufferLength()const
@@ -193,35 +138,22 @@ WAVEFORMATEX CSound::SoundFormat()const
 
 int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
 {
-	//0error
-	//1ok,buffer is full
-	//2ok,
-	//3try again
+	//0 error
+	//1 ok,
+	//2 try again
 
-	int status = -1;
+	int status(0);
 	DWORD dwWrite, dwPlay;
 	HRESULT hr;
 	unsigned char*pb1(NULL), *pb2(NULL);
 	DWORD dwb1(0), dwb2(0);
 
-	//iWritePos_为零代表第一次写缓冲区
+	//iWritePos_为-1代表第一次写缓冲区
 	if (iWritePos_ == -1)
 	{
 		hr = lpDSB_->GetCurrentPosition(&dwPlay, &dwWrite);
 		if (FAILED(hr))
 		{
-			/*if(hr==DSERR_BUFFERLOST)
-			{
-			hr=lpDSB_->Restore();
-			if(hr!=DS_OK)
-			{
-			return 0;
-			}
-			}
-			else
-			{
-			return 0;
-			}*/
 			return 0;
 		}
 
@@ -231,23 +163,20 @@ int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
 	else
 	{
 		status = AvaliableBuffer(dwLen, dwLockOffset_, dwLockLen_);
-		if (status == 0 || status==1)
+		if (status == 0)
 			return status;
 	}
-	//接下来要写缓冲区
 
 	hr = lpDSB_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
 	if (hr != DS_OK)
 	{
 		if (hr == DSERR_BUFFERLOST)
 		{
-			TRACE("CSound_Write:DSERR_BUFFERLOST");
 			hr = lpDSB_->Restore();
 			if (hr == DS_OK)
 			{
-				ClearBuffer(0);
 				iWritePos_ = -1;
-				return 3;
+				return 2;
 			}
 		}
 		return 0;
@@ -263,7 +192,7 @@ int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
 	}
 	lpDSB_->Unlock(pb1, dwb1, pb2, dwb2);
 
-	//更新对有效缓冲区（正在播放）的记录
+	//更新对有效缓冲区的记录
 	if (iWritePos_ == -1)
 	{
 		iWritePos_ = (int)(dwLockOffset_ + dwb1 + dwb2);
@@ -278,14 +207,16 @@ int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
 	iWritePos_ %= dwBufferLength_;
 
 	dwWritten = dwb1 + dwb2;
-	return 2;
+	return 1;
 }
+
 void CSound::Seek()
 {
 	iWritePos_ = -1;
 	ulBufferLength_ = 0;
 	ulBufferPos_ = 0;
 }
+
 void CSound::SamplePosition(int &samplePos, int &bufferStart, int bufferLen)
 {
 	DWORD dwPlay;
@@ -307,17 +238,8 @@ void CSound::SamplePosition(int &samplePos, int &bufferStart, int bufferLen)
 	samplePos = static_cast<int>(dwPlay);
 	bufferStart = static_cast<int>(ulBufferPos_);
 	bufferLen = static_cast<int>(ulBufferLength_);
-	if (samplePos >= bufferStart && samplePos <= int(dwBufferLength_))
-	{
-	}
-	else if (samplePos >= 0 && samplePos < (bufferStart + bufferLen) % (int)dwBufferLength_)
-	{
-	}
-	else
-	{
-		throw 1;
-	}
 }
+
 void CSound::SamplePosition(int &samplePos)
 {
 	DWORD dwPlay;
@@ -338,56 +260,26 @@ void CSound::SamplePosition(int &samplePos)
 
 	samplePos = static_cast<int>(dwPlay);
 }
+
 void CSound::CopyPosition(int &pos, int &length)
 {
 	pos = static_cast<int>(dwLockOffset_);
 	length = static_cast<int>(dwLockLen_);
 }
-unsigned int CSound::GetRemainderTime()const
+
+unsigned int CSound::GetRemainderTime()
 {
-	HRESULT hr;
-	DWORD dwPlay(0), dwWrite(0);
-	DWORD dwDataLen(0), dwTemp;
+	DWORD dwLockLen(0), dwLockPos(0);
 	unsigned int iTime(0);
 
-
-	hr = lpDSB_->GetCurrentPosition(&dwPlay, &dwWrite);
-	if (FAILED(hr))
+	if(AvaliableBuffer((DWORD)10000, dwLockPos, dwLockLen) != 0)
 	{
-		TRACE("failed GetCurrentPosition\n");
-		return iTime;
+		iTime = static_cast<unsigned int>(1000.0*ulBufferLength_ / waveFormat_.nAvgBytesPerSec);
 	}
 
-	if (ulBufferPos_ + ulBufferLength_ < dwBufferLength_)
-	{
-		TRACE3("没有环回(bufferpos:%u-bufferlength:%u-playpos:%u\n", ulBufferPos_, ulBufferLength_, dwPlay);
-		dwDataLen = ulBufferLength_ - (dwPlay - ulBufferPos_);
-	}
-	else//缓冲区环回
-	{
-		TRACE("缓冲区环回\n");
-		dwTemp = ulBufferLength_ - (dwBufferLength_ - ulBufferPos_);
-		//TRACE1("buffer end %u\n",dwTemp);
-		if (dwPlay >= ulBufferPos_ && dwPlay < dwBufferLength_)
-		{
-			TRACE3("当前播放位置在缓冲区的后半段(bufferpos:%u-bufferlength:%u-playpos:%u\n", ulBufferPos_, ulBufferLength_, dwPlay);
-			dwDataLen = ulBufferLength_ - (dwPlay - ulBufferPos_);
-		}
-		else if (dwPlay >= 0 && dwPlay <= dwTemp)
-		{
-			TRACE3("当前播放位置在缓冲区的前半段(bufferpos:%u-bufferlength:%u-playpos:%u\n", ulBufferPos_, ulBufferLength_, dwPlay);
-			dwDataLen = dwTemp - dwPlay;
-		}
-		else
-		{
-			TRACE("已经没有尚未播放的声音数据了\n");
-			dwDataLen = 0;
-		}
-	}
-
-	iTime = static_cast<unsigned int>(1000.0*dwDataLen / waveFormat_.nAvgBytesPerSec);
 	return iTime;
 }
+
 void CSound::ClearBuffer(int type)
 {
 	unsigned char *pb1 = NULL;
@@ -423,7 +315,7 @@ void CSound::ClearBuffer(int type)
 	}
 	dwSilenceBytes_ = count;
 
-	hr = this->lpDSB_->Lock(start, count, (LPVOID *)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, flags);
+	hr = this->lpDSB_->Lock(start, count, (void**)&pb1, &dwb1, (void**)&pb2, &dwb2, flags);
 	if (FAILED(hr))
 	{
 		return;
@@ -438,114 +330,93 @@ void CSound::ClearBuffer(int type)
 		memset(pb2, waveFormat_.wBitsPerSample == 8 ? 128 : 0, dwb2);
 	}
 	lpDSB_->Unlock(pb1, dwb1, pb2, dwb2);
-
 }
+
 int CSound::AvaliableBuffer(DWORD dwWant, DWORD &dwRealWritePos, DWORD &dwAvaliableLength)
 {
 	//about return
-	//0error
-	//1buffer is full,but ok
-	//2all right
+	//0 error
+	//1 ok
 
 	HRESULT hr;
-	DWORD dwPlay = 0, dwWrite = 0;
-	DWORD dwTmp;
+	DWORD dwPlay(0), dwWrite(0), dwTmp;
+	DWORD ulBufferEnd;
 
 	hr = lpDSB_->GetCurrentPosition(&dwPlay, &dwWrite);
 	if (FAILED(hr))
-	{
 		return 0;
-	}
 
-	if (ulBufferPos_ + ulBufferLength_ < dwBufferLength_)
+	ulBufferEnd = ulBufferPos_ + ulBufferLength_;
+	if (ulBufferEnd < dwBufferLength_)
 	{
-		//here dwPlay>=ulBufferPos_ && dwPlay<ulBufferPos_+ulBufferLength_
-		ulBufferLength_ = ulBufferLength_ - (dwPlay - ulBufferPos_);
-		ulBufferPos_ = dwPlay;
-
-		dwRealWritePos = ulBufferPos_ + ulBufferLength_;
-		dwAvaliableLength = __min(dwWant, dwBufferLength_ - ulBufferLength_);
+		if(dwPlay >= ulBufferPos_ && dwPlay <ulBufferEnd)
+		{
+			ulBufferPos_ = dwPlay;
+			ulBufferLength_ = ulBufferEnd - dwPlay;
+			dwRealWritePos = ulBufferEnd;
+			TRACE("A\n");
+		}
+		else
+		{
+			ulBufferPos_ = dwPlay;
+			ulBufferLength_ = max(0, dwWrite - dwPlay);
+			dwRealWritePos = dwWrite;
+			TRACE("b\n");
+		}
 	}
 	//有效缓冲区环回了
 	else
 	{
-		dwTmp = ulBufferLength_ - (dwBufferLength_ - ulBufferPos_);
-		if (dwTmp == ulBufferPos_)
-		{
-			if (dwPlay >= ulBufferPos_ && dwPlay < dwBufferLength_)
-			{
-				ulBufferLength_ -= (dwPlay - ulBufferPos_);
-				ulBufferPos_ = dwPlay;
-			}
-			else if (dwPlay >= 0 && dwPlay < dwTmp)
-			{
-				ulBufferPos_ = dwPlay;
-				ulBufferLength_ = dwTmp - dwPlay;
-			}
-			//缓冲区是满的，无需加数据
-			return 1;
-		}
-
+		dwTmp = ulBufferEnd - dwBufferLength_;
 		if (dwPlay >= ulBufferPos_ && dwPlay < dwBufferLength_)
 		{
 			ulBufferLength_ -= (dwPlay - ulBufferPos_);
 			ulBufferPos_ = dwPlay;
 			dwRealWritePos = dwTmp;
-			dwAvaliableLength = __min(dwWant, dwBufferLength_ - ulBufferLength_);
+			TRACE("C\n");
 		}
-		else if (dwPlay >= 0 && dwPlay <= dwTmp)
+		else if (dwPlay >= 0 && dwPlay < dwTmp)
 		{
 			ulBufferLength_ = dwTmp - dwPlay;
 			ulBufferPos_ = dwPlay;
 			dwRealWritePos = dwTmp;
-			dwAvaliableLength = __min(dwWant, dwBufferLength_ - ulBufferLength_);
+			TRACE("D\n");
 		}
 		else
 		{
-			TRACE("never here\n");
+			ulBufferPos_ = dwPlay;
+			ulBufferLength_ = max(0, dwWrite - dwPlay);
 			dwRealWritePos = dwWrite;
-			dwAvaliableLength = __min(dwWant, dwBufferLength_);
-			ulBufferPos_ = dwRealWritePos;
-			ulBufferLength_ = dwAvaliableLength;
+			TRACE("e\n");
 		}
-	}//loop buffer
-	return 2;
-}//
+	}
+	dwAvaliableLength = min(dwWant, dwBufferLength_ - ulBufferLength_);
+
+	return 1;
+}
 
 CWM::CWM()
 {
-	bOpened_ = false;
 	pWMSyncReader_ = NULL;
 	pHeaderInfo_ = NULL;
 	pNSSBuffer_ = NULL;
-	wstrName_ = NULL;
 
 	memset(&pcmWF_, 0, sizeof(pcmWF_));
 	bHasAudio_ = FALSE;
 	dwOutput_ = 0;
 	wStream_ = 0;
-	bProtected_ = FALSE;
 
 	dwLastRead_ = 0;
 	liReadedDuration_.QuadPart = 0;
 }
+
 CWM::~CWM()
 {
-	TRACE("CWM Destructor\n");
 	Clear();
 }
+
 void CWM::Clear()
 {
-	if (!bOpened_)
-	{
-		return;
-	}
-
-	if (wstrName_)
-	{
-		free(wstrName_);
-		wstrName_ = NULL;
-	}
 	if (pNSSBuffer_)
 	{
 		pNSSBuffer_->Release();
@@ -561,14 +432,11 @@ void CWM::Clear()
 		pWMSyncReader_->Release();
 		pWMSyncReader_ = NULL;
 	}
-	bOpened_ = false;
-	::CoUninitialize();
 }
 bool CWM::Initialize(std::string szFileName, bool bDiscrete)
 {
-	DWORD dwi = 0, dwj = 0;
+	DWORD dwi = 0, dwj = 0, dwSize(0);
 	DWORD dwOutputCount = 0, dwOutputFormatCount = 0;
-	DWORD dwSize;
 	HRESULT hr;
 	IWMOutputMediaProps *pWMOutputMediaProps = NULL;
 	WM_MEDIA_TYPE *pOutputMediaType = NULL;
@@ -576,33 +444,19 @@ bool CWM::Initialize(std::string szFileName, bool bDiscrete)
 	PWAVEFORMATEX pWaveFormat = NULL;
 	BYTE byteEnable = FALSE;
 	BOOL bCond = FALSE;
+	char buf[2048]={0};
 
-	if (bOpened_)
-	{
-		return false;
-	}
+	int len = MultiByteToWideChar(CP_ACP, 0, szFileName.c_str(), szFileName.length(), NULL, 0);
+	std::unique_ptr<wchar_t[]> pWFileName(new wchar_t[len+1]);
+	MultiByteToWideChar(CP_ACP, 0, szFileName.c_str(), szFileName.length(), pWFileName.get(), len);
+	pWFileName[len]=0;
 
-	int len = ::MultiByteToWideChar(CP_ACP, 0, szFileName.c_str(), szFileName.length(), NULL, 0);
-	wstrName_ = (wchar_t*)malloc(sizeof(wchar_t)*(len + 1));
-	::MultiByteToWideChar(CP_ACP, 0, szFileName.c_str(), szFileName.length(), wstrName_, len);
-	wstrName_[len] = L'\0';
-
-	hr = ::CoInitialize(NULL);
-	if (hr == S_OK)
-	{
-		bOpened_ = true;
-	}
-	else if (hr == S_FALSE)
-	{
-		//The COM library is already initialized on this thread.
-		bOpened_ = true;
-	}
 	hr = WMCreateSyncReader(NULL, 0, &pWMSyncReader_);
 	if (hr != S_OK)
 	{
 		return false;
 	}
-	hr = pWMSyncReader_->Open(wstrName_);
+	hr = pWMSyncReader_->Open(pWFileName.get());
 	if (hr != S_OK)
 	{
 		pWMSyncReader_->Release();
@@ -619,97 +473,79 @@ bool CWM::Initialize(std::string szFileName, bool bDiscrete)
 
 	for (dwi = 0; dwi<dwOutputCount; ++dwi)
 	{
+		if(pWMOutputMediaProps)
+		{
+			pWMOutputMediaProps->Release();
+			pWMOutputMediaProps=NULL;
+		}
 		hr = pWMSyncReader_->GetOutputProps(dwi, &pWMOutputMediaProps);
 		if (hr != S_OK)
 			continue;
-		hr = pWMOutputMediaProps->GetMediaType(NULL, &dwSize);
+
+		dwSize=2048;
+		hr = pWMOutputMediaProps->GetMediaType((WM_MEDIA_TYPE*)buf, &dwSize);
 		if (hr != S_OK)
 			continue;
-		pOutputMediaType = (WM_MEDIA_TYPE*)malloc(dwSize);
-		if (pOutputMediaType == NULL)
-		{
-			TRACE("out of memory\n");
+
+		pOutputMediaType=(WM_MEDIA_TYPE*)buf;
+		if (!IsEqualGUID(pOutputMediaType->majortype, WMMEDIATYPE_Audio))
 			continue;
-		}
-		hr = pWMOutputMediaProps->GetMediaType(pOutputMediaType, &dwSize);
+
+		byteEnable = static_cast<BYTE>(bDiscrete);
+		pWMSyncReader_->SetOutputSetting(dwi, g_wszEnableDiscreteOutput, WMT_TYPE_BOOL, &byteEnable, 4);
+
+		pWaveFormat = (PWAVEFORMATEX)pOutputMediaType->pbFormat;
+		pcmWF_.wf.nSamplesPerSec = pWaveFormat->nSamplesPerSec;
+		pcmWF_.wf.nChannels = pWaveFormat->nChannels;
+
+		hr = pWMSyncReader_->GetOutputFormatCount(dwi, &dwOutputFormatCount);
 		if (hr != S_OK)
-		{
-			free(pOutputMediaType);
-			pOutputMediaType = NULL;
 			continue;
-		}
-		pWMOutputMediaProps->Release();
-		pWMOutputMediaProps = NULL;
 
-		if (::IsEqualGUID(pOutputMediaType->majortype, WMMEDIATYPE_Audio))
+		for (dwj = 0; dwj<dwOutputFormatCount; ++dwj)
 		{
-			byteEnable = static_cast<BYTE>(bDiscrete);
-			pWMSyncReader_->SetOutputSetting(dwi, ::g_wszEnableDiscreteOutput,
-				WMT_TYPE_BOOL, &byteEnable, 4);
-
-			pWaveFormat = (PWAVEFORMATEX)pOutputMediaType->pbFormat;
-			pcmWF_.wf.nSamplesPerSec = pWaveFormat->nSamplesPerSec;
-			pcmWF_.wf.nChannels = pWaveFormat->nChannels;
-
-			hr = pWMSyncReader_->GetOutputFormatCount(dwi, &dwOutputFormatCount);
-			if (hr == S_OK)
+			if(pWMOutputMediaProps)
 			{
-				for (dwj = 0; dwj<dwOutputFormatCount; ++dwj)
-				{
-					hr = pWMSyncReader_->GetOutputFormat(dwi, dwj, &pWMOutputMediaProps);
-					if (hr != S_OK)
-						continue;
-					hr = pWMOutputMediaProps->GetMediaType(NULL, &dwSize);
-					if (hr != S_OK)
-						continue;
-					pFormatMediaType = (WM_MEDIA_TYPE*)malloc(dwSize);
-					if (pFormatMediaType == NULL)
-					{
-						TRACE("out of memory");
-						continue;
-					}
-					hr = pWMOutputMediaProps->GetMediaType(pFormatMediaType, &dwSize);
-					if (hr != S_OK)
-					{
-						free(pFormatMediaType);
-						pFormatMediaType = NULL;
-						continue;
-					}
-
-					if (::IsEqualGUID(pFormatMediaType->formattype, WMFORMAT_WaveFormatEx))
-					{
-						pWaveFormat = (PWAVEFORMATEX)pFormatMediaType->pbFormat;
-						bCond = (pWaveFormat->nSamplesPerSec == pcmWF_.wf.nSamplesPerSec) &&
-							(pWaveFormat->nChannels == pcmWF_.wf.nChannels) &&
-							(pWaveFormat->wBitsPerSample >= pcmWF_.wBitsPerSample);
-						if (bCond)
-						{
-							bHasAudio_ = TRUE;
-							dwOutput_ = dwi;
-							pcmWF_.wBitsPerSample = pWaveFormat->wBitsPerSample;
-							pWMSyncReader_->SetOutputProps(dwi, pWMOutputMediaProps);
-						}
-					}
-					free(pFormatMediaType);
-					pFormatMediaType = NULL;
-				}//dwj
+				pWMOutputMediaProps->Release();
+				pWMOutputMediaProps=NULL;
 			}
-		}//IsEqualGUID
-		free(pOutputMediaType);
-		pOutputMediaType = NULL;
 
+			hr = pWMSyncReader_->GetOutputFormat(dwi, dwj, &pWMOutputMediaProps);
+			if (hr != S_OK)
+				continue;
+					
+			dwSize=2048;
+			hr = pWMOutputMediaProps->GetMediaType((WM_MEDIA_TYPE*)buf, &dwSize);
+			if (hr != S_OK)
+				continue;
+			pFormatMediaType=(WM_MEDIA_TYPE*)buf;
+			if (IsEqualGUID(pFormatMediaType->formattype, WMFORMAT_WaveFormatEx))
+			{
+				pWaveFormat = (PWAVEFORMATEX)pFormatMediaType->pbFormat;
+				bCond = (pWaveFormat->nSamplesPerSec == pcmWF_.wf.nSamplesPerSec) &&
+					(pWaveFormat->nChannels == pcmWF_.wf.nChannels) &&
+					(pWaveFormat->wBitsPerSample >= pcmWF_.wBitsPerSample);
+				if (bCond)
+				{
+					bHasAudio_ = TRUE;
+					dwOutput_ = dwi;
+					pcmWF_.wBitsPerSample = pWaveFormat->wBitsPerSample;
+					pcmWF_.wf.wFormatTag = WAVE_FORMAT_PCM;
+					pcmWF_.wf.nBlockAlign = pcmWF_.wBitsPerSample*pcmWF_.wf.nChannels / 8;
+					pcmWF_.wf.nAvgBytesPerSec = pcmWF_.wf.nSamplesPerSec*pcmWF_.wf.nBlockAlign;
+					break;
+				}
+			}
+		}
+	}
+	if(pWMOutputMediaProps)
 		pWMOutputMediaProps->Release();
-		pWMOutputMediaProps = NULL;
-	}//for dwi
 
 	if (bHasAudio_)
 	{
 		pWMSyncReader_->GetStreamNumberForOutput(dwOutput_, &wStream_);
-		if (pWMSyncReader_->SetReadStreamSamples(wStream_, FALSE) == NS_E_PROTECTED_CONTENT)
-		{
-			bProtected_ = FALSE;
-		}
-		bProtected_ = TRUE;
+		pWMSyncReader_->SetReadStreamSamples(wStream_, FALSE);
+
 		WORD wLen = 8;
 		WORD wAnyStream = 0;
 		WMT_ATTR_DATATYPE dataType;
@@ -731,7 +567,6 @@ bool CWM::Initialize(std::string szFileName, bool bDiscrete)
 			return false;
 		}
 
-		//wStream_=0;
 		//wchar_t *wstrTitle=NULL;
 		//pHeaderInfo_->GetAttributeByName(&wStream_,L"Title",&dataType,NULL,&wLen);
 		//wstrTitle=new wchar_t[wLen];
@@ -741,20 +576,12 @@ bool CWM::Initialize(std::string szFileName, bool bDiscrete)
 
 	return true;
 }
+
 bool CWM::SetFileName(std::string szName)
 {
-	bool b = Initialize(szName);
+	return Initialize(szName, true);
+}
 
-	//if (b)
-	//{
-	//	szFileName_ = szName;
-	//}
-	return b;
-}
-bool CWM::IsValid()
-{
-	return true;
-}
 int CWM::OutputData(char *pDest, int iWantLen)
 {
 	BYTE *pBuf;
@@ -769,10 +596,6 @@ int CWM::OutputData(char *pDest, int iWantLen)
 	int dwPos = 0;
 	int copyLen;
 
-	if (!bOpened_)
-	{
-		return 0;
-	}
 	while (len > 0)
 	{
 		if (pNSSBuffer_ != NULL)
@@ -811,8 +634,6 @@ int CWM::OutputData(char *pDest, int iWantLen)
 			&wStream);
 		if (hr != S_OK)
 		{
-			//pNSSBuffer_->Release();
-			//pNSSBuffer_=NULL;
 			return iWantLen - len;
 		}
 		else
@@ -823,13 +644,12 @@ int CWM::OutputData(char *pDest, int iWantLen)
 
 	return iWantLen - len;
 }
+
 PCMWAVEFORMAT CWM::SoundInfo()
 {
-	pcmWF_.wf.wFormatTag = WAVE_FORMAT_PCM;
-	pcmWF_.wf.nBlockAlign = pcmWF_.wBitsPerSample*pcmWF_.wf.nChannels / 8;
-	pcmWF_.wf.nAvgBytesPerSec = pcmWF_.wf.nSamplesPerSec*pcmWF_.wf.nBlockAlign;
 	return this->pcmWF_;
 }
+
 void CWM::Seek(unsigned int uiMS)
 {
 	HRESULT hr;
@@ -869,11 +689,46 @@ void CWM::Seek(unsigned int uiMS)
 		liReadedDuration_.QuadPart = ms;
 	}
 }
+
 unsigned int CWM::GetSoundLength()
 {
 	return static_cast<unsigned int>(liDuration_.QuadPart) / 10000;
 }
+
 unsigned int CWM::GetCurrentPos()
 {
 	return static_cast<unsigned int>(liReadedDuration_.QuadPart) / 10000;
+}
+
+CWM* p;
+CSound *pSound;
+char buf[176400];
+const int clen=176400;
+DWORD buflen=0;
+LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
+{
+	if(message == WM_CREATE)
+	{
+		p=new CWM();
+		p->Initialize("d:\\3.mp4", true);
+
+		pSound=new CSound();
+		pSound->Initialize(p->SoundInfo().wf, p->SoundInfo().wBitsPerSample, p->SoundInfo().wf.nAvgBytesPerSec, hWnd);
+		pSound->Start();
+
+		SetTimer(hWnd, 0, 800, NULL);
+	}
+	else if(message == WM_TIMER)
+	{
+		int len=p->OutputData(buf+buflen, clen-buflen);
+		buflen+=len;
+		DWORD written;
+		auto res=pSound->Write(buf, buflen, written);
+		if(res == 1)
+		{
+			memcpy(buf, buf+written, buflen - written);
+			buflen -=written;
+		}
+	}
+	return CBaseWindow::CustomProc(hWnd, message, wParam, lParam, bProcessed);
 }
