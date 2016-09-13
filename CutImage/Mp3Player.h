@@ -78,8 +78,17 @@ protected:
 	unsigned int dwLastRead_;
 };
 
+class CMp3Show : public CScene
+{
+public:
+	bool Init();
+};
+
 class CMp3PlayerWindow : public CBaseWindow
 {
 public:
 	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
+	void InitMp3Player();
+protected:
+	std::unique_ptr<CDirector> m_pDir;
 };

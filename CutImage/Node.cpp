@@ -1121,7 +1121,6 @@ bool CScene::EnableCustomNCHitTest(bool value)
 	return oldvalue;
 }
 
-RECT rall;
 LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
 	if (message >= WM_MOUSEFIRST && message <= WM_MOUSELAST)
@@ -1177,7 +1176,6 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 		break;
 	case WM_SIZE:
 		TRACE("WM_size\n");
-		::GetWindowRect(GetView()->GetWnd(), &rall);
 		// ¸üÐÂ´°¿Ú³ß´ç
 		GetView()->WndRectChanged();
 		SetView(GetView());

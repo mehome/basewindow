@@ -158,7 +158,7 @@ int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
 		}
 
 		dwLockOffset_ = dwWrite;
-		dwLockLen_ = __min(dwLen, dwBufferLength_);
+		dwLockLen_ = min(dwLen, dwBufferLength_);
 	}
 	else
 	{
@@ -196,7 +196,7 @@ int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
 	if (iWritePos_ == -1)
 	{
 		iWritePos_ = (int)(dwLockOffset_ + dwb1 + dwb2);
-		ulBufferPos_ = dwLockLen_;
+		ulBufferPos_ = dwLockOffset_;
 		ulBufferLength_ = dwb1 + dwb2;
 	}
 	else
@@ -700,6 +700,21 @@ unsigned int CWM::GetCurrentPos()
 	return static_cast<unsigned int>(liReadedDuration_.QuadPart) / 10000;
 }
 
+bool CMp3Show::Init()
+{
+	EnableCustomNCHitTest(false);
+	auto rect=GetRect();
+
+	CHLayout* pBgLayout=new CHLayout(this);
+	pBgLayout->SetContentMargin(0, 0, 0, 0);
+	CImageLayer* pBgColor=new CImageLayer();
+	pBgColor->CreateImageLayerByColor(20, 30, 30);
+	pBgColor->SetSizePolicy(SizePolicyExpanding);
+	pBgLayout->AddChild(pBgColor);
+
+	return CScene::Init();
+}
+
 CWM* p;
 CSound *pSound;
 char buf[176400];
@@ -709,14 +724,7 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 {
 	if(message == WM_CREATE)
 	{
-		p=new CWM();
-		p->Initialize("d:\\3.mp4", true);
-
-		pSound=new CSound();
-		pSound->Initialize(p->SoundInfo().wf, p->SoundInfo().wBitsPerSample, p->SoundInfo().wf.nAvgBytesPerSec, hWnd);
-		pSound->Start();
-
-		SetTimer(hWnd, 0, 800, NULL);
+		InitMp3Player();
 	}
 	else if(message == WM_TIMER)
 	{
@@ -730,5 +738,35 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 			buflen -=written;
 		}
 	}
+
+	if(m_pDir.get())
+	{
+		auto res=m_pDir->MessageProc(message, wParam, lParam, bProcessed);
+		if(bProcessed)
+		{
+			return res;
+		}
+	}
+
 	return CBaseWindow::CustomProc(hWnd, message, wParam, lParam, bProcessed);
+}
+
+void CMp3PlayerWindow::InitMp3Player()
+{
+	p=new CWM();
+	p->Initialize("d:\\1.mp3", true);
+
+	pSound=new CSound();
+	pSound->Initialize(p->SoundInfo().wf, p->SoundInfo().wBitsPerSample, p->SoundInfo().wf.nAvgBytesPerSec, GetHWND());
+	pSound->Start();
+
+	SetTimer(GetHWND(), 0, 400, NULL);
+	SetWindowText(GetHWND(), TEXT("music"));
+
+	ReSize(800, 600, true);
+
+	CGDIView* pView=new CGDIView();
+	pView->Init(GetHWND());
+	m_pDir.reset(new CDirector(pView));
+	m_pDir->RunScene(new CMp3Show());
 }

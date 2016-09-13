@@ -559,8 +559,8 @@ LRESULT CCutImageWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 {
 	if(message == WM_CREATE)
 	{
-		InitCutImage();
-		//InitWeather();
+		//InitCutImage();
+		InitWeather();
 	}
 
 	if(m_pDir.get())
