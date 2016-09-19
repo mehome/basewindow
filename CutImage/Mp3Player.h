@@ -15,13 +15,12 @@ public:
 	bool Clear();
 	int Start();
 	void Stop();
-	int Write(void *pData, DWORD dwLen, DWORD &dwWritten);
+	int Write(void *pData, DWORD dwLen, DWORD &dwWritten, DWORD& dwWritePos);
 	DWORD BufferLength()const;
 	WAVEFORMATEX SoundFormat()const;
 	void Seek();
 	void SamplePosition(int &samplePos, int &bufferStart, int bufferLen);
 	void SamplePosition(int &samplePos);
-	void CopyPosition(int &pos, int &length);
 	//获得尚未被播放的数据的时长(毫秒)
 	unsigned int GetRemainderTime();
 protected:
@@ -90,5 +89,12 @@ public:
 	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
 	void InitMp3Player();
 protected:
+	void WriteAudioData();
+protected:
 	std::unique_ptr<CDirector> m_pDir;
+	std::unique_ptr<char[]> m_pAudioBuf;
+	int m_iAudioLen;
+	int m_iAudioLast;
+	CSound m_sound;
+	CWM m_decoder;
 };

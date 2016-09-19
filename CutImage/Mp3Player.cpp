@@ -136,7 +136,7 @@ WAVEFORMATEX CSound::SoundFormat()const
 	return waveFormat_;
 }
 
-int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
+int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten, DWORD& dwWritePos)
 {
 	//0 error
 	//1 ok,
@@ -205,8 +205,8 @@ int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten)
 		ulBufferLength_ += (dwb1 + dwb2);
 	}
 	iWritePos_ %= dwBufferLength_;
-
-	dwWritten = dwb1 + dwb2;
+	dwWritePos = dwLockOffset_;
+	dwWritten = dwLockLen_;
 	return 1;
 }
 
@@ -259,12 +259,6 @@ void CSound::SamplePosition(int &samplePos)
 	}
 
 	samplePos = static_cast<int>(dwPlay);
-}
-
-void CSound::CopyPosition(int &pos, int &length)
-{
-	pos = static_cast<int>(dwLockOffset_);
-	length = static_cast<int>(dwLockLen_);
 }
 
 unsigned int CSound::GetRemainderTime()
@@ -715,11 +709,6 @@ bool CMp3Show::Init()
 	return CScene::Init();
 }
 
-CWM* p;
-CSound *pSound;
-char buf[176400];
-const int clen=176400;
-DWORD buflen=0;
 LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
 	if(message == WM_CREATE)
@@ -728,15 +717,7 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 	}
 	else if(message == WM_TIMER)
 	{
-		int len=p->OutputData(buf+buflen, clen-buflen);
-		buflen+=len;
-		DWORD written;
-		auto res=pSound->Write(buf, buflen, written);
-		if(res == 1)
-		{
-			memcpy(buf, buf+written, buflen - written);
-			buflen -=written;
-		}
+		WriteAudioData();
 	}
 
 	if(m_pDir.get())
@@ -753,12 +734,14 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 
 void CMp3PlayerWindow::InitMp3Player()
 {
-	p=new CWM();
-	p->Initialize("d:\\1.mp3", true);
+	m_decoder.Initialize("d:\\1.mp3", true);
+	auto info = m_decoder.SoundInfo();
+	m_iAudioLen = info.wf.nAvgBytesPerSec;
+	m_iAudioLast = 0;
+	m_pAudioBuf.reset(new char[m_iAudioLen*2]);
 
-	pSound=new CSound();
-	pSound->Initialize(p->SoundInfo().wf, p->SoundInfo().wBitsPerSample, p->SoundInfo().wf.nAvgBytesPerSec, GetHWND());
-	pSound->Start();
+	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec, GetHWND());
+	m_sound.Start();
 
 	SetTimer(GetHWND(), 0, 400, NULL);
 	SetWindowText(GetHWND(), TEXT("music"));
@@ -769,4 +752,31 @@ void CMp3PlayerWindow::InitMp3Player()
 	pView->Init(GetHWND());
 	m_pDir.reset(new CDirector(pView));
 	m_pDir->RunScene(new CMp3Show());
+}
+
+void CMp3PlayerWindow::WriteAudioData()
+{
+	char* pSoundData=m_pAudioBuf.get();
+	int len=m_decoder.OutputData(pSoundData+m_iAudioLast, m_iAudioLen-m_iAudioLast);
+	m_iAudioLast+=len;
+	DWORD written, writePos;
+	int res=m_sound.Write(pSoundData, m_iAudioLast, written, writePos);
+	if(res == 1)
+	{
+		{
+			char *p=pSoundData + m_iAudioLen;
+			if(writePos+written < (DWORD)m_iAudioLen)
+			{
+				memcpy(p+writePos, pSoundData, written);
+			}
+			else
+			{
+				len=m_iAudioLen - writePos;
+				memcpy(p+writePos, pSoundData, len);
+				memcpy(p, pSoundData+len, written-len);
+			}
+		}
+		memcpy(pSoundData, pSoundData+written, m_iAudioLast-written);
+		m_iAudioLast -=written;
+	}
 }
