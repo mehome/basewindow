@@ -341,25 +341,8 @@ int CSound::AvaliableBuffer(DWORD dwWant, DWORD &dwRealWritePos, DWORD &dwAvalia
 		return 0;
 
 	ulBufferEnd = ulBufferPos_ + ulBufferLength_;
-	if (ulBufferEnd < dwBufferLength_)
-	{
-		if(dwPlay >= ulBufferPos_ && dwPlay <ulBufferEnd)
-		{
-			ulBufferPos_ = dwPlay;
-			ulBufferLength_ = ulBufferEnd - dwPlay;
-			dwRealWritePos = ulBufferEnd;
-			TRACE("A\n");
-		}
-		else
-		{
-			ulBufferPos_ = dwPlay;
-			ulBufferLength_ = max(0, dwWrite - dwPlay);
-			dwRealWritePos = dwWrite;
-			TRACE("b\n");
-		}
-	}
 	//有效缓冲区环回了
-	else
+	if (ulBufferEnd >= dwBufferLength_)
 	{
 		dwTmp = ulBufferEnd - dwBufferLength_;
 		if (dwPlay >= ulBufferPos_ && dwPlay < dwBufferLength_)
@@ -382,6 +365,23 @@ int CSound::AvaliableBuffer(DWORD dwWant, DWORD &dwRealWritePos, DWORD &dwAvalia
 			ulBufferLength_ = max(0, dwWrite - dwPlay);
 			dwRealWritePos = dwWrite;
 			TRACE("e\n");
+		}
+	}
+	else
+	{
+		if(dwPlay >= ulBufferPos_ && dwPlay <ulBufferEnd)
+		{
+			ulBufferPos_ = dwPlay;
+			ulBufferLength_ = ulBufferEnd - dwPlay;
+			dwRealWritePos = ulBufferEnd;
+			TRACE("A\n");
+		}
+		else
+		{
+			ulBufferPos_ = dwPlay;
+			ulBufferLength_ = max(0, dwWrite - dwPlay);
+			dwRealWritePos = dwWrite;
+			TRACE("b\n");
 		}
 	}
 	dwAvaliableLength = min(dwWant, dwBufferLength_ - ulBufferLength_);
@@ -694,6 +694,12 @@ unsigned int CWM::GetCurrentPos()
 	return static_cast<unsigned int>(liReadedDuration_.QuadPart) / 10000;
 }
 
+CMp3Show::CMp3Show():m_iAudioLast(0),
+	m_hTimer(NULL),
+	m_hTimerQueue(NULL)
+{
+}
+
 bool CMp3Show::Init()
 {
 	EnableCustomNCHitTest(false);
@@ -708,8 +714,10 @@ bool CMp3Show::Init()
 
 	return CScene::Init();
 }
-
-LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
+LARGE_INTEGER li;
+LARGE_INTEGER fre;
+LARGE_INTEGER count;
+LRESULT CMp3Show::MessageProc(UINT message, WPARAM wparam, LPARAM lparam, bool& bProcessed)
 {
 	if(message == WM_CREATE)
 	{
@@ -717,44 +725,46 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 	}
 	else if(message == WM_TIMER)
 	{
-		WriteAudioData();
+		LARGE_INTEGER now;
+		QueryPerformanceCounter(&now);
+		TRACE1("%lf\n", 1.0*(now.QuadPart-li.QuadPart)/fre.QuadPart);
+		li=now;
+		++count.QuadPart;
+		if(count.QuadPart%20==0)
+			WriteAudioData();
 	}
-
-	if(m_pDir.get())
-	{
-		auto res=m_pDir->MessageProc(message, wParam, lParam, bProcessed);
-		if(bProcessed)
-		{
-			return res;
-		}
-	}
-
-	return CBaseWindow::CustomProc(hWnd, message, wParam, lParam, bProcessed);
+	return CScene::MessageProc(message, wparam, lparam, bProcessed);
 }
 
-void CMp3PlayerWindow::InitMp3Player()
+void CALLBACK OnTimer(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
-	m_decoder.Initialize("d:\\1.mp3", true);
+	HWND hWnd=(HWND)lpParameter;
+	PostMessage(hWnd, WM_TIMER, 0, 0);
+}
+
+void CMp3Show::InitMp3Player()
+{
+	m_decoder.Initialize("d:\\5.mp3", true);
 	auto info = m_decoder.SoundInfo();
 	m_iAudioLen = info.wf.nAvgBytesPerSec;
 	m_iAudioLast = 0;
 	m_pAudioBuf.reset(new char[m_iAudioLen*2]);
 
-	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec, GetHWND());
+	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec, GetView()->GetWnd());
 	m_sound.Start();
 
-	SetTimer(GetHWND(), 0, 400, NULL);
-	SetWindowText(GetHWND(), TEXT("music"));
-
-	ReSize(800, 600, true);
-
-	CGDIView* pView=new CGDIView();
-	pView->Init(GetHWND());
-	m_pDir.reset(new CDirector(pView));
-	m_pDir->RunScene(new CMp3Show());
+	//SetTimer(GetView()->GetWnd(), 0, 400, NULL);
+	if(!m_hTimerQueue)
+	{
+		m_hTimerQueue = CreateTimerQueue();
+		QueryPerformanceFrequency(&fre);
+		QueryPerformanceCounter(&li);
+		count.QuadPart=0;
+		CreateTimerQueueTimer(&m_hTimer, m_hTimerQueue, OnTimer, GetView()->GetWnd(), 20, 20, 0);
+	}
 }
 
-void CMp3PlayerWindow::WriteAudioData()
+void CMp3Show::WriteAudioData()
 {
 	char* pSoundData=m_pAudioBuf.get();
 	int len=m_decoder.OutputData(pSoundData+m_iAudioLast, m_iAudioLen-m_iAudioLast);
@@ -779,4 +789,29 @@ void CMp3PlayerWindow::WriteAudioData()
 		memcpy(pSoundData, pSoundData+written, m_iAudioLast-written);
 		m_iAudioLast -=written;
 	}
+}
+
+LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
+{
+	if(message == WM_CREATE)
+	{
+		ReSize(800, 600, true);
+		SetWindowText(GetHWND(), TEXT("music"));
+
+		CGDIView* pView=new CGDIView();
+		pView->Init(GetHWND());
+		m_pDir.reset(new CDirector(pView));
+		m_pDir->RunScene(new CMp3Show());
+	}
+
+	if(m_pDir.get())
+	{
+		auto res=m_pDir->MessageProc(message, wParam, lParam, bProcessed);
+		if(bProcessed)
+		{
+			return res;
+		}
+	}
+
+	return CBaseWindow::CustomProc(hWnd, message, wParam, lParam, bProcessed);
 }

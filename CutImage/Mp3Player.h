@@ -80,21 +80,26 @@ protected:
 class CMp3Show : public CScene
 {
 public:
+	CMp3Show();
 	bool Init();
+	LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
+protected:
+	void InitMp3Player();
+	void WriteAudioData();
+protected:
+	std::unique_ptr<char[]> m_pAudioBuf;
+	int m_iAudioLen;
+	int m_iAudioLast;
+	CSound m_sound;
+	CWM m_decoder;
+	HANDLE m_hTimerQueue;
+	HANDLE m_hTimer;
 };
 
 class CMp3PlayerWindow : public CBaseWindow
 {
 public:
 	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
-	void InitMp3Player();
-protected:
-	void WriteAudioData();
 protected:
 	std::unique_ptr<CDirector> m_pDir;
-	std::unique_ptr<char[]> m_pAudioBuf;
-	int m_iAudioLen;
-	int m_iAudioLast;
-	CSound m_sound;
-	CWM m_decoder;
 };

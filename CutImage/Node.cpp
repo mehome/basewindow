@@ -1123,6 +1123,7 @@ bool CScene::EnableCustomNCHitTest(bool value)
 
 LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
+	CGDIView* pView=GetView();
 	if (message >= WM_MOUSEFIRST && message <= WM_MOUSELAST)
 	{
 		POINT po;
@@ -1177,8 +1178,8 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 	case WM_SIZE:
 		TRACE("WM_size\n");
 		// ¸üÐÂ´°¿Ú³ß´ç
-		GetView()->WndRectChanged();
-		SetView(GetView());
+		pView->WndRectChanged();
+		SetView(pView);
 		break;
 	case WM_DESTROY:
 		Destroy();
@@ -1188,13 +1189,13 @@ LRESULT CScene::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool& bP
 		POINT po;
 		po.x = GET_X_LPARAM(lParam);
 		po.y = GET_Y_LPARAM(lParam);
-		ScreenToClient(GetView()->GetWnd(), &po);
+		ScreenToClient(pView->GetWnd(), &po);
 		MouseTravel(po, wParam);
 	}
 	break;
 	}
 End:
-	GetView()->DoRefresh();
+	pView->DoRefresh();
 	return 0;
 }
 
