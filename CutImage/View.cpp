@@ -21,7 +21,8 @@ CGDIView::CGDIView() :m_Wnd(NULL),
 	m_DC(NULL),
 	m_MemDC(NULL),
 	m_MemBitmap(NULL),
-	m_bRefresh_(false)
+	m_bRefresh_(false),
+	m_pGraphics(NULL)
 {
 }
 
@@ -68,11 +69,18 @@ bool CGDIView::Init(HWND hWnd)
 	SetBkMode(m_MemDC, TRANSPARENT);
 	SetStretchBltMode(m_MemDC, STRETCH_HALFTONE);
 
+	m_pGraphics = Gdiplus::Graphics::FromHDC(m_MemDC);
+
 	return true;
 }
 
 void CGDIView::Clear()
 {
+	if (m_pGraphics)
+	{
+		delete m_pGraphics;
+		m_pGraphics = NULL;
+	}
 	if (m_MemBitmap)
 	{
 		DeleteObject(m_MemBitmap);

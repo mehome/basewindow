@@ -246,6 +246,16 @@ protected:
 	HBITMAP m_hBitmap;
 };
 
+class CColorLayer : public CImageLayer
+{
+public:
+	explicit CColorLayer(CNode* parent = NULL);
+	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
+	void DrawNode();
+protected:
+	Gdiplus::SolidBrush m_brush;
+};
+
 class CTextLayer : public CNode
 {
 public:

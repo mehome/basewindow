@@ -3,6 +3,11 @@
 #pragma comment(lib, "dsound.lib")
 #pragma comment(lib, "wmvcore.lib")
 
+#ifndef PI
+#define PI_2 6.283185f
+#define PI   3.1415925f
+#endif
+
 CSound::CSound()
 {
 	bPlaying_ = false;
@@ -131,7 +136,7 @@ DWORD CSound::BufferLength()const
 	return dwBufferLength_;
 }
 
-WAVEFORMATEX CSound::SoundFormat()const
+const WAVEFORMATEX& CSound::SoundFormat()const
 {
 	return waveFormat_;
 }
@@ -240,25 +245,19 @@ void CSound::SamplePosition(int &samplePos, int &bufferStart, int bufferLen)
 	bufferLen = static_cast<int>(ulBufferLength_);
 }
 
-void CSound::SamplePosition(int &samplePos)
+bool CSound::SamplePosition(int &samplePos)
 {
-	DWORD dwPlay;
 	HRESULT hr;
+	DWORD dwPlay;
 
 	if (ulBufferLength_ < 1)
-	{
-		samplePos = 1;
-		return;
-	}
+		return false;
 
 	hr = lpDSB_->GetCurrentPosition(&dwPlay, NULL);
 	if (FAILED(hr))
-	{
-		samplePos = -1;
-		return;
-	}
-
-	samplePos = static_cast<int>(dwPlay);
+		return false;
+	samplePos = (int)dwPlay;
+	return true;
 }
 
 unsigned int CSound::GetRemainderTime()
@@ -694,10 +693,161 @@ unsigned int CWM::GetCurrentPos()
 	return static_cast<unsigned int>(liReadedDuration_.QuadPart) / 10000;
 }
 
-CMp3Show::CMp3Show():m_iAudioLast(0),
+CFastFourierTransform::CFastFourierTransform(int pSampleSize)
+{
+	xre = NULL;
+	xim = NULL;
+	mag = NULL;
+	fftSin = NULL;
+	fftCos = NULL;
+	fftBr = NULL;
+
+	ss = pSampleSize;
+	ss2 = ss >> 1;
+	nu = (int)(log((float)ss) / log((float)2));
+	nu1 = nu - 1;
+
+	xre = new float[ss]; // real part
+	xim = new float[ss]; // image part
+	mag = new float[ss2];
+
+	PrepareFFTTables();
+}
+CFastFourierTransform::~CFastFourierTransform(void)
+{
+	if (xre != NULL)
+		delete[] xre;
+
+	if (xim != NULL)
+		delete[] xim;
+
+	if (mag != NULL)
+		delete[] mag;
+
+	if (fftSin != NULL)
+		delete[] fftSin;
+
+	if (fftCos != NULL)
+		delete[] fftCos;
+
+	if (fftBr != NULL)
+		delete[] fftBr;
+
+	xre = NULL;
+	xim = NULL;
+	mag = NULL;
+	fftSin = NULL;
+	fftCos = NULL;
+	fftBr = NULL;
+}
+void CFastFourierTransform::PrepareFFTTables()
+{
+	int n2 = ss2;
+	int nu1 = nu - 1;
+
+	fftSin = new float[nu * n2];
+	fftCos = new float[nu * n2];
+
+	int k = 0;
+	int x = 0;
+	for (int l = 1; l <= nu; l++) {
+		while (k < ss) {
+			for (int i = 1; i <= n2; i++) {
+				float p = (float)BitRev(k >> nu1, nu);
+				float arg = (PI_2 * p) / (float)ss;
+				fftSin[x] = (float)sin(arg);
+				fftCos[x] = (float)cos(arg);
+				k++;
+				x++;
+			}
+
+			k += n2;
+		}
+
+		k = 0;
+		nu1--;
+		n2 >>= 1;
+	}
+
+	fftBr = new int[ss];
+	for (k = 0; k < ss; k++)
+		fftBr[k] = BitRev(k, nu);
+}
+int CFastFourierTransform::BitRev(int j, int nu) {
+	int j1 = j;
+	int k = 0;
+	for (int i = 1; i <= nu; i++) {
+		int j2 = j1 >> 1;
+		k = ((k << 1) + j1) - (j2 << 1);
+		j1 = j2;
+	}
+
+	return k;
+}
+float* CFastFourierTransform::Calculate(float* pSample, size_t pSampleSize) {
+	int n2 = ss2;
+	int nu1 = nu - 1;
+	int wAps = pSampleSize / ss;
+	size_t a = 0;
+
+	for (size_t b = 0; a < pSampleSize; b++) {
+		xre[b] = pSample[a];
+		xim[b] = 0.0F;
+		a += wAps;
+	}
+
+	int x = 0;
+	for (int l = 1; l <= nu; l++) {
+		for (int k = 0; k < ss; k += n2) {
+			for (int i = 1; i <= n2; i++) {
+				float c = fftCos[x];
+				float s = fftSin[x];
+				int kn2 = k + n2;
+				float tr = xre[kn2] * c + xim[kn2] * s;
+				float ti = xim[kn2] * c - xre[kn2] * s;
+				xre[kn2] = xre[k] - tr;
+				xim[kn2] = xim[k] - ti;
+				xre[k] += tr;
+				xim[k] += ti;
+				k++;
+				x++;
+			}
+		}
+
+		nu1--;
+		n2 >>= 1;
+	}
+
+	for (int k = 0; k < ss; k++) {
+		int r = fftBr[k];
+		if (r > k) {
+			float tr = xre[k];
+			float ti = xim[k];
+			xre[k] = xre[r];
+			xim[k] = xim[r];
+			xre[r] = tr;
+			xim[r] = ti;
+		}
+	}
+
+	mag[0] = (float)sqrt(xre[0] * xre[0] + xim[0] * xim[0]) / (float)ss;
+	for (int i = 1; i < ss2; i++)
+		mag[i] = (2.0F * (float)sqrt(xre[i] * xre[i] + xim[i] * xim[i])) / (float)ss;
+
+	return mag;
+}
+
+CMp3Show::CMp3Show():
+	m_iSampleSize(512),
+	m_iFFTSize(512),
+	m_fft(m_iFFTSize),
 	m_hTimer(NULL),
 	m_hTimerQueue(NULL)
 {
+	// left and right
+	m_pSamples.reset(new char[m_iSampleSize * 2 * 2]);
+	m_pSamplesFloat.reset(new float[m_iSampleSize]);
+	m_pOldFFT.reset(new float[32]{ 0 });
 }
 
 bool CMp3Show::Init()
@@ -707,44 +857,100 @@ bool CMp3Show::Init()
 
 	CHLayout* pBgLayout=new CHLayout(this);
 	pBgLayout->SetContentMargin(0, 0, 0, 0);
-	CImageLayer* pBgColor=new CImageLayer();
+	CColorLayer* pBgColor=new CColorLayer();
 	pBgColor->CreateImageLayerByColor(20, 30, 30);
 	pBgColor->SetSizePolicy(SizePolicyExpanding);
 	pBgLayout->AddChild(pBgColor);
 
 	return CScene::Init();
 }
+
+bool CMp3Show::Destroy()
+{
+	if(m_hTimer)
+		DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, INVALID_HANDLE_VALUE);
+	if(m_hTimerQueue)
+		DeleteTimerQueueEx(m_hTimerQueue, INVALID_HANDLE_VALUE);
+	m_sound.Stop();
+	return CScene::Destroy();
+}
+
+void CMp3Show::DrawNode()
+{
+	CNode::DrawNode();
+
+	Gdiplus::Graphics& g= GetView()->GetGraphics();
+	Gdiplus::GraphicsPath path;
+	Gdiplus::SolidBrush brush(Gdiplus::Color(220, 60, 0));
+	Gdiplus::RectF rect;
+
+	auto size = GetSize();
+	rect.X = 10.0f;
+	rect.Width = (size.first - 10.0f * 2) / 32;
+
+	for (int i = 0; i < 32; ++i)
+	{
+		rect.X = 10.0f + i*rect.Width;
+		rect.Height = size.second*m_pOldFFT[i];
+		rect.Y = size.second - rect.Height;
+		path.AddRectangle(rect);
+	}
+	g.FillPath(&brush, &path);
+
+	//HDC hMemDC = GetView()->GetMemDC();
+	//HBRUSH hBrush = CreateSolidBrush(RGB(220, 60, 0));
+	//SelectObject(hMemDC, hBrush);
+	//
+	//auto size = GetSize();
+	//int w = (size.first -10*2)/ 32;
+	//RECT rect;
+	//rect.left = 10;
+	//rect.bottom = (int)size.second;
+
+	//BeginPath(hMemDC);
+	//for (int i = 0; i < 32; ++i)
+	//{
+	//	rect.left = 10 + i*w;
+	//	rect.right = rect.left + w;
+	//	rect.top = int(rect.bottom - m_pOldFFT[i] * size.second);
+	//	Rectangle(hMemDC, rect.left, rect.top, rect.right, rect.bottom);
+	//}
+	//EndPath(hMemDC);
+	//FillPath(hMemDC);
+	//DeleteObject(hBrush);
+}
+
 LARGE_INTEGER li;
 LARGE_INTEGER fre;
-LARGE_INTEGER count;
 LRESULT CMp3Show::MessageProc(UINT message, WPARAM wparam, LPARAM lparam, bool& bProcessed)
 {
 	if(message == WM_CREATE)
 	{
 		InitMp3Player();
 	}
-	else if(message == WM_TIMER)
-	{
-		LARGE_INTEGER now;
-		QueryPerformanceCounter(&now);
-		TRACE1("%lf\n", 1.0*(now.QuadPart-li.QuadPart)/fre.QuadPart);
-		li=now;
-		++count.QuadPart;
-		if(count.QuadPart%20==0)
-			WriteAudioData();
-	}
+
 	return CScene::MessageProc(message, wparam, lparam, bProcessed);
 }
 
 void CALLBACK OnTimer(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
-	HWND hWnd=(HWND)lpParameter;
-	PostMessage(hWnd, WM_TIMER, 0, 0);
+	CMp3Show* p = (CMp3Show*)lpParameter;
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	TRACE1("%lf\n", 1.0*(now.QuadPart - li.QuadPart) / fre.QuadPart);
+	li = now;
+
+	++p->m_liCount.QuadPart;
+	if (p->m_liCount.QuadPart % 20 == 0)
+		p->WriteAudioData();
+	p->GetSpectrum();
 }
 
 void CMp3Show::InitMp3Player()
 {
-	m_decoder.Initialize("d:\\5.mp3", true);
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\Bubbly.mp3", true))
+		return;
+
 	auto info = m_decoder.SoundInfo();
 	m_iAudioLen = info.wf.nAvgBytesPerSec;
 	m_iAudioLast = 0;
@@ -752,23 +958,37 @@ void CMp3Show::InitMp3Player()
 
 	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec, GetView()->GetWnd());
 	m_sound.Start();
+	WriteAudioData();
 
-	//SetTimer(GetView()->GetWnd(), 0, 400, NULL);
+	QueryPerformanceFrequency(&fre);
+	QueryPerformanceCounter(&li);
+	m_liCount.QuadPart = 0;
+
 	if(!m_hTimerQueue)
-	{
 		m_hTimerQueue = CreateTimerQueue();
-		QueryPerformanceFrequency(&fre);
-		QueryPerformanceCounter(&li);
-		count.QuadPart=0;
-		CreateTimerQueueTimer(&m_hTimer, m_hTimerQueue, OnTimer, GetView()->GetWnd(), 20, 20, 0);
-	}
+	if(!m_hTimer)
+		CreateTimerQueueTimer(&m_hTimer, m_hTimerQueue, OnTimer, this, 20, 20, 0);
 }
 
 void CMp3Show::WriteAudioData()
 {
-	char* pSoundData=m_pAudioBuf.get();
-	int len=m_decoder.OutputData(pSoundData+m_iAudioLast, m_iAudioLen-m_iAudioLast);
-	m_iAudioLast+=len;
+	char* pSoundData = m_pAudioBuf.get();
+	int len;
+
+	if (m_iAudioLast < m_iAudioLen / 2)
+	{
+		len = m_decoder.OutputData(pSoundData + m_iAudioLast, m_iAudioLen - m_iAudioLast);
+		m_iAudioLast += len;
+	}
+	if (m_iAudioLast < 1)
+	{
+		TRACE("end of mp3\n");
+		DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, NULL);
+		m_hTimer = NULL;
+		m_sound.Stop();
+		return;
+	}
+
 	DWORD written, writePos;
 	int res=m_sound.Write(pSoundData, m_iAudioLast, written, writePos);
 	if(res == 1)
@@ -789,6 +1009,84 @@ void CMp3Show::WriteAudioData()
 		memcpy(pSoundData, pSoundData+written, m_iAudioLast-written);
 		m_iAudioLast -=written;
 	}
+}
+
+void CMp3Show::GetSpectrum()
+{
+	int pos;
+	m_sound.SamplePosition(pos);
+
+	auto pAudio = m_pAudioBuf.get() + m_iAudioLen;
+	auto& soundInfo = m_sound.SoundFormat();
+	auto* pSampleFloat = m_pSamplesFloat.get();
+	float left, right;
+	int len, i;
+	char temp[4];
+
+	if (soundInfo.nChannels == 2 && soundInfo.wBitsPerSample == 16)
+	{
+		len = m_iSampleSize * 2 * 2;
+		if (pos + len < m_iAudioLen)
+		{
+			memcpy(m_pSamples.get(), pAudio + pos, len);
+		}
+		else
+		{
+			i = m_iAudioLen - pos;
+			memcpy(m_pSamples.get(), pAudio + pos, i);
+			memcpy(m_pSamples.get() + i, pAudio, len - i);
+		}
+
+		for (i = 0;i < m_iSampleSize;++i)
+		{
+			memcpy(temp, m_pSamples.get() + i * 4, 4);
+			left = ((temp[1] << 8) + temp[0]) / 32767.0f;
+			right = ((temp[3] << 8) + temp[2]) / 32767.0f;
+			*(pSampleFloat + i) = (left + right) / 2;
+		}
+	}
+	else
+	{
+		throw 1;
+		return;
+	}
+
+	auto pRes=m_fft.Calculate(m_pSamplesFloat.get(), m_iSampleSize);
+	float wFs;
+	len = m_iFFTSize / 2 / 32;
+	for (i = 0;i<32;++i)
+	{
+		wFs = 0.0f;
+		for (int j = 0;j< len;++j)
+		{
+			wFs += pRes[i*len + j];
+		}
+		wFs = (wFs * (float)log(i + 2.0F));
+
+		if (wFs > 0.005F && wFs < 0.009F)
+			wFs *= 50.0F;
+		else if (wFs > 0.01F && wFs < 0.1F)
+			wFs *= 10.0F;
+		else if (wFs > 0.1F && wFs < 0.5F)
+			wFs *= PI; //enlarge PI times, if do not, the bar display abnormally, why??
+
+		if (wFs > 1.0F)
+		{
+			wFs = 1.0F;
+		}
+
+		if (wFs >= m_pOldFFT[i])
+		{
+			m_pOldFFT[i] = wFs;
+		}
+		else
+		{
+			m_pOldFFT[i] -= 0.015f;
+		}
+	}
+
+	InvalidateRect(GetView()->GetWnd(), NULL, FALSE);
+	//PostMessage(GetView()->GetWnd(), WM_PAINT, 0, 0);
 }
 
 LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)

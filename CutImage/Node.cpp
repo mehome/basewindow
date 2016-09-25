@@ -459,11 +459,6 @@ bool CNode::RemoveChildAll(bool bDelete)
 
 void CNode::SortChild()
 {
-	if (!m_bNeedSortChild)
-	{
-		return;
-	}
-
 	std::stable_sort(m_Children.begin(), m_Children.end(), [](CNode* one, CNode* two)->bool
 	{
 		if (one && two)
@@ -559,9 +554,12 @@ bool CNode::Destroy()
 
 void CNode::DrawNode()
 {
-	CNode* pNode;
+	if(m_bNeedSortChild)
+	{
+		SortChild();
+	}
 
-	SortChild();
+	CNode* pNode;
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = *iter;
@@ -1554,6 +1552,40 @@ const std::wstring& CImageLayer::GetNodeClassName()const
 	return name;
 }
 
+CColorLayer::CColorLayer(CNode* parent):CImageLayer(parent),
+	m_brush(Gdiplus::Color())
+{
+
+}
+
+bool CColorLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+{
+	m_brush.SetColor(Gdiplus::Color(a, r, g, b));
+	if (m_hBitmap)
+	{
+		DeleteObject(m_hBitmap);
+	}
+	if (m_hDc)
+	{
+		DeleteDC(m_hDc);
+	}
+	return true;
+}
+
+void CColorLayer::DrawNode()
+{
+	if (m_hBitmap)
+		return CImageLayer::DrawNode();
+
+	auto rect = GetRect();
+	Gdiplus::Graphics& g = GetView()->GetGraphics();
+
+	g.FillRectangle(&m_brush, rect.left,
+		rect.top,
+		rect.right - rect.left,
+		rect.bottom - rect.top);
+}
+
 CTextLayer::CTextLayer(CNode* pParent) :
 	CNode(pParent),
 	m_hFont(NULL),
@@ -1786,8 +1818,7 @@ void CButtonNode::SetBorderWidth(int width)
 void CButtonNode::DrawNode()
 {
 	RECT r = GetRect();
-	HDC hMemDC = GetView()->GetMemDC();
-	Gdiplus::Graphics g(hMemDC);
+	Gdiplus::Graphics& g = GetView()->GetGraphics();
 	Gdiplus::SolidBrush brush(IsMouseIN() ? m_bgHighLight : m_bgNormal);
 	Gdiplus::Pen pen((IsMouseIN() ? m_borderHighLight : m_borderNormal), (float)m_iBorderWidth);
 

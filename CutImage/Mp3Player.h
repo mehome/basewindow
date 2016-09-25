@@ -17,10 +17,10 @@ public:
 	void Stop();
 	int Write(void *pData, DWORD dwLen, DWORD &dwWritten, DWORD& dwWritePos);
 	DWORD BufferLength()const;
-	WAVEFORMATEX SoundFormat()const;
+	const WAVEFORMATEX& SoundFormat()const;
 	void Seek();
 	void SamplePosition(int &samplePos, int &bufferStart, int bufferLen);
-	void SamplePosition(int &samplePos);
+	bool SamplePosition(int &samplePos);
 	//获得尚未被播放的数据的时长(毫秒)
 	unsigned int GetRemainderTime();
 protected:
@@ -77,23 +77,57 @@ protected:
 	unsigned int dwLastRead_;
 };
 
+class CFastFourierTransform
+{
+private:
+	float* xre;
+	float* xim;
+	float* mag;
+	float* fftSin;
+	float* fftCos;
+	int* fftBr;
+	int ss;
+	int ss2;
+	int nu;
+	int nu1;
+
+	int BitRev(int j, int nu);
+	void PrepareFFTTables();
+public:
+	CFastFourierTransform(int pSampleSize);
+	~CFastFourierTransform(void);
+
+	float* Calculate(float* pSample, size_t pSampleSize);
+};
+
 class CMp3Show : public CScene
 {
 public:
+	friend void CALLBACK OnTimer(LPVOID, BOOLEAN);
 	CMp3Show();
 	bool Init();
+	bool Destroy();
+	void DrawNode();
 	LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 protected:
 	void InitMp3Player();
 	void WriteAudioData();
+	void GetSpectrum();
 protected:
+	const int m_iSampleSize;
+	const int m_iFFTSize;
 	std::unique_ptr<char[]> m_pAudioBuf;
+	std::unique_ptr<char[]> m_pSamples;
+	std::unique_ptr<float[]> m_pSamplesFloat;
+	std::unique_ptr<float[]> m_pOldFFT;
 	int m_iAudioLen;
 	int m_iAudioLast;
 	CSound m_sound;
 	CWM m_decoder;
+	CFastFourierTransform m_fft;
 	HANDLE m_hTimerQueue;
 	HANDLE m_hTimer;
+	LARGE_INTEGER m_liCount;
 };
 
 class CMp3PlayerWindow : public CBaseWindow

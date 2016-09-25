@@ -31,6 +31,7 @@ public:
 	HWND GetWnd()const {return m_Wnd;}
 	RECT GetWndRect()const {return m_rectWnd;}
 	RECT GetScreenRect()const {return m_rectScreen;}
+	Gdiplus::Graphics& GetGraphics() { return *m_pGraphics; };
 	void Refresh();
 	void DoRefresh();
 	virtual void WndRectChanged();
@@ -44,6 +45,8 @@ protected:
 	unsigned char* pBmpData_;
 	BITMAPINFOHEADER bitmapHeader_;
 	bool m_bRefresh_;
+
+	Gdiplus::Graphics* m_pGraphics;
 };
 
 class CGDIViewAlpha :public CGDIView
