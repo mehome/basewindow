@@ -38,7 +38,7 @@ class CApplication
 public:
 	CApplication();
 	virtual ~CApplication();
-	virtual int Run(int n=0);
+	virtual int Run();
 	virtual int HandleQueueMessage(const MSG& msg);
 	virtual bool Init();
 	virtual void Destroy();
@@ -47,11 +47,11 @@ protected:
 	unsigned int m_threadId;
 };
 
-class CThread : public CApplication
+class CMessageLoop : public CApplication
 {
 public:
-	CThread();
-	~CThread();
+	CMessageLoop();
+	~CMessageLoop();
 	int Run();
 	bool Init();
 	void Destroy();

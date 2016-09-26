@@ -1,6 +1,7 @@
 #pragma once
 #include "BaseWindow.h"
 #include "Node.h"
+#include "Thread.h"
 #include <dsound.h>
 #include <mmsystem.h>
 #include <wmsdk.h>
@@ -11,23 +12,19 @@ public:
 	CSound();
 	~CSound();
 
-	bool Initialize(WAVEFORMAT wf, WORD wBitsPerSample, DWORD dwBufferLength, HWND hWnd);
+	bool Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLength,HWND hWnd);
 	bool Clear();
 	int Start();
 	void Stop();
-	int Write(void *pData, DWORD dwLen, DWORD &dwWritten, DWORD& dwWritePos);
-	DWORD BufferLength()const;
+	int Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos);
 	const WAVEFORMATEX& SoundFormat()const;
 	void Seek();
-	void SamplePosition(int &samplePos, int &bufferStart, int bufferLen);
-	bool SamplePosition(int &samplePos);
-	//获得尚未被播放的数据的时长(毫秒)
-	unsigned int GetRemainderTime();
+	void SamplePosition(int &samplePos);
 protected:
 	//type=0代表清空整个缓冲区
 	void ClearBuffer(int type);
 	//获得缓冲区中可被写入新数据(不会覆盖尚未播放数据)的起始位置，以及可写的长度
-	int AvaliableBuffer(DWORD dwWant, DWORD &dwRealWritePos, DWORD &dwAvaliableLength);
+	int AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliableLength);
 protected:
 	bool bPlaying_;
 	LPDIRECTSOUND lpDS_;
@@ -100,18 +97,29 @@ public:
 	float* Calculate(float* pSample, size_t pSampleSize);
 };
 
+class CMp3Show;
+class CMp3Thread : public CMessageLoop
+{
+public:
+	CMp3Thread(CMp3Show* p);
+	int Run();
+	void Destroy();
+protected:
+	CMp3Show* m_pPlayerScene;
+};
+
 class CMp3Show : public CScene
 {
 public:
-	friend void CALLBACK OnTimer(LPVOID, BOOLEAN);
+	friend class CMp3Thread;
 	CMp3Show();
 	bool Init();
 	bool Destroy();
 	void DrawNode();
 	LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 protected:
-	void InitMp3Player();
-	void WriteAudioData();
+	bool InitMp3Player();
+	bool WriteAudioData();
 	void GetSpectrum();
 protected:
 	const int m_iSampleSize;
@@ -125,9 +133,7 @@ protected:
 	CSound m_sound;
 	CWM m_decoder;
 	CFastFourierTransform m_fft;
-	HANDLE m_hTimerQueue;
-	HANDLE m_hTimer;
-	LARGE_INTEGER m_liCount;
+	CMp3Thread* m_pPlayThread;
 };
 
 class CMp3PlayerWindow : public CBaseWindow

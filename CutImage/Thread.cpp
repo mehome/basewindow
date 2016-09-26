@@ -46,9 +46,10 @@ CApplication::~CApplication()
 {
 }
 
-int CApplication::Run(int)
+int CApplication::Run()
 {
 	MSG msg;
+	m_threadId = GetCurrentThreadId();
 	
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
@@ -88,32 +89,32 @@ void CApplication::Destroy()
 	TRACE("application destroy\n");
 }
 
-CThread::CThread() :
+CMessageLoop::CMessageLoop() :
 	m_bRunning(false),
 	m_hThread(NULL)
 {
 }
 
-CThread::~CThread()
+CMessageLoop::~CMessageLoop()
 {
 	if(m_hThread)
 	{
+		m_bRunning=false;
 		WaitForSingleObject(m_hThread, 1000);
 		CloseHandle(m_hThread);
 		m_hThread=NULL;
 	}
 }
 
-int CThread::Run()
+int CMessageLoop::Run()
 {
 	TRACE("worker thread start\n");
-	SetThreadName(ThreadId(), "z");
-
+	SetThreadName(ThreadId(), "messageloop");
 
 	BOOL bRet;
 	MSG msg;
 	int n(0);
-	while(1)
+	while(m_bRunning)
 	{
 		// filter queue message only
 		bRet=GetMessage(&msg, (HWND)-1, 0, 0);
@@ -135,32 +136,30 @@ int CThread::Run()
 
 unsigned int __stdcall ThreadFunc(void* p)
 {
-	CThread* pThread=static_cast<CThread*>(p);
+	CMessageLoop* pThread=static_cast<CMessageLoop*>(p);
 	if(!pThread)
 		return 0;
 	return pThread->Run();
 }
 
-bool CThread::Init()
+bool CMessageLoop::Init()
 {
 	CLockGuard<CSimpleLock> guard(&m_lock);
 	
-	if(m_bRunning || m_hThread != NULL)
+	if(m_bRunning)
 		return false;
 
-	if(m_hThread)
-	{
-		CloseHandle(m_hThread);
-		m_hThread=NULL;
-	}
 	m_hThread=(HANDLE)_beginthreadex(NULL, 0, ThreadFunc, this, 0, &m_threadId);
 	m_bRunning=true;
 	return true;
 }
 
-void CThread::Destroy()
+void CMessageLoop::Destroy()
 {
 	CLockGuard<CSimpleLock> guard(&m_lock);
 	if(m_bRunning)
+	{
+		m_bRunning=false;
 		PostThreadMessage(ThreadId(), WM_QUIT, 0, 0);
+	}
 }

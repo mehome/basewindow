@@ -1,4 +1,5 @@
 #include "Mp3Player.h"
+#include <process.h>
 
 #pragma comment(lib, "dsound.lib")
 #pragma comment(lib, "wmvcore.lib")
@@ -10,68 +11,71 @@
 
 CSound::CSound()
 {
-	bPlaying_ = false;
-	lpDS_ = NULL;
-	lpDSB_ = NULL;
-	dwBufferLength_ = 0;
-	dwSilenceBytes_ = 0;
+	bPlaying_=false;
+	lpDS_=NULL;
+	lpDSB_=NULL;
+	dwBufferLength_=0;
+	dwSilenceBytes_=0;
 
-	iWritePos_ = -1;
-	ulBufferPos_ = 0;
-	ulBufferLength_ = 0;
+	iWritePos_=-1;
+	ulBufferPos_=0;
+	ulBufferLength_=0;
 
-	dwLockOffset_ = 0;
-	dwLockLen_ = 0;
+	dwLockOffset_=0;
+	dwLockLen_=0;
 }
 
 CSound::~CSound()
 {
-	if (bPlaying_)
+	if(bPlaying_)
 	{
 		Stop();
 	}
 	Clear();
 }
 
-bool CSound::Initialize(WAVEFORMAT wf, WORD wBitsPerSample, DWORD dwBufferLen, HWND hWnd)
+bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND hWnd)
 {
 	HRESULT hr;
 	DSBUFFERDESC dsbd;
 
 	Clear();
-	hr = DirectSoundCreate(NULL, &lpDS_, NULL);
-	if (FAILED(hr))
+	hr=DirectSoundCreate(NULL,&lpDS_,NULL);
+	if(FAILED(hr))
 	{
+		TRACE("failed DirectSoundCreate\n");
 		return false;
 	}
-	if (hWnd == NULL)
+	if(hWnd==NULL)
 	{
-		hWnd = GetDesktopWindow();
+		hWnd=GetDesktopWindow();
 	}
-	hr = lpDS_->SetCooperativeLevel(hWnd, DSSCL_PRIORITY);
-	if (FAILED(hr))
+	hr=lpDS_->SetCooperativeLevel(hWnd,DSSCL_PRIORITY);
+	if(FAILED(hr))
 	{
+		TRACE("failed SetCooperativeLevel\n");
 		Clear();
 		return FALSE;
 	}
 
-	waveFormat_.nAvgBytesPerSec = wf.nAvgBytesPerSec;
-	waveFormat_.nBlockAlign = wf.nBlockAlign;
-	waveFormat_.nChannels = wf.nChannels;
-	waveFormat_.nSamplesPerSec = wf.nSamplesPerSec;
-	waveFormat_.wFormatTag = wf.wFormatTag;
-	waveFormat_.wBitsPerSample = wBitsPerSample;
+	waveFormat_.nAvgBytesPerSec=wf.nAvgBytesPerSec;
+	waveFormat_.nBlockAlign=wf.nBlockAlign;
+	waveFormat_.nChannels=wf.nChannels;
+	waveFormat_.nSamplesPerSec=wf.nSamplesPerSec;
+	waveFormat_.wFormatTag=wf.wFormatTag;
+	waveFormat_.wBitsPerSample=wBitsPerSample;
 
-	dwBufferLength_ = dwBufferLen;
-	memset(&dsbd, 0, sizeof(DSBUFFERDESC));
-	dsbd.dwSize = sizeof(DSBUFFERDESC);
-	dsbd.lpwfxFormat = (WAVEFORMATEX*)&waveFormat_;
-	dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
-	dsbd.dwBufferBytes = dwBufferLen;
+	dwBufferLength_=dwBufferLen;
+	memset(&dsbd,0,sizeof(DSBUFFERDESC));
+	dsbd.dwSize=sizeof(DSBUFFERDESC);
+	dsbd.lpwfxFormat=(WAVEFORMATEX*)&waveFormat_;
+	dsbd.dwFlags=DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
+	dsbd.dwBufferBytes=dwBufferLen;
 
-	hr = lpDS_->CreateSoundBuffer(&dsbd, &lpDSB_, NULL);
-	if (FAILED(hr))
+	hr=lpDS_->CreateSoundBuffer(&dsbd,&lpDSB_,NULL);
+	if(FAILED(hr))
 	{
+		TRACE("failed CreateSoundBuffer\n");
 		Clear();
 		return false;
 	}
@@ -80,20 +84,20 @@ bool CSound::Initialize(WAVEFORMAT wf, WORD wBitsPerSample, DWORD dwBufferLen, H
 
 bool CSound::Clear()
 {
-	if (lpDSB_)
+	if(lpDSB_)
 	{
 		lpDSB_->Release();
-		lpDSB_ -= NULL;
+		lpDSB_-=NULL;
 	}
-	if (lpDS_)
+	if(lpDS_)
 	{
 		lpDS_->Release();
-		lpDS_ = NULL;
+		lpDS_=NULL;
 	}
-	dwBufferLength_ = 0;
-	dwSilenceBytes_ = 0;
-	ulBufferPos_ = 0;
-	iWritePos_ = -1;
+	dwBufferLength_=0;
+	dwSilenceBytes_=0;
+	ulBufferPos_=0;
+	iWritePos_=-1;
 
 	return true;
 }
@@ -103,37 +107,31 @@ int CSound::Start()
 	HRESULT hr;
 	DWORD status;
 
-	if (!lpDSB_)
-		return FALSE;
-
-	hr = lpDSB_->GetStatus(&status);
-	if (hr == DS_OK && status == DSBSTATUS_LOOPING)
-		return TRUE;
-
-	hr = lpDSB_->Play(0, 0, DSCBSTART_LOOPING);
-	if (hr == DSERR_BUFFERLOST)
+	hr=lpDSB_->GetStatus(&status);
+	if(hr==DS_OK && status==DSBSTATUS_LOOPING)
 	{
-		hr = lpDSB_->Restore();
-		if (FAILED(hr))
+		return TRUE;
+	}
+
+	hr=lpDSB_->Play(0,0,DSCBSTART_LOOPING);
+	if(hr==DSERR_BUFFERLOST)
+	{
+		hr=lpDSB_->Restore();
+		if(FAILED(hr))
 			return FALSE;
 	}
 	ClearBuffer(0);
-	bPlaying_ = true;
+	bPlaying_=true;
 	return TRUE;
 }
 
 void CSound::Stop()
 {
-	if (lpDSB_ && bPlaying_)
+	if(lpDSB_ && bPlaying_)
 	{
 		lpDSB_->Stop();
-		bPlaying_ = FALSE;
+		bPlaying_=FALSE;
 	}
-}
-
-DWORD CSound::BufferLength()const
-{
-	return dwBufferLength_;
 }
 
 const WAVEFORMATEX& CSound::SoundFormat()const
@@ -141,252 +139,230 @@ const WAVEFORMATEX& CSound::SoundFormat()const
 	return waveFormat_;
 }
 
-int CSound::Write(void *pData, DWORD dwLen, DWORD &dwWritten, DWORD& dwWritePos)
+int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 {
-	//0 error
-	//1 ok,
-	//2 try again
+	//0error
+	//1ok,buffer is full
+	//2ok,
+	//3try again
 
 	int status(0);
-	DWORD dwWrite, dwPlay;
+	DWORD dwWrite,dwPlay;
 	HRESULT hr;
-	unsigned char*pb1(NULL), *pb2(NULL);
-	DWORD dwb1(0), dwb2(0);
+	unsigned char*pb1,*pb2;
+	DWORD dwb1,dwb2;
 
-	//iWritePos_为-1代表第一次写缓冲区
-	if (iWritePos_ == -1)
+	//iWritePos_为零代表第一次写缓冲区
+	if(iWritePos_ == -1)
 	{
-		hr = lpDSB_->GetCurrentPosition(&dwPlay, &dwWrite);
-		if (FAILED(hr))
+		hr=lpDSB_->GetCurrentPosition(&dwPlay,&dwWrite);
+		if(FAILED(hr))
 		{
 			return 0;
 		}
 
-		dwLockOffset_ = dwWrite;
-		dwLockLen_ = min(dwLen, dwBufferLength_);
+		dwLockOffset_=dwWrite;
+		dwLockLen_=min(dwLen,dwBufferLength_);
 	}
 	else
 	{
-		status = AvaliableBuffer(dwLen, dwLockOffset_, dwLockLen_);
-		if (status == 0)
+		status=AvaliableBuffer(dwLen,dwLockOffset_,dwLockLen_);
+		if(status==0 || status==1)
+		{
 			return status;
+		}
 	}
 
-	hr = lpDSB_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
-	if (hr != DS_OK)
+	hr=lpDSB_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
+	if(hr!=DS_OK)
 	{
-		if (hr == DSERR_BUFFERLOST)
+		if(hr=DSERR_BUFFERLOST)
 		{
-			hr = lpDSB_->Restore();
-			if (hr == DS_OK)
+			hr=lpDSB_->Restore();
+			if(hr==DS_OK)
 			{
-				iWritePos_ = -1;
-				return 2;
+				ClearBuffer(0);
+				iWritePos_=-1;
+				return 3;
 			}
 		}
 		return 0;
 	}
 
-	if (pb1 != NULL)
+	if(pb1 != NULL)
 	{
-		memcpy(pb1, pData, dwb1);
+		memcpy(pb1,pData,dwb1);
 	}
-	if (pb2 != NULL)
+	if(pb2 != NULL)
 	{
-		memcpy(pb2, (unsigned char*)pData + dwb1, dwb2);
+		memcpy(pb2,(unsigned char*)pData+dwb1,dwb2);
 	}
-	lpDSB_->Unlock(pb1, dwb1, pb2, dwb2);
+	lpDSB_->Unlock(pb1,dwb1,pb2,dwb2);
 
-	//更新对有效缓冲区的记录
-	if (iWritePos_ == -1)
+	//更新对有效缓冲区（正在播放）的记录
+	if(iWritePos_ == -1)
 	{
-		iWritePos_ = (int)(dwLockOffset_ + dwb1 + dwb2);
-		ulBufferPos_ = dwLockOffset_;
-		ulBufferLength_ = dwb1 + dwb2;
+		iWritePos_ = (int)(dwLockOffset_+dwb1+dwb2);
+
+		ulBufferPos_=dwLockOffset_;
+		ulBufferLength_ = dwb1+dwb2;
 	}
 	else
 	{
-		iWritePos_ += (dwb1 + dwb2);
-		ulBufferLength_ += (dwb1 + dwb2);
+		iWritePos_ += int(dwb1+dwb2);
+		ulBufferLength_ += (dwb1+dwb2);
 	}
-	iWritePos_ %= dwBufferLength_;
-	dwWritePos = dwLockOffset_;
-	dwWritten = dwLockLen_;
-	return 1;
-}
+	iWritePos_ %=dwBufferLength_;
 
+	dwWritePos = dwLockOffset_;
+	dwWriteLen = dwLockLen_;
+	return 2;
+}
 void CSound::Seek()
 {
-	iWritePos_ = -1;
-	ulBufferLength_ = 0;
-	ulBufferPos_ = 0;
+	iWritePos_=-1;
+	ulBufferLength_=0;
+	ulBufferPos_=0;
 }
 
-void CSound::SamplePosition(int &samplePos, int &bufferStart, int bufferLen)
+void CSound::SamplePosition(int &samplePos)
 {
 	DWORD dwPlay;
 	HRESULT hr;
 
-	if (ulBufferLength_ < 1)
+	hr=lpDSB_->GetCurrentPosition(&dwPlay,NULL);
+	if(FAILED(hr))
 	{
-		samplePos = 1;
+		samplePos=-1;
 		return;
 	}
 
-	hr = lpDSB_->GetCurrentPosition(&dwPlay, NULL);
-	if (FAILED(hr))
-	{
-		samplePos = -1;
-		return;
-	}
-
-	samplePos = static_cast<int>(dwPlay);
-	bufferStart = static_cast<int>(ulBufferPos_);
-	bufferLen = static_cast<int>(ulBufferLength_);
-}
-
-bool CSound::SamplePosition(int &samplePos)
-{
-	HRESULT hr;
-	DWORD dwPlay;
-
-	if (ulBufferLength_ < 1)
-		return false;
-
-	hr = lpDSB_->GetCurrentPosition(&dwPlay, NULL);
-	if (FAILED(hr))
-		return false;
-	samplePos = (int)dwPlay;
-	return true;
-}
-
-unsigned int CSound::GetRemainderTime()
-{
-	DWORD dwLockLen(0), dwLockPos(0);
-	unsigned int iTime(0);
-
-	if(AvaliableBuffer((DWORD)10000, dwLockPos, dwLockLen) != 0)
-	{
-		iTime = static_cast<unsigned int>(1000.0*ulBufferLength_ / waveFormat_.nAvgBytesPerSec);
-	}
-
-	return iTime;
+	samplePos=static_cast<int>(dwPlay);
 }
 
 void CSound::ClearBuffer(int type)
 {
-	unsigned char *pb1 = NULL;
-	unsigned char *pb2 = NULL;
-	DWORD dwb1 = 0;
-	DWORD dwb2 = 0;
-	DWORD flags = 0;
-	DWORD start, count;
+	unsigned char *pb1=NULL;
+	unsigned char *pb2=NULL;
+	DWORD dwb1=0;
+	DWORD dwb2=0;
+	DWORD flags=0;
+	DWORD start,count;
 	HRESULT hr;
 
-	if (type == 0)
+	if(type==0)
 	{
-		flags |= DSBLOCK_ENTIREBUFFER;
-		start = 0;
-		count = dwBufferLength_;
+		flags|=DSBLOCK_ENTIREBUFFER;
+		start=0;
+		count=dwBufferLength_;
 	}
 	else
 	{
-		hr = lpDSB_->GetCurrentPosition(&dwb1, &dwb2);
-		if (FAILED(hr))
+		hr=lpDSB_->GetCurrentPosition(&dwb1,&dwb2);
+		if(FAILED(hr))
 		{
 			return;
 		}
-		start = dwb2;
-		if (dwb2 >= dwb1)
+		start=dwb2;
+		if(dwb2>=dwb1)
 		{
-			count = dwBufferLength_ - dwb2 + dwb1;
+			count=dwBufferLength_-dwb2+dwb1;
 		}
 		else
 		{
-			count = dwb1 - dwb2;
+			count=dwb1-dwb2;
 		}
 	}
-	dwSilenceBytes_ = count;
+	dwSilenceBytes_=count;
 
-	hr = this->lpDSB_->Lock(start, count, (void**)&pb1, &dwb1, (void**)&pb2, &dwb2, flags);
-	if (FAILED(hr))
+	hr=this->lpDSB_->Lock(start,count,(LPVOID *)&pb1,&dwb1,(LPVOID*)&pb2,&dwb2,flags);
+	if(FAILED(hr))
 	{
 		return;
 	}
-	TRACE2("CSound_ClearBuffer:offset:%ld,length:%ld\n", start, count);
-	if (pb1 != NULL)
+	TRACE2("CSound_ClearBuffer:offset:%ld,length:%ld\n",start,count);
+	if(pb1!=NULL)
 	{
-		memset(pb1, waveFormat_.wBitsPerSample == 8 ? 128 : 0, dwb1);
+		memset(pb1,waveFormat_.wBitsPerSample==8?128:0,dwb1);
 	}
-	if (pb2 != NULL)
+	if(pb2!=NULL)
 	{
-		memset(pb2, waveFormat_.wBitsPerSample == 8 ? 128 : 0, dwb2);
+		memset(pb2,waveFormat_.wBitsPerSample==8?128:0,dwb2);
 	}
-	lpDSB_->Unlock(pb1, dwb1, pb2, dwb2);
-}
+	lpDSB_->Unlock(pb1,dwb1,pb2,dwb2);
 
-int CSound::AvaliableBuffer(DWORD dwWant, DWORD &dwRealWritePos, DWORD &dwAvaliableLength)
+}
+int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliableLength)
 {
 	//about return
-	//0 error
-	//1 ok
+	//0error
+	//1buffer is full,but ok
+	//2all right
 
 	HRESULT hr;
-	DWORD dwPlay(0), dwWrite(0), dwTmp;
-	DWORD ulBufferEnd;
+	DWORD dwPlay=0,dwWrite=0;
+	DWORD dwTmp;
 
-	hr = lpDSB_->GetCurrentPosition(&dwPlay, &dwWrite);
-	if (FAILED(hr))
-		return 0;
-
-	ulBufferEnd = ulBufferPos_ + ulBufferLength_;
-	//有效缓冲区环回了
-	if (ulBufferEnd >= dwBufferLength_)
+	hr=lpDSB_->GetCurrentPosition(&dwPlay,&dwWrite);
+	if(FAILED(hr))
 	{
-		dwTmp = ulBufferEnd - dwBufferLength_;
-		if (dwPlay >= ulBufferPos_ && dwPlay < dwBufferLength_)
-		{
-			ulBufferLength_ -= (dwPlay - ulBufferPos_);
-			ulBufferPos_ = dwPlay;
-			dwRealWritePos = dwTmp;
-			TRACE("C\n");
-		}
-		else if (dwPlay >= 0 && dwPlay < dwTmp)
-		{
-			ulBufferLength_ = dwTmp - dwPlay;
-			ulBufferPos_ = dwPlay;
-			dwRealWritePos = dwTmp;
-			TRACE("D\n");
-		}
-		else
-		{
-			ulBufferPos_ = dwPlay;
-			ulBufferLength_ = max(0, dwWrite - dwPlay);
-			dwRealWritePos = dwWrite;
-			TRACE("e\n");
-		}
+		return 0;
 	}
+
+	if(ulBufferPos_+ulBufferLength_ < dwBufferLength_)
+	{
+		//here dwPlay>=ulBufferPos_ && dwPlay<ulBufferPos_+ulBufferLength_
+		ulBufferLength_=ulBufferLength_-(dwPlay-ulBufferPos_);
+		ulBufferPos_=dwPlay;
+
+		dwRealWritePos=ulBufferPos_+ulBufferLength_;
+		dwAvaliableLength=__min(dwWant,dwBufferLength_-ulBufferLength_);
+	}
+	//有效缓冲区环回了
 	else
 	{
-		if(dwPlay >= ulBufferPos_ && dwPlay <ulBufferEnd)
+		dwTmp=ulBufferLength_-(dwBufferLength_-ulBufferPos_);
+		if(dwTmp==ulBufferPos_)
 		{
-			ulBufferPos_ = dwPlay;
-			ulBufferLength_ = ulBufferEnd - dwPlay;
-			dwRealWritePos = ulBufferEnd;
-			TRACE("A\n");
+			if(dwPlay >= ulBufferPos_ && dwPlay<dwBufferLength_)
+			{
+				ulBufferLength_-=(dwPlay-ulBufferPos_);
+				ulBufferPos_=dwPlay;
+			}
+			else if(dwPlay >= 0 && dwPlay<dwTmp)
+			{
+				ulBufferPos_=dwPlay;
+				ulBufferLength_=dwTmp-dwPlay;
+			}
+			//缓冲区是满的，无需加数据
+			return 1;
+		}
+
+		if(dwPlay >= ulBufferPos_ && dwPlay<dwBufferLength_)
+		{
+			ulBufferLength_-=(dwPlay-ulBufferPos_);
+			ulBufferPos_=dwPlay;
+			dwRealWritePos=dwTmp;
+			dwAvaliableLength=__min(dwWant,dwBufferLength_-ulBufferLength_);
+		}
+		else if(dwPlay >=0 && dwPlay<=dwTmp)
+		{
+			ulBufferLength_=dwTmp-dwPlay;
+			ulBufferPos_=dwPlay;
+			dwRealWritePos=dwTmp;
+			dwAvaliableLength=__min(dwWant,dwBufferLength_-ulBufferLength_);
 		}
 		else
 		{
-			ulBufferPos_ = dwPlay;
-			ulBufferLength_ = max(0, dwWrite - dwPlay);
-			dwRealWritePos = dwWrite;
-			TRACE("b\n");
+			TRACE("never here\n");
+			dwRealWritePos=dwWrite;
+			dwAvaliableLength=__min(dwWant,dwBufferLength_);
+			ulBufferPos_=dwRealWritePos;
+			ulBufferLength_=dwAvaliableLength;
 		}
-	}
-	dwAvaliableLength = min(dwWant, dwBufferLength_ - ulBufferLength_);
-
-	return 1;
-}
+	}//loop buffer
+	return 2;
+}//
 
 CWM::CWM()
 {
@@ -443,7 +419,7 @@ bool CWM::Initialize(std::string szFileName, bool bDiscrete)
 	std::unique_ptr<wchar_t[]> pWFileName(new wchar_t[len+1]);
 	MultiByteToWideChar(CP_ACP, 0, szFileName.c_str(), szFileName.length(), pWFileName.get(), len);
 	pWFileName[len]=0;
-
+	
 	hr = WMCreateSyncReader(NULL, 0, &pWMSyncReader_);
 	if (hr != S_OK)
 	{
@@ -594,10 +570,6 @@ int CWM::OutputData(char *pDest, int iWantLen)
 		if (pNSSBuffer_ != NULL)
 		{
 			pNSSBuffer_->GetBufferAndLength(&pBuf, &buflen);
-			if (buflen == 0)
-			{
-				return iWantLen - len;
-			}
 
 			if ((DWORD)len <= buflen - dwLastRead_)
 			{
@@ -837,17 +809,59 @@ float* CFastFourierTransform::Calculate(float* pSample, size_t pSampleSize) {
 	return mag;
 }
 
+CMp3Thread::CMp3Thread(CMp3Show* p):m_pPlayerScene(p)
+{
+}
+
+int CMp3Thread::Run()
+{
+	//LARGE_INTEGER fre;
+	//LARGE_INTEGER last, now;
+	//LARGE_INTEGER gapPlay;
+
+	//QueryPerformanceFrequency(&fre);
+	//QueryPerformanceCounter(&last);
+
+	//gapPlay.QuadPart=LONGLONG(400.0/1000*fre.QuadPart);
+
+	CoInitialize(NULL);
+
+	m_pPlayerScene->InitMp3Player();
+
+	while(m_bRunning)
+	{
+		Sleep(300);
+		if(!m_pPlayerScene->WriteAudioData())
+			break;
+	}
+
+	CoUninitialize();
+	return 0;
+}
+
+void CMp3Thread::Destroy()
+{
+	CLockGuard<CSimpleLock> guard(&m_lock);
+	if(m_bRunning)
+	{
+		m_bRunning=false;
+		WaitForSingleObject(m_hThread, 500);
+		CloseHandle(m_hThread);
+		m_hThread=NULL;
+	}
+}
+
 CMp3Show::CMp3Show():
 	m_iSampleSize(512),
 	m_iFFTSize(512),
 	m_fft(m_iFFTSize),
-	m_hTimer(NULL),
-	m_hTimerQueue(NULL)
+	m_pPlayThread(NULL)
 {
 	// left and right
 	m_pSamples.reset(new char[m_iSampleSize * 2 * 2]);
 	m_pSamplesFloat.reset(new float[m_iSampleSize]);
-	m_pOldFFT.reset(new float[32]{ 0 });
+	m_pOldFFT.reset(new float[32]);
+	m_pPlayThread=new CMp3Thread(this);
 }
 
 bool CMp3Show::Init()
@@ -867,11 +881,12 @@ bool CMp3Show::Init()
 
 bool CMp3Show::Destroy()
 {
-	if(m_hTimer)
-		DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, INVALID_HANDLE_VALUE);
-	if(m_hTimerQueue)
-		DeleteTimerQueueEx(m_hTimerQueue, INVALID_HANDLE_VALUE);
-	m_sound.Stop();
+	if(m_pPlayThread)
+	{
+		m_pPlayThread->Destroy();
+		delete m_pPlayThread;
+		m_pPlayThread=NULL;
+	}
 	return CScene::Destroy();
 }
 
@@ -920,36 +935,21 @@ void CMp3Show::DrawNode()
 	//DeleteObject(hBrush);
 }
 
-LARGE_INTEGER li;
-LARGE_INTEGER fre;
 LRESULT CMp3Show::MessageProc(UINT message, WPARAM wparam, LPARAM lparam, bool& bProcessed)
 {
 	if(message == WM_CREATE)
 	{
-		InitMp3Player();
+		m_pPlayThread=new CMp3Thread(this);
+		m_pPlayThread->Init();
 	}
 
 	return CScene::MessageProc(message, wparam, lparam, bProcessed);
 }
 
-void CALLBACK OnTimer(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
+bool CMp3Show::InitMp3Player()
 {
-	CMp3Show* p = (CMp3Show*)lpParameter;
-	LARGE_INTEGER now;
-	QueryPerformanceCounter(&now);
-	TRACE1("%lf\n", 1.0*(now.QuadPart - li.QuadPart) / fre.QuadPart);
-	li = now;
-
-	++p->m_liCount.QuadPart;
-	if (p->m_liCount.QuadPart % 20 == 0)
-		p->WriteAudioData();
-	p->GetSpectrum();
-}
-
-void CMp3Show::InitMp3Player()
-{
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\Bubbly.mp3", true))
-		return;
+	if (!m_decoder.Initialize("d:\\4.mp3", true))
+		return false;
 
 	auto info = m_decoder.SoundInfo();
 	m_iAudioLen = info.wf.nAvgBytesPerSec;
@@ -958,19 +958,10 @@ void CMp3Show::InitMp3Player()
 
 	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec, GetView()->GetWnd());
 	m_sound.Start();
-	WriteAudioData();
-
-	QueryPerformanceFrequency(&fre);
-	QueryPerformanceCounter(&li);
-	m_liCount.QuadPart = 0;
-
-	if(!m_hTimerQueue)
-		m_hTimerQueue = CreateTimerQueue();
-	if(!m_hTimer)
-		CreateTimerQueueTimer(&m_hTimer, m_hTimerQueue, OnTimer, this, 20, 20, 0);
+	return WriteAudioData();
 }
 
-void CMp3Show::WriteAudioData()
+bool CMp3Show::WriteAudioData()
 {
 	char* pSoundData = m_pAudioBuf.get();
 	int len;
@@ -983,15 +974,13 @@ void CMp3Show::WriteAudioData()
 	if (m_iAudioLast < 1)
 	{
 		TRACE("end of mp3\n");
-		DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, NULL);
-		m_hTimer = NULL;
 		m_sound.Stop();
-		return;
+		return false;
 	}
 
 	DWORD written, writePos;
 	int res=m_sound.Write(pSoundData, m_iAudioLast, written, writePos);
-	if(res == 1)
+	if(res == 2)
 	{
 		{
 			char *p=pSoundData + m_iAudioLen;
@@ -1009,6 +998,8 @@ void CMp3Show::WriteAudioData()
 		memcpy(pSoundData, pSoundData+written, m_iAudioLast-written);
 		m_iAudioLast -=written;
 	}
+
+	return true;
 }
 
 void CMp3Show::GetSpectrum()
