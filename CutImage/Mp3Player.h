@@ -104,8 +104,10 @@ public:
 	CMp3Thread(CMp3Show* p);
 	int Run();
 	void Destroy();
-protected:
+
 	CMp3Show* m_pPlayerScene;
+	HANDLE m_hTimerQueue;
+	HANDLE m_hTimer;
 };
 
 class CMp3Show : public CScene
@@ -117,7 +119,7 @@ public:
 	bool Destroy();
 	void DrawNode();
 	LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
-protected:
+//protected:
 	bool InitMp3Player();
 	bool WriteAudioData();
 	void GetSpectrum();

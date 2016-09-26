@@ -809,30 +809,63 @@ float* CFastFourierTransform::Calculate(float* pSample, size_t pSampleSize) {
 	return mag;
 }
 
-CMp3Thread::CMp3Thread(CMp3Show* p):m_pPlayerScene(p)
+CMp3Thread::CMp3Thread(CMp3Show* p):
+	m_pPlayerScene(p),
+	m_hTimerQueue(0),
+	m_hTimer(0)
 {
+}
+
+void __stdcall OnTimer(PVOID p, BOOLEAN)
+{
+	CMp3Thread* pThread = (CMp3Thread*)p;
+	pThread->m_pPlayerScene->GetSpectrum();
 }
 
 int CMp3Thread::Run()
 {
-	//LARGE_INTEGER fre;
-	//LARGE_INTEGER last, now;
-	//LARGE_INTEGER gapPlay;
+	LARGE_INTEGER fre;
+	LARGE_INTEGER last, now;
+	LARGE_INTEGER gap, count;;
 
-	//QueryPerformanceFrequency(&fre);
-	//QueryPerformanceCounter(&last);
-
-	//gapPlay.QuadPart=LONGLONG(400.0/1000*fre.QuadPart);
+	QueryPerformanceFrequency(&fre);
+	QueryPerformanceCounter(&last);
+	gap.QuadPart = LONGLONG(20.0 / 1000 * fre.QuadPart);
+	count.QuadPart = 0;
 
 	CoInitialize(NULL);
 
-	m_pPlayerScene->InitMp3Player();
+	if (!m_pPlayerScene->InitMp3Player())
+	{
+		CoUninitialize();
+		return 0;
+	}
+
+	m_hTimerQueue = CreateTimerQueue();
+	CreateTimerQueueTimer(&m_hTimer, m_hTimerQueue, OnTimer, this, 20, 20, 0);
 
 	while(m_bRunning)
 	{
-		Sleep(300);
-		if(!m_pPlayerScene->WriteAudioData())
+		Sleep(400);
+		//QueryPerformanceCounter(&now);
+		//if (now.QuadPart - last.QuadPart >= gap.QuadPart)
+		//{
+		//	++count.QuadPart;
+		//	if (count.QuadPart % 20 == 0)
+		//	{
+		//		if (!m_pPlayerScene->WriteAudioData())
+		//			break;
+		//	}
+		//	m_pPlayerScene->GetSpectrum();
+		//	last.QuadPart = now.QuadPart;
+		//}
+
+		if (!m_pPlayerScene->WriteAudioData())
+		{
+			DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, INVALID_HANDLE_VALUE);
+			m_hTimer = NULL;
 			break;
+		}
 	}
 
 	CoUninitialize();
@@ -842,6 +875,12 @@ int CMp3Thread::Run()
 void CMp3Thread::Destroy()
 {
 	CLockGuard<CSimpleLock> guard(&m_lock);
+
+	if (m_hTimer)
+	{
+		DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, INVALID_HANDLE_VALUE);
+	}
+
 	if(m_bRunning)
 	{
 		m_bRunning=false;
@@ -948,7 +987,7 @@ LRESULT CMp3Show::MessageProc(UINT message, WPARAM wparam, LPARAM lparam, bool& 
 
 bool CMp3Show::InitMp3Player()
 {
-	if (!m_decoder.Initialize("d:\\4.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\A Place Nearby.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -1076,8 +1115,8 @@ void CMp3Show::GetSpectrum()
 		}
 	}
 
-	InvalidateRect(GetView()->GetWnd(), NULL, FALSE);
-	//PostMessage(GetView()->GetWnd(), WM_PAINT, 0, 0);
+	//InvalidateRect(GetView()->GetWnd(), NULL, FALSE);
+	PostMessage(GetView()->GetWnd(), WM_PAINT, 0, 0);
 }
 
 LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
