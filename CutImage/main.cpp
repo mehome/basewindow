@@ -37,9 +37,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	//win.InitWindow(hInstance);
 	//win.Show();
 
+	CoInitialize(NULL);
 
 	CMp3PlayerWindow win;
 	win.InitWindow(hInstance);
 	win.Show();
-	return app.Run();
+	auto res=win.Run();
+
+	CoUninitialize();
+	return res;
 }

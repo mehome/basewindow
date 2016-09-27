@@ -225,19 +225,24 @@ void CSound::Seek()
 	ulBufferPos_=0;
 }
 
-void CSound::SamplePosition(int &samplePos)
+bool CSound::SamplePosition(int &samplePos)
 {
 	DWORD dwPlay;
 	HRESULT hr;
 
+	if(ulBufferLength_ < 1)
+	{
+		return false;
+	}
+
 	hr=lpDSB_->GetCurrentPosition(&dwPlay,NULL);
 	if(FAILED(hr))
 	{
-		samplePos=-1;
-		return;
+		return false;
 	}
 
 	samplePos=static_cast<int>(dwPlay);
+	return true;
 }
 
 void CSound::ClearBuffer(int type)
@@ -402,6 +407,7 @@ void CWM::Clear()
 		pWMSyncReader_ = NULL;
 	}
 }
+
 bool CWM::Initialize(std::string szFileName, bool bDiscrete)
 {
 	DWORD dwi = 0, dwj = 0, dwSize(0);
@@ -809,100 +815,6 @@ float* CFastFourierTransform::Calculate(float* pSample, size_t pSampleSize) {
 	return mag;
 }
 
-CMp3Thread::CMp3Thread(CMp3Show* p):
-	m_pPlayerScene(p),
-	m_hTimerQueue(0),
-	m_hTimer(0)
-{
-}
-
-void __stdcall OnTimer(PVOID p, BOOLEAN)
-{
-	CMp3Thread* pThread = (CMp3Thread*)p;
-	pThread->m_pPlayerScene->GetSpectrum();
-}
-
-int CMp3Thread::Run()
-{
-	LARGE_INTEGER fre;
-	LARGE_INTEGER last, now;
-	LARGE_INTEGER gap, count;;
-
-	QueryPerformanceFrequency(&fre);
-	QueryPerformanceCounter(&last);
-	gap.QuadPart = LONGLONG(20.0 / 1000 * fre.QuadPart);
-	count.QuadPart = 0;
-
-	CoInitialize(NULL);
-
-	if (!m_pPlayerScene->InitMp3Player())
-	{
-		CoUninitialize();
-		return 0;
-	}
-
-	m_hTimerQueue = CreateTimerQueue();
-	CreateTimerQueueTimer(&m_hTimer, m_hTimerQueue, OnTimer, this, 20, 20, 0);
-
-	while(m_bRunning)
-	{
-		Sleep(400);
-		//QueryPerformanceCounter(&now);
-		//if (now.QuadPart - last.QuadPart >= gap.QuadPart)
-		//{
-		//	++count.QuadPart;
-		//	if (count.QuadPart % 20 == 0)
-		//	{
-		//		if (!m_pPlayerScene->WriteAudioData())
-		//			break;
-		//	}
-		//	m_pPlayerScene->GetSpectrum();
-		//	last.QuadPart = now.QuadPart;
-		//}
-
-		if (!m_pPlayerScene->WriteAudioData())
-		{
-			DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, INVALID_HANDLE_VALUE);
-			m_hTimer = NULL;
-			break;
-		}
-	}
-
-	CoUninitialize();
-	return 0;
-}
-
-void CMp3Thread::Destroy()
-{
-	CLockGuard<CSimpleLock> guard(&m_lock);
-
-	if (m_hTimer)
-	{
-		DeleteTimerQueueTimer(m_hTimerQueue, m_hTimer, INVALID_HANDLE_VALUE);
-	}
-
-	if(m_bRunning)
-	{
-		m_bRunning=false;
-		WaitForSingleObject(m_hThread, 500);
-		CloseHandle(m_hThread);
-		m_hThread=NULL;
-	}
-}
-
-CMp3Show::CMp3Show():
-	m_iSampleSize(512),
-	m_iFFTSize(512),
-	m_fft(m_iFFTSize),
-	m_pPlayThread(NULL)
-{
-	// left and right
-	m_pSamples.reset(new char[m_iSampleSize * 2 * 2]);
-	m_pSamplesFloat.reset(new float[m_iSampleSize]);
-	m_pOldFFT.reset(new float[32]);
-	m_pPlayThread=new CMp3Thread(this);
-}
-
 bool CMp3Show::Init()
 {
 	EnableCustomNCHitTest(false);
@@ -916,17 +828,6 @@ bool CMp3Show::Init()
 	pBgLayout->AddChild(pBgColor);
 
 	return CScene::Init();
-}
-
-bool CMp3Show::Destroy()
-{
-	if(m_pPlayThread)
-	{
-		m_pPlayThread->Destroy();
-		delete m_pPlayThread;
-		m_pPlayThread=NULL;
-	}
-	return CScene::Destroy();
 }
 
 void CMp3Show::DrawNode()
@@ -945,7 +846,7 @@ void CMp3Show::DrawNode()
 	for (int i = 0; i < 32; ++i)
 	{
 		rect.X = 10.0f + i*rect.Width;
-		rect.Height = size.second*m_pOldFFT[i];
+		rect.Height = size.second*m_fft[i];
 		rect.Y = size.second - rect.Height;
 		path.AddRectangle(rect);
 	}
@@ -974,33 +875,22 @@ void CMp3Show::DrawNode()
 	//DeleteObject(hBrush);
 }
 
-LRESULT CMp3Show::MessageProc(UINT message, WPARAM wparam, LPARAM lparam, bool& bProcessed)
+bool CMp3PlayerWindow::InitMp3Player()
 {
-	if(message == WM_CREATE)
-	{
-		m_pPlayThread=new CMp3Thread(this);
-		m_pPlayThread->Init();
-	}
-
-	return CScene::MessageProc(message, wparam, lparam, bProcessed);
-}
-
-bool CMp3Show::InitMp3Player()
-{
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\A Place Nearby.mp3", true))
+	if (!m_decoder.Initialize("d:\\3.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
-	m_iAudioLen = info.wf.nAvgBytesPerSec;
+	m_iAudioLen = info.wf.nAvgBytesPerSec*2;
 	m_iAudioLast = 0;
 	m_pAudioBuf.reset(new char[m_iAudioLen*2]);
 
-	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec, GetView()->GetWnd());
+	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec*2, GetHWND());
 	m_sound.Start();
 	return WriteAudioData();
 }
 
-bool CMp3Show::WriteAudioData()
+bool CMp3PlayerWindow::WriteAudioData()
 {
 	char* pSoundData = m_pAudioBuf.get();
 	int len;
@@ -1038,13 +928,14 @@ bool CMp3Show::WriteAudioData()
 		m_iAudioLast -=written;
 	}
 
-	return true;
+	return res != 0;
 }
 
-void CMp3Show::GetSpectrum()
+void CMp3PlayerWindow::GetSpectrum()
 {
 	int pos;
-	m_sound.SamplePosition(pos);
+	if(!m_sound.SamplePosition(pos))
+		return;
 
 	auto pAudio = m_pAudioBuf.get() + m_iAudioLen;
 	auto& soundInfo = m_sound.SoundFormat();
@@ -1114,9 +1005,18 @@ void CMp3Show::GetSpectrum()
 			m_pOldFFT[i] -= 0.015f;
 		}
 	}
+}
 
-	//InvalidateRect(GetView()->GetWnd(), NULL, FALSE);
-	PostMessage(GetView()->GetWnd(), WM_PAINT, 0, 0);
+CMp3PlayerWindow::CMp3PlayerWindow():
+	m_iSampleSize(512),
+	m_iFFTSize(512),
+	m_fft(m_iFFTSize),
+	m_pShow(NULL)
+{
+	// left and right
+	m_pSamples.reset(new char[m_iSampleSize * 2 * 2]);
+	m_pSamplesFloat.reset(new float[m_iSampleSize]);
+	m_pOldFFT.reset(new float[32]);
 }
 
 LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
@@ -1129,7 +1029,22 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 		CGDIView* pView=new CGDIView();
 		pView->Init(GetHWND());
 		m_pDir.reset(new CDirector(pView));
-		m_pDir->RunScene(new CMp3Show());
+		m_pShow=new CMp3Show();
+		assert(m_pShow);
+		m_pDir->RunScene(m_pShow);
+
+		if(InitMp3Player())
+		{
+			SetTimer(hWnd, 101, 400, NULL);
+		}
+	}
+	else if(message == WM_TIMER)
+	{
+		if(!WriteAudioData())
+		{
+			KillTimer(hWnd, 101);
+		}
+		return CBaseWindow::CustomProc(hWnd, message, wParam, lParam, bProcessed);
 	}
 
 	if(m_pDir.get())
@@ -1142,4 +1057,43 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 	}
 
 	return CBaseWindow::CustomProc(hWnd, message, wParam, lParam, bProcessed);
+}
+
+int CMp3PlayerWindow::Run()
+{
+	LARGE_INTEGER fre;
+	LARGE_INTEGER last, now;
+	LARGE_INTEGER gap;
+
+	QueryPerformanceFrequency(&fre);
+	QueryPerformanceCounter(&last);
+	gap.QuadPart = LONGLONG(20.0 / 1000 * fre.QuadPart);
+
+	MSG msg;
+	while(true)
+	{
+		if(!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			QueryPerformanceCounter(&now);
+			if(now.QuadPart - last.QuadPart > gap.QuadPart)
+			{
+				GetSpectrum();
+				memcpy(&m_pShow->m_fft[0], m_pOldFFT.get(), sizeof(m_pShow->m_fft));
+				m_pShow->DrawScene();
+				last.QuadPart=now.QuadPart;
+			}
+			else
+				Sleep(1);
+		}
+
+		if(msg.message == WM_QUIT)
+			break;
+		if (!TranslateAccelerator(msg.hwnd, NULL, &msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	return 0;
 }

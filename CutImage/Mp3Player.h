@@ -19,7 +19,7 @@ public:
 	int Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos);
 	const WAVEFORMATEX& SoundFormat()const;
 	void Seek();
-	void SamplePosition(int &samplePos);
+	bool SamplePosition(int &samplePos);
 protected:
 	//type=0代表清空整个缓冲区
 	void ClearBuffer(int type);
@@ -97,33 +97,26 @@ public:
 	float* Calculate(float* pSample, size_t pSampleSize);
 };
 
-class CMp3Show;
-class CMp3Thread : public CMessageLoop
-{
-public:
-	CMp3Thread(CMp3Show* p);
-	int Run();
-	void Destroy();
-
-	CMp3Show* m_pPlayerScene;
-	HANDLE m_hTimerQueue;
-	HANDLE m_hTimer;
-};
-
 class CMp3Show : public CScene
 {
 public:
-	friend class CMp3Thread;
-	CMp3Show();
 	bool Init();
-	bool Destroy();
 	void DrawNode();
-	LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
-//protected:
+	float m_fft[32];
+};
+
+class CMp3PlayerWindow : public CBaseWindow , public CApplication
+{
+public:
+	CMp3PlayerWindow();
+	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
+	int Run();
+protected:
 	bool InitMp3Player();
 	bool WriteAudioData();
 	void GetSpectrum();
 protected:
+	std::unique_ptr<CDirector> m_pDir;
 	const int m_iSampleSize;
 	const int m_iFFTSize;
 	std::unique_ptr<char[]> m_pAudioBuf;
@@ -135,13 +128,6 @@ protected:
 	CSound m_sound;
 	CWM m_decoder;
 	CFastFourierTransform m_fft;
-	CMp3Thread* m_pPlayThread;
-};
 
-class CMp3PlayerWindow : public CBaseWindow
-{
-public:
-	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
-protected:
-	std::unique_ptr<CDirector> m_pDir;
+	CMp3Show* m_pShow;
 };
