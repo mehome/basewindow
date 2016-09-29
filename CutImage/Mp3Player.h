@@ -16,6 +16,7 @@ public:
 	bool Clear();
 	int Start();
 	void Stop();
+	bool IsPlaying()const { return bPlaying_; }
 	int Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos);
 	const WAVEFORMATEX& SoundFormat()const;
 	void Seek();

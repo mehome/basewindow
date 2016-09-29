@@ -571,6 +571,8 @@ int CWM::OutputData(char *pDest, int iWantLen)
 	int dwPos = 0;
 	int copyLen;
 
+	if (!pWMSyncReader_)
+		return 0;
 	while (len > 0)
 	{
 		if (pNSSBuffer_ != NULL)
@@ -834,50 +836,50 @@ void CMp3Show::DrawNode()
 {
 	CNode::DrawNode();
 
-	Gdiplus::Graphics& g= GetView()->GetGraphics();
-	Gdiplus::GraphicsPath path;
-	Gdiplus::SolidBrush brush(Gdiplus::Color(220, 60, 0));
-	Gdiplus::RectF rect;
+	//Gdiplus::Graphics& g= GetView()->GetGraphics();
+	//Gdiplus::GraphicsPath path;
+	//Gdiplus::SolidBrush brush(Gdiplus::Color(220, 60, 0));
+	//Gdiplus::RectF rect;
 
-	auto size = GetSize();
-	rect.X = 10.0f;
-	rect.Width = (size.first - 10.0f * 2) / 32;
-
-	for (int i = 0; i < 32; ++i)
-	{
-		rect.X = 10.0f + i*rect.Width;
-		rect.Height = size.second*m_fft[i];
-		rect.Y = size.second - rect.Height;
-		path.AddRectangle(rect);
-	}
-	g.FillPath(&brush, &path);
-
-	//HDC hMemDC = GetView()->GetMemDC();
-	//HBRUSH hBrush = CreateSolidBrush(RGB(220, 60, 0));
-	//SelectObject(hMemDC, hBrush);
-	//
 	//auto size = GetSize();
-	//int w = (size.first -10*2)/ 32;
-	//RECT rect;
-	//rect.left = 10;
-	//rect.bottom = (int)size.second;
+	//rect.X = 10.0f;
+	//rect.Width = (size.first - 10.0f * 2) / 32;
 
-	//BeginPath(hMemDC);
 	//for (int i = 0; i < 32; ++i)
 	//{
-	//	rect.left = 10 + i*w;
-	//	rect.right = rect.left + w;
-	//	rect.top = int(rect.bottom - m_pOldFFT[i] * size.second);
-	//	Rectangle(hMemDC, rect.left, rect.top, rect.right, rect.bottom);
+	//	rect.X = 10.0f + i*rect.Width;
+	//	rect.Height = size.second*m_fft[i];
+	//	rect.Y = size.second - rect.Height;
+	//	path.AddRectangle(rect);
 	//}
-	//EndPath(hMemDC);
-	//FillPath(hMemDC);
-	//DeleteObject(hBrush);
+	//g.FillPath(&brush, &path);
+
+	HDC hMemDC = GetView()->GetMemDC();
+	HBRUSH hBrush = CreateSolidBrush(RGB(220, 60, 0));
+	SelectObject(hMemDC, hBrush);
+	
+	auto size = GetSize();
+	int w = (size.first -10*2)/ 32;
+	RECT rect;
+	rect.left = 10;
+	rect.bottom = (int)size.second;
+
+	BeginPath(hMemDC);
+	for (int i = 0; i < 32; ++i)
+	{
+		rect.left = 10 + i*w;
+		rect.right = rect.left + w;
+		rect.top = int(rect.bottom - m_fft[i] * size.second);
+		Rectangle(hMemDC, rect.left, rect.top, rect.right, rect.bottom);
+	}
+	EndPath(hMemDC);
+	FillPath(hMemDC);
+	DeleteObject(hBrush);
 }
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("d:\\3.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\Innocence.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -1043,8 +1045,15 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 		if(!WriteAudioData())
 		{
 			KillTimer(hWnd, 101);
+			m_sound.Stop();
+			m_decoder.Clear();
 		}
 		return CBaseWindow::CustomProc(hWnd, message, wParam, lParam, bProcessed);
+	}
+	else if (message == WM_DESTROY)
+	{
+		m_sound.Stop();
+		m_decoder.Clear();
 	}
 
 	if(m_pDir.get())
@@ -1077,13 +1086,17 @@ int CMp3PlayerWindow::Run()
 			QueryPerformanceCounter(&now);
 			if(now.QuadPart - last.QuadPart > gap.QuadPart)
 			{
-				GetSpectrum();
-				memcpy(&m_pShow->m_fft[0], m_pOldFFT.get(), sizeof(m_pShow->m_fft));
-				m_pShow->DrawScene();
+				if (m_sound.IsPlaying())
+				{
+					GetSpectrum();
+					memcpy(&m_pShow->m_fft[0], m_pOldFFT.get(), sizeof(m_pShow->m_fft));
+					m_pShow->DrawScene();
+				}
 				last.QuadPart=now.QuadPart;
 			}
 			else
 				Sleep(1);
+			continue;
 		}
 
 		if(msg.message == WM_QUIT)
