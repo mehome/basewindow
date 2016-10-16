@@ -1,8 +1,10 @@
 #pragma once
 
 #include <Windows.h>
+#include <string>
 
 void SetThreadName(unsigned int threadId, const char* pName);
+const std::wstring& AppPath();
 
 class CSimpleLock
 {

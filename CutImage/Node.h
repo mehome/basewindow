@@ -289,10 +289,13 @@ class CStaticImageNode : public CNode
 {
 public:
 	CStaticImageNode(int showType, CNode* pParent = NULL);
+	void SetSize(float w, float h);
 	void SetImageLayer(CImageLayer* pLayer);
 	CImageLayer* GetImageLayer();
 	float GetImageScaleW() { return m_sw; }
 	float GetImageScaleH() { return m_sh; }
+protected:
+	void PutImage();
 protected:
 	PresentType m_presentType;
 	float m_sw;

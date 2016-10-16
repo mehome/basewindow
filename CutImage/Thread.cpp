@@ -36,6 +36,20 @@ void SetThreadName(unsigned int threadId, const char* pName)
 #pragma warning(pop)
 }
 
+const std::wstring& AppPath()
+{
+	static std::wstring path;
+
+	if (path.empty())
+	{
+		wchar_t buf[1024] = { 0 };
+		GetModuleFileNameW(NULL, buf, 1024);
+		path = buf;
+		path = path.substr(0, path.find_last_of(L'\\')+1);
+	}
+	return path;
+}
+
 CApplication::CApplication():m_threadId(0)
 {
 	m_threadId = GetCurrentThreadId();

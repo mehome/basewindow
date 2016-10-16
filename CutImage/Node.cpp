@@ -13,6 +13,7 @@ CNode::CNode(CNode* pParent) :
 	m_iNCHitTest(HTCLIENT),
 	m_pParent(NULL),
 	m_pairAnchor(0.5f, 0.5f),
+	m_pairSize(0.5f, 0.5f),
 	m_pairMinSize(1.0f, 1.0f),
 	m_pairMaxSize(5000.0f, 5000.0f),
 	m_sizePolicy(SizePolicyFixed),
@@ -830,7 +831,7 @@ void CHLayout::ReLayout()
 	int i;
 	NodeSizePolicy policy;
 
-	auto size = GetSize();
+	auto& size = GetSize();
 	float w = size.first - m_iMarginLeft - m_iMarginRight - m_iSpacing*(nodesize - 1);
 	float h = size.second - m_iMarginTop - m_iMarginBottom;
 
@@ -967,7 +968,7 @@ void CVLayout::ReLayout()
 	int i;
 	NodeSizePolicy policy;
 
-	auto size = GetSize();
+	auto& size = GetSize();
 	float w = size.first - m_iMarginLeft - m_iMarginRight;
 	float h = size.second - m_iMarginTop - m_iMarginBottom - m_iSpacing*(nodesize - 1);
 
@@ -1525,7 +1526,7 @@ void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, in
 	}
 	else
 	{
-		if (dest_h != m_Info.biWidth || dest_w != m_Info.biHeight)
+		if (dest_w != m_Info.biWidth || dest_h != m_Info.biHeight)
 		{
 			StretchBlt(hMemDC,
 				dest_leftup_x, dest_leftup_y, dest_w, dest_h,
@@ -1734,11 +1735,18 @@ void CTextLayer::DrawNode()
 	}
 }
 
-CStaticImageNode::CStaticImageNode(int showType, CNode* pParent) :CNode(pParent),
-m_presentType((PresentType)showType),
-m_sw(1.0f),
-m_sh(1.0f)
+CStaticImageNode::CStaticImageNode(int showType, CNode* pParent)
+	:CNode(pParent),
+	m_presentType((PresentType)showType),
+	m_sw(1.0f),
+	m_sh(1.0f)
 {
+}
+
+void CStaticImageNode::SetSize(float w, float h)
+{
+	CNode::SetSize(w, h);
+	PutImage();
 }
 
 void CStaticImageNode::SetImageLayer(CImageLayer* pImage)
@@ -1761,27 +1769,36 @@ void CStaticImageNode::SetImageLayer(CImageLayer* pImage)
 		AddChild(pImage);
 		pImage->Init();
 	}
+	pImage->SetTag((int)this);
+	PutImage();
+}
 
-	auto size = GetSize();
-	m_sw = pImage->GetSize().first / size.first;
-	m_sh = pImage->GetSize().second / size.second;
+CImageLayer* CStaticImageNode::GetImageLayer()
+{
+	return dynamic_cast<CImageLayer*>(GetChildByTag((int)this));
+}
+
+void CStaticImageNode::PutImage()
+{
+	auto pImage = GetImageLayer();
+	if (!pImage)
+		return;
+
+	auto& size = GetSize();
+	auto& imageSize = pImage->GetImageInfo();
+	m_sw = imageSize.biWidth / size.first;
+	m_sh = imageSize.biHeight / size.second;
 	if (m_presentType == PresentCenter)
 	{
 		m_sw = m_sw > m_sh ? (1.0f > m_sw ? 1.0f : m_sw) : (1.0f > m_sh ? 1.0f : m_sh);
 		m_sh = m_sw;
-		pImage->SetSize(pImage->GetSize().first / m_sh, pImage->GetSize().second / m_sh);
+		pImage->SetSize(imageSize.biWidth / m_sh, imageSize.biHeight / m_sh);
 	}
 	else if (m_presentType == PresentFillNode)
 	{
 		pImage->SetSize(size.first, size.second);
 	}
 	pImage->SetPos(size.first / 2, size.second / 2);
-	pImage->SetTag((int)this);
-}
-
-CImageLayer* CStaticImageNode::GetImageLayer()
-{
-	return dynamic_cast<CImageLayer*>(GetChildByTag((int)this));
 }
 
 CButtonNode::CButtonNode(CNode* pParent) :CTextLayer(pParent)

@@ -824,8 +824,16 @@ bool CMp3Show::Init()
 
 	CHLayout* pBgLayout=new CHLayout(this);
 	pBgLayout->SetContentMargin(0, 0, 0, 0);
-	CColorLayer* pBgColor=new CColorLayer();
-	pBgColor->CreateImageLayerByColor(20, 30, 30);
+
+	//CStaticImageNode* pBg = new CStaticImageNode(0);
+	//pBg->SetSizePolicy(SizePolicyExpanding);
+	//pBgLayout->AddChild(pBg);
+	//CImageLayer* pBgImage = new CImageLayer();
+	//pBgImage->CreateImageLayerByFile(AppPath()+L"music.jpg");
+	//pBg->SetImageLayer(pBgImage);
+
+	CColorLayer* pBgColor = new CColorLayer();
+	pBgColor->CreateImageLayerByFile(AppPath() + L"music.jpg");
 	pBgColor->SetSizePolicy(SizePolicyExpanding);
 	pBgLayout->AddChild(pBgColor);
 
@@ -858,7 +866,7 @@ void CMp3Show::DrawNode()
 	HBRUSH hBrush = CreateSolidBrush(RGB(220, 60, 0));
 	SelectObject(hMemDC, hBrush);
 	
-	auto size = GetSize();
+	auto& size = GetSize();
 	int w = (size.first -10*2)/ 32;
 	RECT rect;
 	rect.left = 10;
@@ -879,7 +887,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\Innocence.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\A Place Nearby.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -1025,7 +1033,12 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 {
 	if(message == WM_CREATE)
 	{
-		ReSize(800, 600, true);
+		RECT r1, r2;
+		GetWindowRect(hWnd, &r1);
+		GetClientRect(hWnd, &r2);
+		ReSize(936 + (r1.right - r1.left) - (r2.right - r2.left),
+			631 + (r1.bottom - r1.top) - (r2.bottom - r2.top),
+			true);
 		SetWindowText(GetHWND(), TEXT("music"));
 
 		CGDIView* pView=new CGDIView();
