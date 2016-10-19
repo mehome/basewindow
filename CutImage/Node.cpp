@@ -1420,7 +1420,7 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 
 	if (GetScene() == NULL)
 	{
-		hRealDC = GetDC(NULL);
+		hRealDC = CGDIView::GetScreenDC();
 	}
 	else
 	{
@@ -1469,11 +1469,6 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 	if (bUseImageSizeAsNodeSize)
 	{
 		SetSize(w, h);
-	}
-
-	if (GetScene() == NULL)
-	{
-		ReleaseDC(NULL, hRealDC);
 	}
 
 	return true;
@@ -1692,17 +1687,11 @@ SIZE CTextLayer::GetTextSize()
 	}
 	else
 	{
-		hMemDC = GetDC(NULL);
+		hMemDC = CGDIView::GetScreenDC();
 	}
 
 	SelectObject(hMemDC, m_hFont);
 	GetTextExtentPoint32(hMemDC, m_szText.c_str(), m_szText.length(), &size);
-
-	if (!GetScene())
-	{
-		int res = ReleaseDC(NULL, hMemDC);
-		TRACE1("ReleaseDC res:%d\n", res);
-	}
 
 	return size;
 }

@@ -1,9 +1,33 @@
 #pragma once
 
 #include <cassert>
+#include <memory>
 #include <Windows.h>
 #include <GdiPlus.h>
 #include "Log.h"
+
+template<int handle_type=0>
+struct win_handle_deleter
+{
+	void operator()(void* p)
+	{
+		switch (handle_type)
+		{
+		case 0:
+			DeleteObject((HGDIOBJ)p);
+			break;
+		case 1:
+			DeleteDC((HDC)p);
+			break;
+		case 2:
+			ReleaseDC(NULL, (HDC)p);
+			break;
+		case 3:
+			CloseHandle((HANDLE)p);
+			break;
+		}
+	}
+};
 
 class GdiplusInit
 {
@@ -18,6 +42,7 @@ protected:
 class CGDIView
 {
 public:
+	static HDC GetScreenDC();
 	CGDIView();
 	virtual ~CGDIView();
 	virtual bool Init(HWND hWnd);

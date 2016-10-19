@@ -887,7 +887,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\A Place Nearby.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\All By Myself.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -949,7 +949,7 @@ void CMp3PlayerWindow::GetSpectrum()
 
 	auto pAudio = m_pAudioBuf.get() + m_iAudioLen;
 	auto& soundInfo = m_sound.SoundFormat();
-	auto* pSampleFloat = m_pSamplesFloat.get();
+	auto pSampleFloat = m_pSamplesFloat.get();
 	float left, right;
 	int len, i;
 	char temp[4];
@@ -973,7 +973,7 @@ void CMp3PlayerWindow::GetSpectrum()
 			memcpy(temp, m_pSamples.get() + i * 4, 4);
 			left = ((temp[1] << 8) + temp[0]) / 32767.0f;
 			right = ((temp[3] << 8) + temp[2]) / 32767.0f;
-			*(pSampleFloat + i) = (left + right) / 2;
+			*(pSampleFloat + i) = (left + right) / 2.0f;
 		}
 	}
 	else
@@ -999,7 +999,7 @@ void CMp3PlayerWindow::GetSpectrum()
 		else if (wFs > 0.01F && wFs < 0.1F)
 			wFs *= 10.0F;
 		else if (wFs > 0.1F && wFs < 0.5F)
-			wFs *= PI; //enlarge PI times, if do not, the bar display abnormally, why??
+			wFs *= PI; //enlarge PI times, if do not, the bar display abnormally, why
 
 		if (wFs > 1.0F)
 		{
@@ -1027,6 +1027,7 @@ CMp3PlayerWindow::CMp3PlayerWindow():
 	m_pSamples.reset(new char[m_iSampleSize * 2 * 2]);
 	m_pSamplesFloat.reset(new float[m_iSampleSize]);
 	m_pOldFFT.reset(new float[32]);
+	memset(m_pOldFFT.get(), 0, sizeof(float) * 32);
 }
 
 LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)

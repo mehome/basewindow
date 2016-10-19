@@ -17,6 +17,18 @@ GdiplusInit::~GdiplusInit()
 	Gdiplus::GdiplusShutdown(m_token);
 }
 
+HDC CGDIView::GetScreenDC()
+{
+	static std::unique_ptr<void, win_handle_deleter<2>> hScreenDC;
+
+	if (!hScreenDC)
+	{
+		hScreenDC.reset(GetDC(NULL));
+	}
+
+	return (HDC)hScreenDC.get();
+}
+
 CGDIView::CGDIView() :m_Wnd(NULL),
 	m_DC(NULL),
 	m_MemDC(NULL),
