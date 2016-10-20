@@ -2,6 +2,7 @@
 #include "BaseWindow.h"
 #include "Node.h"
 #include "Thread.h"
+#include <InitGuid.h>
 #include <dsound.h>
 #include <mmsystem.h>
 #include <wmsdk.h>

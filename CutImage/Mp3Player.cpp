@@ -72,13 +72,18 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 	dsbd.dwFlags=DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
 	dsbd.dwBufferBytes=dwBufferLen;
 
-	hr=lpDS_->CreateSoundBuffer(&dsbd,&lpDSB_,NULL);
+	LPDIRECTSOUNDBUFFER pTemp;
+	hr=lpDS_->CreateSoundBuffer(&dsbd,&pTemp,NULL);
 	if(FAILED(hr))
 	{
 		TRACE("failed CreateSoundBuffer\n");
 		Clear();
 		return false;
 	}
+
+	hr = pTemp->QueryInterface(IID_IDirectSoundBuffer, (void**)&lpDSB_);
+	pTemp->Release();
+
 	return true;
 }
 
@@ -887,7 +892,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\Œ“µƒ“Ù¿÷\\All By Myself.mp3", true))
+	if (!m_decoder.Initialize("d:\\4.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
