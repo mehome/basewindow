@@ -40,7 +40,7 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 	DSBUFFERDESC dsbd;
 
 	Clear();
-	hr=DirectSoundCreate(NULL,&lpDS_,NULL);
+	hr=DirectSoundCreate8(NULL, &lpDS_, NULL);
 	if(FAILED(hr))
 	{
 		TRACE("failed DirectSoundCreate\n");
@@ -81,7 +81,7 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 		return false;
 	}
 
-	hr = pTemp->QueryInterface(IID_IDirectSoundBuffer, (void**)&lpDSB_);
+	hr = pTemp->QueryInterface(IID_IDirectSoundBuffer8, (void**)&lpDSB_);
 	pTemp->Release();
 
 	return true;
@@ -892,7 +892,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("d:\\4.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\Breathe.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -999,12 +999,12 @@ void CMp3PlayerWindow::GetSpectrum()
 		}
 		wFs = (wFs * (float)log(i + 2.0F));
 
-		if (wFs > 0.005F && wFs < 0.009F)
-			wFs *= 50.0F;
-		else if (wFs > 0.01F && wFs < 0.1F)
-			wFs *= 10.0F;
-		else if (wFs > 0.1F && wFs < 0.5F)
-			wFs *= PI; //enlarge PI times, if do not, the bar display abnormally, why
+		//if (wFs > 0.005F && wFs < 0.009F)
+		//	wFs *= 50.0F;
+		//else if (wFs > 0.01F && wFs < 0.1F)
+		//	wFs *= 10.0F;
+		//else if (wFs > 0.1F && wFs < 0.5F)
+		//	wFs *= PI; //enlarge PI times, if do not, the bar display abnormally, why
 
 		if (wFs > 1.0F)
 		{

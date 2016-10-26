@@ -29,8 +29,8 @@ protected:
 	int AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliableLength);
 protected:
 	bool bPlaying_;
-	LPDIRECTSOUND lpDS_;
-	LPDIRECTSOUNDBUFFER lpDSB_;
+	LPDIRECTSOUND8 lpDS_;
+	LPDIRECTSOUNDBUFFER8 lpDSB_;
 	WAVEFORMATEX waveFormat_;
 	DWORD dwBufferLength_;
 	DWORD dwSilenceBytes_;

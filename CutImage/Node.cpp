@@ -1458,7 +1458,8 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 		(void**)&m_pData,
 		NULL,
 		0);
-	memcpy(m_pData, pData, m_Info.biSizeImage);
+	if(pData)
+		memcpy(m_pData, pData, m_Info.biSizeImage);
 
 	if (!m_hDc)
 	{
