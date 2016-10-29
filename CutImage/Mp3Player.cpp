@@ -892,7 +892,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\Breathe.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\Billie Jean.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -989,7 +989,7 @@ void CMp3PlayerWindow::GetSpectrum()
 
 	auto pRes=m_fft.Calculate(m_pSamplesFloat.get(), m_iSampleSize);
 	float wFs;
-	len = m_iFFTSize / 2 / 32;
+	len = m_iSampleSize / 2 / 32;
 	for (i = 0;i<32;++i)
 	{
 		wFs = 0.0f;
@@ -1024,8 +1024,7 @@ void CMp3PlayerWindow::GetSpectrum()
 
 CMp3PlayerWindow::CMp3PlayerWindow():
 	m_iSampleSize(512),
-	m_iFFTSize(512),
-	m_fft(m_iFFTSize),
+	m_fft(m_iSampleSize),
 	m_pShow(NULL)
 {
 	// left and right

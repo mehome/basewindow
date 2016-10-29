@@ -120,7 +120,6 @@ protected:
 protected:
 	std::unique_ptr<CDirector> m_pDir;
 	const int m_iSampleSize;
-	const int m_iFFTSize;
 	std::unique_ptr<char[]> m_pAudioBuf;
 	std::unique_ptr<char[]> m_pSamples;
 	std::unique_ptr<float[]> m_pSamplesFloat;
