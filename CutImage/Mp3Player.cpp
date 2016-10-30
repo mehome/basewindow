@@ -13,7 +13,9 @@ CSound::CSound()
 {
 	bPlaying_=false;
 	lpDS_=NULL;
-	lpDSB_=NULL;
+	lpDSBSecond_=NULL;
+	lpDSBPrimary_ = NULL;
+	lpDSListener_ = NULL;
 	dwBufferLength_=0;
 	dwSilenceBytes_=0;
 
@@ -58,6 +60,7 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 		return FALSE;
 	}
 
+	dwBufferLength_ = dwBufferLen;
 	waveFormat_.nAvgBytesPerSec=wf.nAvgBytesPerSec;
 	waveFormat_.nBlockAlign=wf.nBlockAlign;
 	waveFormat_.nChannels=wf.nChannels;
@@ -65,13 +68,22 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 	waveFormat_.wFormatTag=wf.wFormatTag;
 	waveFormat_.wBitsPerSample=wBitsPerSample;
 
-	dwBufferLength_=dwBufferLen;
 	memset(&dsbd,0,sizeof(DSBUFFERDESC));
 	dsbd.dwSize=sizeof(DSBUFFERDESC);
-	dsbd.lpwfxFormat=(WAVEFORMATEX*)&waveFormat_;
-	dsbd.dwFlags=DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
-	dsbd.dwBufferBytes=dwBufferLen;
+	dsbd.lpwfxFormat = NULL; // must be NULL for primary
+	dsbd.dwBufferBytes = 0;  // must be 0 for primary
+	dsbd.dwFlags = DSBCAPS_PRIMARYBUFFER | DSBCAPS_CTRL3D;
+	dsbd.guid3DAlgorithm = DS3DALG_DEFAULT;
 
+	// unnecessary
+	//hr = lpDS_->CreateSoundBuffer(&dsbd, &lpDSBPrimary_, NULL);
+	//hr = lpDSBPrimary_->SetFormat(&waveFormat_);
+	//hr = lpDSBPrimary_->QueryInterface(IID_IDirectSound3DListener8, (void**)&lpDSListener_);
+	//hr = lpDSListener_->SetPosition(100.0f, 0, 0.0f, DS3D_IMMEDIATE);
+
+	dsbd.lpwfxFormat = &waveFormat_;
+	dsbd.dwBufferBytes = dwBufferLen;
+	dsbd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY;
 	LPDIRECTSOUNDBUFFER pTemp;
 	hr=lpDS_->CreateSoundBuffer(&dsbd,&pTemp,NULL);
 	if(FAILED(hr))
@@ -81,7 +93,7 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 		return false;
 	}
 
-	hr = pTemp->QueryInterface(IID_IDirectSoundBuffer8, (void**)&lpDSB_);
+	hr = pTemp->QueryInterface(IID_IDirectSoundBuffer8, (void**)&lpDSBSecond_);
 	pTemp->Release();
 
 	return true;
@@ -89,10 +101,20 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 
 bool CSound::Clear()
 {
-	if(lpDSB_)
+	if(lpDSBSecond_)
 	{
-		lpDSB_->Release();
-		lpDSB_-=NULL;
+		lpDSBSecond_->Release();
+		lpDSBSecond_-=NULL;
+	}
+	if (lpDSListener_)
+	{
+		lpDSListener_->Release();
+		lpDSListener_ = NULL;
+	}
+	if (lpDSBPrimary_)
+	{
+		lpDSBPrimary_->Release();
+		lpDSBPrimary_ = NULL;
 	}
 	if(lpDS_)
 	{
@@ -112,16 +134,16 @@ int CSound::Start()
 	HRESULT hr;
 	DWORD status;
 
-	hr=lpDSB_->GetStatus(&status);
+	hr=lpDSBSecond_->GetStatus(&status);
 	if(hr==DS_OK && status==DSBSTATUS_LOOPING)
 	{
 		return TRUE;
 	}
 
-	hr=lpDSB_->Play(0,0,DSCBSTART_LOOPING);
+	hr=lpDSBSecond_->Play(0,0,DSCBSTART_LOOPING);
 	if(hr==DSERR_BUFFERLOST)
 	{
-		hr=lpDSB_->Restore();
+		hr=lpDSBSecond_->Restore();
 		if(FAILED(hr))
 			return FALSE;
 	}
@@ -132,9 +154,9 @@ int CSound::Start()
 
 void CSound::Stop()
 {
-	if(lpDSB_ && bPlaying_)
+	if(lpDSBSecond_ && bPlaying_)
 	{
-		lpDSB_->Stop();
+		lpDSBSecond_->Stop();
 		bPlaying_=FALSE;
 	}
 }
@@ -160,7 +182,7 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	//iWritePos_为零代表第一次写缓冲区
 	if(iWritePos_ == -1)
 	{
-		hr=lpDSB_->GetCurrentPosition(&dwPlay,&dwWrite);
+		hr=lpDSBSecond_->GetCurrentPosition(&dwPlay,&dwWrite);
 		if(FAILED(hr))
 		{
 			return 0;
@@ -178,12 +200,12 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 		}
 	}
 
-	hr=lpDSB_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
+	hr=lpDSBSecond_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
 	if(hr!=DS_OK)
 	{
 		if(hr=DSERR_BUFFERLOST)
 		{
-			hr=lpDSB_->Restore();
+			hr=lpDSBSecond_->Restore();
 			if(hr==DS_OK)
 			{
 				ClearBuffer(0);
@@ -202,7 +224,7 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	{
 		memcpy(pb2,(unsigned char*)pData+dwb1,dwb2);
 	}
-	lpDSB_->Unlock(pb1,dwb1,pb2,dwb2);
+	lpDSBSecond_->Unlock(pb1,dwb1,pb2,dwb2);
 
 	//更新对有效缓冲区（正在播放）的记录
 	if(iWritePos_ == -1)
@@ -240,7 +262,7 @@ bool CSound::SamplePosition(int &samplePos)
 		return false;
 	}
 
-	hr=lpDSB_->GetCurrentPosition(&dwPlay,NULL);
+	hr=lpDSBSecond_->GetCurrentPosition(&dwPlay,NULL);
 	if(FAILED(hr))
 	{
 		return false;
@@ -268,7 +290,7 @@ void CSound::ClearBuffer(int type)
 	}
 	else
 	{
-		hr=lpDSB_->GetCurrentPosition(&dwb1,&dwb2);
+		hr=lpDSBSecond_->GetCurrentPosition(&dwb1,&dwb2);
 		if(FAILED(hr))
 		{
 			return;
@@ -285,7 +307,7 @@ void CSound::ClearBuffer(int type)
 	}
 	dwSilenceBytes_=count;
 
-	hr=this->lpDSB_->Lock(start,count,(LPVOID *)&pb1,&dwb1,(LPVOID*)&pb2,&dwb2,flags);
+	hr=this->lpDSBSecond_->Lock(start,count,(LPVOID *)&pb1,&dwb1,(LPVOID*)&pb2,&dwb2,flags);
 	if(FAILED(hr))
 	{
 		return;
@@ -299,7 +321,7 @@ void CSound::ClearBuffer(int type)
 	{
 		memset(pb2,waveFormat_.wBitsPerSample==8?128:0,dwb2);
 	}
-	lpDSB_->Unlock(pb1,dwb1,pb2,dwb2);
+	lpDSBSecond_->Unlock(pb1,dwb1,pb2,dwb2);
 
 }
 int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliableLength)
@@ -313,7 +335,7 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 	DWORD dwPlay=0,dwWrite=0;
 	DWORD dwTmp;
 
-	hr=lpDSB_->GetCurrentPosition(&dwPlay,&dwWrite);
+	hr=lpDSBSecond_->GetCurrentPosition(&dwPlay,&dwWrite);
 	if(FAILED(hr))
 	{
 		return 0;
@@ -850,8 +872,8 @@ void CMp3Show::DrawNode()
 	CNode::DrawNode();
 
 	HDC hMemDC = GetView()->GetMemDC();
-	HBRUSH hBrush = CreateSolidBrush(RGB(220, 60, 0));
-	SelectObject(hMemDC, hBrush);
+	static std::unique_ptr<void, win_handle_deleter<>> hBrush(CreateSolidBrush(RGB(220, 60, 0)));
+	SelectObject(hMemDC, hBrush.get());
 	
 	auto& size = GetSize();
 	int w = (size.first -10*2)/ 32;
@@ -869,16 +891,15 @@ void CMp3Show::DrawNode()
 	}
 	EndPath(hMemDC);
 	FillPath(hMemDC);
-	DeleteObject(hBrush);
 }
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\Billie Jean.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\hide and seek.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
-	m_iAudioLen = info.wf.nAvgBytesPerSec*1;
+	m_iAudioLen = info.wf.nAvgBytesPerSec*1; /// 1 second buffer
 	m_iAudioLast = 0;
 	m_pAudioBuf.reset(new char[m_iAudioLen*2]);
 

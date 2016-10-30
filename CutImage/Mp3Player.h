@@ -30,7 +30,9 @@ protected:
 protected:
 	bool bPlaying_;
 	LPDIRECTSOUND8 lpDS_;
-	LPDIRECTSOUNDBUFFER8 lpDSB_;
+	LPDIRECTSOUNDBUFFER8 lpDSBSecond_;
+	LPDIRECTSOUNDBUFFER lpDSBPrimary_;
+	LPDIRECTSOUND3DLISTENER8 lpDSListener_;
 	WAVEFORMATEX waveFormat_;
 	DWORD dwBufferLength_;
 	DWORD dwSilenceBytes_;
