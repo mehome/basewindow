@@ -849,24 +849,6 @@ void CMp3Show::DrawNode()
 {
 	CNode::DrawNode();
 
-	//Gdiplus::Graphics& g= GetView()->GetGraphics();
-	//Gdiplus::GraphicsPath path;
-	//Gdiplus::SolidBrush brush(Gdiplus::Color(220, 60, 0));
-	//Gdiplus::RectF rect;
-
-	//auto size = GetSize();
-	//rect.X = 10.0f;
-	//rect.Width = (size.first - 10.0f * 2) / 32;
-
-	//for (int i = 0; i < 32; ++i)
-	//{
-	//	rect.X = 10.0f + i*rect.Width;
-	//	rect.Height = size.second*m_fft[i];
-	//	rect.Y = size.second - rect.Height;
-	//	path.AddRectangle(rect);
-	//}
-	//g.FillPath(&brush, &path);
-
 	HDC hMemDC = GetView()->GetMemDC();
 	HBRUSH hBrush = CreateSolidBrush(RGB(220, 60, 0));
 	SelectObject(hMemDC, hBrush);
@@ -875,14 +857,14 @@ void CMp3Show::DrawNode()
 	int w = (size.first -10*2)/ 32;
 	RECT rect;
 	rect.left = 10;
-	rect.bottom = (int)size.second;
+	rect.bottom = (int)size.second - 10;
 
 	BeginPath(hMemDC);
 	for (int i = 0; i < 32; ++i)
 	{
 		rect.left = 10 + i*w;
 		rect.right = rect.left + w;
-		rect.top = int(rect.bottom - m_fft[i] * size.second);
+		rect.top = int(rect.bottom - m_fft[i] * rect.bottom);
 		Rectangle(hMemDC, rect.left, rect.top, rect.right, rect.bottom);
 	}
 	EndPath(hMemDC);
@@ -896,11 +878,11 @@ bool CMp3PlayerWindow::InitMp3Player()
 		return false;
 
 	auto info = m_decoder.SoundInfo();
-	m_iAudioLen = info.wf.nAvgBytesPerSec*2;
+	m_iAudioLen = info.wf.nAvgBytesPerSec*1;
 	m_iAudioLast = 0;
 	m_pAudioBuf.reset(new char[m_iAudioLen*2]);
 
-	m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec*2, GetHWND());
+	m_sound.Initialize(info.wf, info.wBitsPerSample, m_iAudioLen, GetHWND());
 	m_sound.Start();
 	return WriteAudioData();
 }
@@ -1006,18 +988,18 @@ void CMp3PlayerWindow::GetSpectrum()
 		//else if (wFs > 0.1F && wFs < 0.5F)
 		//	wFs *= PI; //enlarge PI times, if do not, the bar display abnormally, why
 
-		if (wFs > 1.0F)
-		{
-			wFs = 1.0F;
-		}
 
 		if (wFs >= m_pOldFFT[i])
 		{
+			if (wFs > 1.0f)
+				wFs = 1.0f;
 			m_pOldFFT[i] = wFs;
 		}
 		else
 		{
 			m_pOldFFT[i] -= 0.015f;
+			if (m_pOldFFT[i] < 0.0f)
+				m_pOldFFT[i] = 0.0f;
 		}
 	}
 }
