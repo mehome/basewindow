@@ -895,7 +895,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\hide and seek.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\When You're Gone.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -1000,7 +1000,7 @@ void CMp3PlayerWindow::GetSpectrum()
 		{
 			wFs += pRes[i*len + j];
 		}
-		wFs = (wFs * (float)log(i + 2.0F));
+		wFs *= log(i + 2.0f);
 
 		//if (wFs > 0.005F && wFs < 0.009F)
 		//	wFs *= 50.0F;

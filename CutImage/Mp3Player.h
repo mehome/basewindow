@@ -23,9 +23,9 @@ public:
 	void Seek();
 	bool SamplePosition(int &samplePos);
 protected:
-	//type=0代表清空整个缓冲区
+	// type=0代表清空整个缓冲区
 	void ClearBuffer(int type);
-	//获得缓冲区中可被写入新数据(不会覆盖尚未播放数据)的起始位置，以及可写的长度
+	// 获得安全的写入位置(未播放数据不会被覆盖)，以及可写的长度
 	int AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliableLength);
 protected:
 	bool bPlaying_;
