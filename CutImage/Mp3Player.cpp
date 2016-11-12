@@ -876,13 +876,13 @@ void CMp3Show::DrawNode()
 	SelectObject(hMemDC, hBrush.get());
 	
 	auto& size = GetSize();
-	int w = (size.first -10*2)/ 32;
+	int w = (size.first -10*2)/ cgBarNum;
 	RECT rect;
 	rect.left = 10;
 	rect.bottom = (int)size.second - 10;
 
 	BeginPath(hMemDC);
-	for (int i = 0; i < 32; ++i)
+	for (int i = 0; i < cgBarNum; ++i)
 	{
 		rect.left = 10 + i*w;
 		rect.right = rect.left + w;
@@ -895,7 +895,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\When You're Gone.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\I know.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
@@ -958,9 +958,8 @@ void CMp3PlayerWindow::GetSpectrum()
 	auto pAudio = m_pAudioBuf.get() + m_iAudioLen;
 	auto& soundInfo = m_sound.SoundFormat();
 	auto pSampleFloat = m_pSamplesFloat.get();
-	float left, right;
 	int len, i;
-	char temp[4];
+	char *temp;
 
 	if (soundInfo.nChannels == 2 && soundInfo.wBitsPerSample == 16)
 	{
@@ -978,10 +977,10 @@ void CMp3PlayerWindow::GetSpectrum()
 
 		for (i = 0;i < m_iSampleSize;++i)
 		{
-			memcpy(temp, m_pSamples.get() + i * 4, 4);
-			left = ((temp[1] << 8) + temp[0]) / 32767.0f;
-			right = ((temp[3] << 8) + temp[2]) / 32767.0f;
-			*(pSampleFloat + i) = (left + right) / 2.0f;
+			temp = m_pSamples.get() + i * 4;
+			//(left + right)/2
+			*(pSampleFloat + i) = (((temp[1] << 8) + temp[0]) / 32767.0f + 
+				((temp[3] << 8) + temp[2]) / 32767.0f) / 2.0f;
 		}
 	}
 	else
@@ -992,15 +991,24 @@ void CMp3PlayerWindow::GetSpectrum()
 
 	auto pRes=m_fft.Calculate(m_pSamplesFloat.get(), m_iSampleSize);
 	float wFs;
-	len = m_iSampleSize / 2 / 32;
-	for (i = 0;i<32;++i)
+	static int stride = m_iSampleSize / 2 / cgBarNum;
+	static float glog[cgBarNum] = { log(2.0f), log(3.0f), log(4.0f), log(5.0f),
+		log(6.0f), log(7.0f), log(8.0f), log(9.0f),
+		log(10.0f), log(11.0f), log(12.0f), log(13.0f),
+		log(14.0f), log(15.0f), log(16.0f), log(17.0f),
+		log(18.0f), log(19.0f), log(20.0f), log(21.0f),
+		log(22.0f), log(23.0f), log(24.0f), log(25.0f),
+		log(26.0f), log(27.0f), log(28.0f), log(29.0f),
+		log(30.0f), log(31.0f), log(32.0f), log(33.0f) };
+	for (i = 0;i<cgBarNum;++i)
 	{
 		wFs = 0.0f;
-		for (int j = 0;j< len;++j)
+		for (int j = 0;j< stride;++j)
 		{
-			wFs += pRes[i*len + j];
+			wFs += pRes[i*stride + j];
 		}
-		wFs *= log(i + 2.0f);
+		//wFs *= log(i + 2.0f);
+		wFs *= glog[i];
 
 		//if (wFs > 0.005F && wFs < 0.009F)
 		//	wFs *= 50.0F;
@@ -1033,8 +1041,8 @@ CMp3PlayerWindow::CMp3PlayerWindow():
 	// left and right
 	m_pSamples.reset(new char[m_iSampleSize * 2 * 2]);
 	m_pSamplesFloat.reset(new float[m_iSampleSize]);
-	m_pOldFFT.reset(new float[32]);
-	memset(m_pOldFFT.get(), 0, sizeof(float) * 32);
+	m_pOldFFT.reset(new float[cgBarNum]);
+	memset(m_pOldFFT.get(), 0, sizeof(float) * cgBarNum);
 }
 
 LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)

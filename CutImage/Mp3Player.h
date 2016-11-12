@@ -101,12 +101,14 @@ public:
 	float* Calculate(float* pSample, size_t pSampleSize);
 };
 
+const int cgBarNum = 32;
+
 class CMp3Show : public CScene
 {
 public:
 	bool Init();
 	void DrawNode();
-	float m_fft[32];
+	float m_fft[cgBarNum];
 };
 
 class CMp3PlayerWindow : public CBaseWindow , public CApplication
