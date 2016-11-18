@@ -37,7 +37,7 @@ protected:
 	DWORD dwBufferLength_;
 	DWORD dwSilenceBytes_;
 
-	//记录上次写缓冲区的位置
+	//记录第一次写缓冲区
 	int iWritePos_;
 	//记录有效缓冲区的起始位置
 	unsigned long ulBufferPos_;

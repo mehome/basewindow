@@ -19,7 +19,7 @@ CSound::CSound()
 	dwBufferLength_=0;
 	dwSilenceBytes_=0;
 
-	iWritePos_=-1;
+	iWritePos_=0;
 	ulBufferPos_=0;
 	ulBufferLength_=0;
 
@@ -180,7 +180,7 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	DWORD dwb1,dwb2;
 
 	//iWritePos_为零代表第一次写缓冲区
-	if(iWritePos_ == -1)
+	if(iWritePos_ == 0)
 	{
 		hr=lpDSBSecond_->GetCurrentPosition(&dwPlay,&dwWrite);
 		if(FAILED(hr))
@@ -227,19 +227,16 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	lpDSBSecond_->Unlock(pb1,dwb1,pb2,dwb2);
 
 	//更新对有效缓冲区（正在播放）的记录
-	if(iWritePos_ == -1)
+	if(iWritePos_ == 0)
 	{
-		iWritePos_ = (int)(dwLockOffset_+dwb1+dwb2);
-
+		iWritePos_ = 1;
 		ulBufferPos_=dwLockOffset_;
 		ulBufferLength_ = dwb1+dwb2;
 	}
 	else
 	{
-		iWritePos_ += int(dwb1+dwb2);
 		ulBufferLength_ += (dwb1+dwb2);
 	}
-	iWritePos_ %=dwBufferLength_;
 
 	dwWritePos = dwLockOffset_;
 	dwWriteLen = dwLockLen_;
@@ -348,7 +345,7 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 		ulBufferPos_=dwPlay;
 
 		dwRealWritePos=ulBufferPos_+ulBufferLength_;
-		dwAvaliableLength=__min(dwWant,dwBufferLength_-ulBufferLength_);
+		dwAvaliableLength=min(dwWant,dwBufferLength_-ulBufferLength_);
 	}
 	//有效缓冲区环回了
 	else
@@ -375,20 +372,20 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 			ulBufferLength_-=(dwPlay-ulBufferPos_);
 			ulBufferPos_=dwPlay;
 			dwRealWritePos=dwTmp;
-			dwAvaliableLength=__min(dwWant,dwBufferLength_-ulBufferLength_);
+			dwAvaliableLength=min(dwWant,dwBufferLength_-ulBufferLength_);
 		}
 		else if(dwPlay >=0 && dwPlay<=dwTmp)
 		{
 			ulBufferLength_=dwTmp-dwPlay;
 			ulBufferPos_=dwPlay;
 			dwRealWritePos=dwTmp;
-			dwAvaliableLength=__min(dwWant,dwBufferLength_-ulBufferLength_);
+			dwAvaliableLength=min(dwWant,dwBufferLength_-ulBufferLength_);
 		}
 		else
 		{
 			TRACE("never here\n");
 			dwRealWritePos=dwWrite;
-			dwAvaliableLength=__min(dwWant,dwBufferLength_);
+			dwAvaliableLength=min(dwWant,dwBufferLength_);
 			ulBufferPos_=dwRealWritePos;
 			ulBufferLength_=dwAvaliableLength;
 		}
@@ -895,7 +892,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\I know.mp3", true))
+	if (!m_decoder.Initialize("d:\\8.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
