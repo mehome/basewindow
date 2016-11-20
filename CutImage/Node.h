@@ -95,7 +95,6 @@ public:
 	virtual CNode* GetChildByFinder(NodeFinder  func);
 	virtual CNode* FindFirstNode();
 	virtual CNode* FindNextNode();
-	const NodeChild& Child()const{return m_Children;}
 
 	virtual bool Init();
 	virtual bool Destroy();
@@ -118,6 +117,8 @@ public:
 	virtual POINT GetLastPoint()const;
 	virtual void SetLastPoint(POINT p);
 	virtual CNode* GetCurrentNode();
+protected:
+	const NodeChild& Child()const { return m_Children; }
 private:
 	bool m_bNeedInit;
 	bool m_bNeedUpdateRect;

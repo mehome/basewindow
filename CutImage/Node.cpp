@@ -40,11 +40,8 @@ CNode::~CNode()
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = *iter;
-		if (pNode)
-		{
-			pNode->SetParent(NULL);
-			delete pNode;
-		}
+		pNode->SetParent(NULL);
+		delete pNode;
 	}
 	TRACE("delete CNode\n");
 }
@@ -344,12 +341,9 @@ void CNode::NeedUpdate(NodeUpdateFlag flag)
 	{
 		m_bNeedUpdateRect = true;
 
-		CNode* pNode;
 		for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 		{
-			pNode = *iter;
-			if (pNode)
-				pNode->NeedUpdate(flag);
+			(*iter)->NeedUpdate(flag);
 		}
 	}
 	else if (flag == UpdateFlagReSortchild)
@@ -436,21 +430,16 @@ bool CNode::RemoveChildAll(bool bDelete)
 		for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 		{
 			pNode = *iter;
-			if (pNode)
-			{
-				pNode->Destroy();
-				pNode->SetParent(NULL);
-				delete pNode;
-			}
+			pNode->Destroy();
+			pNode->SetParent(NULL);
+			delete pNode;
 		}
 	}
 	else
 	{
 		for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 		{
-			pNode = *iter;
-			if (pNode)
-				pNode->SetParent(NULL);
+			(*iter)->SetParent(NULL);
 		}
 	}
 
@@ -462,10 +451,7 @@ void CNode::SortChild()
 {
 	std::stable_sort(m_Children.begin(), m_Children.end(), [](CNode* one, CNode* two)->bool
 	{
-		if (one && two)
-			return one->GetZOrder() < two->GetZOrder();
-		else
-			return false;
+		return one->GetZOrder() < two->GetZOrder();
 	});
 
 	m_bNeedSortChild = false;
@@ -525,14 +511,9 @@ bool CNode::Init()
 		return true;
 	}
 
-	CNode* pNode;
 	for (auto iter = this->m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
-		pNode = *iter;
-		if (pNode)
-		{
-			pNode->Init();
-		}
+		(*iter)->Init();
 	}
 	SortChild();
 	m_bNeedInit = false;
@@ -541,12 +522,9 @@ bool CNode::Init()
 
 bool CNode::Destroy()
 {
-	CNode* pNode;
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
-		pNode = *iter;
-		if (pNode)
-			pNode->Destroy();
+		(*iter)->Destroy();
 	}
 
 	TRACE("destroy CNode\n");

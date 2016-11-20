@@ -67,6 +67,7 @@ bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND
 	waveFormat_.nSamplesPerSec=wf.nSamplesPerSec;
 	waveFormat_.wFormatTag=wf.wFormatTag;
 	waveFormat_.wBitsPerSample=wBitsPerSample;
+	waveFormat_.cbSize = 0;
 
 	memset(&dsbd,0,sizeof(DSBUFFERDESC));
 	dsbd.dwSize=sizeof(DSBUFFERDESC);
@@ -892,7 +893,7 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("d:\\8.mp3", true))
+	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\Œ“µƒ“Ù¿÷\\4 Real.mp3", true))
 		return false;
 
 	auto info = m_decoder.SoundInfo();
