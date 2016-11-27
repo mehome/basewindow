@@ -13,9 +13,9 @@ class CScene;
 class CNode;
 
 typedef std::pair<float, float> NodePair;
-typedef std::pair<int, int> NodePairInt;
 typedef std::function<bool(CNode*)> NodeFinder;
 typedef std::vector<CNode* > NodeChild;
+typedef Gdiplus::RectF NodeRectF;
 
 enum NodeSizePolicy
 {
@@ -31,6 +31,13 @@ enum NodeUpdateFlag
 	UpdateFlagReLocation = 1,
 	UpdateFlagReSortchild,
 	UpdateFlagReLayout
+};
+
+struct DrawKit
+{
+	CNode* pParent;
+	CGDIView* pView;
+	CDirector* pDirect;
 };
 
 class CNode
@@ -61,6 +68,7 @@ public:
 
 	virtual void SetRect(const RECT& rect);
 	virtual RECT GetRect();
+	virtual const NodeRectF& GetRectF();
 
 	virtual void SetParent(CNode* p);
 	virtual CNode* GetParent()const;
@@ -83,6 +91,11 @@ public:
 	virtual void SetPos(int x, int y);
 	virtual const NodePair& GetPos()const;
 
+	virtual void SetScale(float sx, float sy);
+	virtual const NodePair& GetScale()const;
+	virtual void SetRotate(float r);
+	virtual float GetRotate()const;
+
 	virtual void NeedUpdate(NodeUpdateFlag flag);
 	virtual bool IsNeedUpdateRect()const;
 
@@ -98,7 +111,7 @@ public:
 
 	virtual bool Init();
 	virtual bool Destroy();
-	virtual void DrawNode();
+	virtual void DrawNode(DrawKit* pDrawKit);
 	virtual void RefreshNode();
 	virtual CScene* GetScene();
 	virtual CGDIView* GetView();
@@ -119,6 +132,7 @@ public:
 	virtual CNode* GetCurrentNode();
 protected:
 	const NodeChild& Child()const { return m_Children; }
+	void CalculateRect();
 private:
 	bool m_bNeedInit;
 	bool m_bNeedUpdateRect;
@@ -132,7 +146,10 @@ private:
 	NodePair m_pairAnchor;
 	NodePair m_pairSize;
 	NodePair m_pairPos;
+	NodePair m_pairScale;
+	float m_floatRotate;
 	RECT m_rect;
+	NodeRectF m_rectF;
 	NodePair m_pairMinSize;
 	NodePair m_pairMaxSize;
 	NodeSizePolicy m_sizePolicy;
@@ -154,7 +171,7 @@ public:
 	bool RemoveChild(CNode* pNode, bool bDelete);
 	void NeedUpdate(NodeUpdateFlag flag);
 	RECT GetRect();
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 	void SetContentMargin(int l, int t, int r, int b);
 	void SetSpacing(int spacing);
 protected:
@@ -189,9 +206,8 @@ public:
 	virtual LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 	virtual void DrawScene();
 	virtual bool EnableCustomNCHitTest(bool value);
-private:
-	CGDIView*  m_pView;
-	CDirector* m_pDir;
+protected:
+	DrawKit m_DrawKit;
 	bool m_bCustomNCHitTest;
 };
 
@@ -229,7 +245,7 @@ public:
 	bool CreateImageLayerByFile(const std::wstring& sFileName);
 	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
 	virtual void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 	const std::wstring& GetNodeClassName()const;
 	unsigned char* ImageData()const
 	{
@@ -251,7 +267,7 @@ class CColorLayer : public CImageLayer
 public:
 	explicit CColorLayer(CNode* parent = NULL);
 	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 protected:
 	Gdiplus::SolidBrush m_brush;
 };
@@ -271,7 +287,7 @@ public:
 	void SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize = false);
 	const std::wstring& GetText()const;
 	SIZE GetTextSize();
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 protected:
 	HFONT m_hFont;
 	COLORREF m_dwColor;
@@ -311,7 +327,7 @@ public:
 	void SetBgColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight);
 	void SetBorderColor(const Gdiplus::Color&normal, const Gdiplus::Color& highlight);
 	void SetBorderWidth(int width);
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 	void MouseEnter();
 	void MouseLeave();
 	void MouseUp(POINT point, unsigned int flag, bool l);

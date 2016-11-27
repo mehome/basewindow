@@ -107,7 +107,7 @@ class CMp3Show : public CScene
 {
 public:
 	bool Init();
-	void DrawNode();
+	void DrawNode(DrawKit*);
 	float m_fft[cgBarNum];
 };
 

@@ -4,6 +4,7 @@
 bool WeatherScene::Init()
 {
 	m_szCityName=GetCity();
+	//m_szCityName = L"±±¾©ÊÐ";
 	if(m_szCityName.empty())
 	{
 		return false;

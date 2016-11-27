@@ -865,9 +865,9 @@ bool CMp3Show::Init()
 	return CScene::Init();
 }
 
-void CMp3Show::DrawNode()
+void CMp3Show::DrawNode(DrawKit* pKit)
 {
-	CNode::DrawNode();
+	CNode::DrawNode(pKit);
 
 	HDC hMemDC = GetView()->GetMemDC();
 	static std::unique_ptr<void, win_handle_deleter<>> hBrush(CreateSolidBrush(RGB(220, 60, 0)));

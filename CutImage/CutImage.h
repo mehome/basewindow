@@ -16,7 +16,7 @@ public:
 	~ClipRegion();
 
 	bool Init();
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 	RECT GetRect();
 	bool IsPointINNode(POINT point);
 	void MouseTravel(POINT point, unsigned int flag);
@@ -80,5 +80,5 @@ class CTestScene : public CScene
 {
 public:
 	bool Init();
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 };

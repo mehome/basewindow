@@ -14,6 +14,8 @@ CNode::CNode(CNode* pParent) :
 	m_pParent(NULL),
 	m_pairAnchor(0.5f, 0.5f),
 	m_pairSize(0.5f, 0.5f),
+	m_pairScale(1.0f, 1.0f),
+	m_floatRotate(0.0f),
 	m_pairMinSize(1.0f, 1.0f),
 	m_pairMaxSize(5000.0f, 5000.0f),
 	m_sizePolicy(SizePolicyFixed),
@@ -62,6 +64,8 @@ CNode::CNode(CNode&& rr)
 	m_pairAnchor = rr.m_pairAnchor;
 	m_pairSize = rr.m_pairSize;
 	m_pairPos = rr.m_pairPos;
+	m_pairScale = rr.m_pairScale;
+	m_floatRotate = rr.m_floatRotate;
 	m_Children = std::move(rr.m_Children);
 	m_pairMaxSize = rr.m_pairMaxSize;
 	m_pairMinSize = rr.m_pairMinSize;
@@ -160,16 +164,33 @@ void CNode::SetRect(const RECT& rect)
 
 RECT CNode::GetRect()
 {
+	CalculateRect();
+	return m_rect;
+}
+
+const NodeRectF& CNode::GetRectF()
+{
+	CalculateRect();
+	return m_rectF;
+}
+
+void CNode::CalculateRect()
+{
 	if (m_bNeedUpdateRect)
 	{
 		m_bNeedUpdateRect = false;
 		if (m_pParent)
 		{
+			m_rectF.X = -m_pairAnchor.first*m_pairSize.first;
+			m_rectF.Y = -m_pairAnchor.second*m_pairSize.second;
+			m_rectF.Width = m_pairSize.first;
+			m_rectF.Height = m_pairSize.second;
+			/////
 			RECT r = m_pParent->GetRect();
 			float fx = r.left + m_pairPos.first;
 			float fy = r.top + m_pairPos.second;
-			fx -= m_pairSize.first * m_pairAnchor.first;
-			fy -= m_pairSize.second * m_pairAnchor.second;
+			fx += m_rectF.X;
+			fy += m_rectF.Y;
 
 			m_rect.left = static_cast<int>(fx + 0.5f);
 			m_rect.top = static_cast<int>(fy + 0.5f);
@@ -177,7 +198,6 @@ RECT CNode::GetRect()
 			m_rect.bottom = static_cast<int>(fy + m_pairSize.second + 0.5f);
 		}
 	}
-	return m_rect;
 }
 
 void CNode::SetParent(CNode* p)
@@ -219,8 +239,6 @@ NodePair CNode::GetAnchor()const
 
 void CNode::SetSize(float w, float h)
 {
-	if (w<m_pairMinSize.first || w>m_pairMaxSize.first || h<m_pairMinSize.second || h>m_pairMaxSize.second)
-		return;
 	m_pairSize.first = w;
 	m_pairSize.second = h;
 	NeedUpdate(UpdateFlagReSize);
@@ -332,7 +350,28 @@ void CNode::SetPos(int x, int y)
 
 const NodePair& CNode::GetPos()const
 {
-	return m_pairSize;
+	return m_pairPos;
+}
+
+void CNode::SetScale(float sx, float sy)
+{
+	m_pairScale.first = sx;
+	m_pairScale.second = sy;
+}
+
+const NodePair& CNode::GetScale()const
+{
+	return m_pairScale;
+}
+
+void CNode::SetRotate(float r)
+{
+	m_floatRotate = r;
+}
+
+float CNode::GetRotate()const
+{
+	return m_floatRotate;
 }
 
 void CNode::NeedUpdate(NodeUpdateFlag flag)
@@ -531,7 +570,7 @@ bool CNode::Destroy()
 	return true;
 }
 
-void CNode::DrawNode()
+void CNode::DrawNode(DrawKit* pDrawKit)
 {
 	if(m_bNeedSortChild)
 	{
@@ -539,11 +578,25 @@ void CNode::DrawNode()
 	}
 
 	CNode* pNode;
+	const NodePair *pPos, *pScale;
+	Gdiplus::Graphics&g = pDrawKit->pView->GetGraphics();
+	Gdiplus::GraphicsState state;
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = *iter;
 		if (pNode->IsVisible())
-			pNode->DrawNode();
+		{
+			pPos = &pNode->GetPos();
+			pScale = &pNode->GetScale();
+
+			state = g.Save();
+			g.TranslateTransform(pPos->first, pPos->second);
+			g.ScaleTransform(pScale->first, pScale->second);
+			g.RotateTransform(pNode->GetRotate());
+			pDrawKit->pParent = this;
+			pNode->DrawNode(pDrawKit);
+			g.Restore(state);
+		}
 	}
 }
 
@@ -906,7 +959,7 @@ void CHLayout::ReLayout()
 	}
 }
 
-void CHLayout::DrawNode()
+void CHLayout::DrawNode(DrawKit* pKit)
 {
 	GetRect();
 	if(m_bNeedReLayout)
@@ -915,7 +968,7 @@ void CHLayout::DrawNode()
 		if (!Child().empty())
 			ReLayout();
 	}
-	CNode::DrawNode();
+	CNode::DrawNode(pKit);
 }
 
 void CHLayout::SetContentMargin(int l, int t, int r, int b)
@@ -1045,8 +1098,6 @@ void CVLayout::ReLayout()
 }
 
 CScene::CScene():
-	m_pView(NULL),
-	m_pDir(NULL),
 	m_bCustomNCHitTest(true)
 {
 }
@@ -1058,37 +1109,32 @@ CScene* CScene::GetScene()
 
 CGDIView* CScene::GetView()
 {
-	return m_pView;
+	return m_DrawKit.pView;
 }
 
 void CScene::SetView(CGDIView* view)
 {
 	assert(view != NULL);
-	m_pView = view;
-	auto rect = view->GetWndRect();
-
-	SetRect(rect);
+	m_DrawKit.pView = view;
+	SetRect(view->GetWndRect());
 }
 
 CDirector* CScene::GetDirector()
 {
-	return m_pDir;
+	return m_DrawKit.pDirect;
 }
 
 void CScene::SetDirector(CDirector* pDir)
 {
 	assert(pDir != NULL);
-	m_pDir = pDir;
+	m_DrawKit.pDirect = pDir;
 }
 
 void CScene::DrawScene()
 {
-	assert(m_pView != NULL);
-	assert(m_pDir != NULL);
-
-	m_pView->ClearBuffer();
-	DrawNode();
-	m_pView->SwapBuffer();
+	m_DrawKit.pView->ClearBuffer();
+	DrawNode(&m_DrawKit);
+	m_DrawKit.pView->SwapBuffer();
 }
 
 bool CScene::EnableCustomNCHitTest(bool value)
@@ -1197,7 +1243,7 @@ void CShadowScene::SetView(CGDIView* view)
 void CShadowScene::DrawScene()
 {
 	ClearScene();
-	DrawNode();
+	DrawNode(&m_DrawKit);
 	DrawShadow();
 	SwapScene();
 }
@@ -1515,7 +1561,7 @@ void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, in
 	}
 }
 
-void CImageLayer::DrawNode()
+void CImageLayer::DrawNode(DrawKit* pkit)
 {
 	RECT r = GetRect();
 	DrawImage(r.left, r.top, r.right - r.left, r.bottom - r.top);
@@ -1547,18 +1593,14 @@ bool CColorLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsi
 	return true;
 }
 
-void CColorLayer::DrawNode()
+void CColorLayer::DrawNode(DrawKit* pKit)
 {
 	if (m_hBitmap)
-		return CImageLayer::DrawNode();
+		return CImageLayer::DrawNode(pKit);
 
-	auto rect = GetRect();
-	Gdiplus::Graphics& g = GetView()->GetGraphics();
-
-	g.FillRectangle(&m_brush, rect.left,
-		rect.top,
-		rect.right - rect.left,
-		rect.bottom - rect.top);
+	auto&g = pKit->pView->GetGraphics();
+	auto&rect = GetRectF();
+	g.FillRectangle(&m_brush, rect);
 }
 
 CTextLayer::CTextLayer(CNode* pParent) :
@@ -1675,7 +1717,7 @@ SIZE CTextLayer::GetTextSize()
 	return size;
 }
 
-void CTextLayer::DrawNode()
+void CTextLayer::DrawNode(DrawKit*)
 {
 	HDC hMemDC = GetView()->GetMemDC();
 	RECT r = GetRect();
@@ -1800,16 +1842,16 @@ void CButtonNode::SetBorderWidth(int width)
 	m_iBorderWidth = width;
 }
 
-void CButtonNode::DrawNode()
+void CButtonNode::DrawNode(DrawKit* pKit)
 {
-	RECT r = GetRect();
-	Gdiplus::Graphics& g = GetView()->GetGraphics();
+	auto& r = GetRectF();
+	Gdiplus::Graphics& g = pKit->pView->GetGraphics();
 	Gdiplus::SolidBrush brush(IsMouseIN() ? m_bgHighLight : m_bgNormal);
 	Gdiplus::Pen pen((IsMouseIN() ? m_borderHighLight : m_borderNormal), (float)m_iBorderWidth);
 
-	g.FillRectangle(&brush, r.left, r.top, r.right - r.left, r.bottom - r.top);
-	CTextLayer::DrawNode();
-	g.DrawRectangle(&pen, r.left, r.top, r.right - r.left, r.bottom - r.top);
+	g.FillRectangle(&brush, r);
+	CTextLayer::DrawNode(pKit);
+	g.DrawRectangle(&pen, r);
 }
 
 void CButtonNode::MouseEnter()

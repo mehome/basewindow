@@ -68,7 +68,7 @@ bool ClipRegion::Init()
 	return CNode::Init();
 }
 
-void ClipRegion::DrawNode()
+void ClipRegion::DrawNode(DrawKit* pKit)
 {
 	RECT r = GetRect();
 	HDC hMemDC = GetView()->GetMemDC();
@@ -559,8 +559,8 @@ LRESULT CCutImageWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 {
 	if(message == WM_CREATE)
 	{
-		//InitCutImage();
-		InitWeather();
+		InitCutImage();
+		//InitWeather();
 	}
 
 	if(m_pDir.get())
@@ -581,7 +581,7 @@ void CCutImageWindow::InitCutImage()
 	style &= ~WS_CAPTION;    // 去除非客户区域
 	style &= ~WS_SIZEBOX;    // 禁止更改窗口大小, same as WS_THICKFRAME
 	style &= ~WS_MAXIMIZEBOX;
-	//SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
+	SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
 
 	ReSize(600+6, 450+6, true);
 	//ReSize(50, 50, true);
@@ -594,15 +594,15 @@ void CCutImageWindow::InitCutImage()
 	//SetWindowRgn(GetHWND(), hRgn, false);
 	//DeleteObject(hRgn);
 
-	//CGDIView* pView=new CGDIViewAlpha();
-	//pView->Init(GetHWND());
-	//m_pDir.reset(new CDirector(pView));
-	//m_pDir->RunScene(new CCutImageScene());
-
-	CGDIView* pView=new CGDIView();
+	CGDIView* pView=new CGDIViewAlpha();
 	pView->Init(GetHWND());
 	m_pDir.reset(new CDirector(pView));
-	m_pDir->RunScene(new CTestScene());
+	m_pDir->RunScene(new CCutImageScene());
+
+	//CGDIView* pView=new CGDIView();  
+	//pView->Init(GetHWND());
+	//m_pDir.reset(new CDirector(pView));
+	//m_pDir->RunScene(new CTestScene());
 }
 
 void CCutImageWindow::InitWeather()
@@ -670,10 +670,10 @@ bool CTestScene::Init()
 	return CScene::Init();
 }
 
-void CTestScene::DrawNode()
+void CTestScene::DrawNode(DrawKit* pKit)
 {
 	{
-		CScene::DrawNode();
+		CScene::DrawNode(pKit);
 		return;
 	}
 	RECT r=GetRect();
