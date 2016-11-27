@@ -1236,6 +1236,7 @@ void CShadowScene::SetView(CGDIView* view)
 	rect.top += m_iShadowSize;
 	rect.right -= m_iShadowSize;
 	rect.bottom -= m_iShadowSize;
+	//view->GetGraphics().TranslateTransform((float)m_iShadowSize, (float)m_iShadowSize);
 
 	SetRect(rect);
 }
@@ -1606,8 +1607,7 @@ void CColorLayer::DrawNode(DrawKit* pKit)
 CTextLayer::CTextLayer(CNode* pParent) :
 	CNode(pParent),
 	m_hFont(NULL),
-	m_dwColor(RGB(1, 1, 1)),
-	m_dwAlignment(DT_CENTER | DT_SINGLELINE | DT_VCENTER)
+	m_brushText(Gdiplus::Color(1, 1, 1))
 {
 	m_hFont = CreateFont(20, 0, 0, 0, FW_THIN, FALSE, FALSE, FALSE,
 		GB2312_CHARSET,
@@ -1662,24 +1662,16 @@ HFONT CTextLayer::GetFont()
 	return m_hFont;
 }
 
-void CTextLayer::SetTextColor(COLORREF color)
+void CTextLayer::SetTextColor(const Gdiplus::Color& color)
 {
-	m_dwColor = color;
+	m_brushText.SetColor(color);
 }
 
-COLORREF CTextLayer::GetTextColor()const
+Gdiplus::Color CTextLayer::GetTextColor()const
 {
-	return m_dwColor;
-}
-
-void CTextLayer::SetAlignment(DWORD align)
-{
-	m_dwAlignment = align;
-}
-
-DWORD CTextLayer::GetAlignment()const
-{
-	return m_dwAlignment;
+	Gdiplus::Color color;
+	m_brushText.GetColor(&color);
+	return color;
 }
 
 void CTextLayer::SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize)
@@ -1687,8 +1679,8 @@ void CTextLayer::SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize)
 	m_szText = sText;
 	if (bUseTextSizeAsNodeSize)
 	{
-		SIZE size = GetTextSize();
-		SetSize(size.cx, size.cy);
+		NodePair size = GetTextSize();
+		SetSize(size.first, size.second);
 	}
 }
 
@@ -1697,9 +1689,8 @@ const std::wstring& CTextLayer::GetText()const
 	return m_szText;
 }
 
-SIZE CTextLayer::GetTextSize()
+NodePair CTextLayer::GetTextSize()
 {
-	SIZE size;
 	HDC hMemDC = NULL;
 
 	if (GetScene())
@@ -1711,37 +1702,31 @@ SIZE CTextLayer::GetTextSize()
 		hMemDC = CGDIView::GetScreenDC();
 	}
 
-	SelectObject(hMemDC, m_hFont);
-	GetTextExtentPoint32(hMemDC, m_szText.c_str(), m_szText.length(), &size);
+	//SelectObject(hMemDC, m_hFont);
+	//GetTextExtentPoint32(hMemDC, m_szText.c_str(), m_szText.length(), &size);
+	Gdiplus::Graphics g(hMemDC);
+	Gdiplus::Font font(hMemDC, m_hFont);
+	Gdiplus::PointF po(0.0f, 0.0f);
+	Gdiplus::RectF boundRect;
+	g.MeasureString(m_szText.c_str(), m_szText.length(), &font, po, &boundRect);
 
+	NodePair size;
+	size.first = boundRect.Width;
+	size.second = boundRect.Height;
 	return size;
 }
 
-void CTextLayer::DrawNode(DrawKit*)
+void CTextLayer::DrawNode(DrawKit* pKit)
 {
-	HDC hMemDC = GetView()->GetMemDC();
-	RECT r = GetRect();
-	::SetTextColor(hMemDC, m_dwColor);
-	SelectObject(hMemDC, m_hFont);
-
 	if (!m_szText.empty())
 	{
-		DrawText(hMemDC,
-			m_szText.c_str(),
-			m_szText.length(),
-			&r,
-			m_dwAlignment);
-
-		//BYTE rr=GetRValue(m_dwColor);
-		//BYTE gg=GetGValue(m_dwColor);
-		//BYTE bb=GetBValue(m_dwColor);
-		//Gdiplus::Graphics g(hMemDC);
-		//g.DrawString(m_szText.c_str(),
-		//	m_szText.length(),
-		//	&Gdiplus::Font(hMemDC),
-		//	Gdiplus::RectF(r.left, r.top, r.right-r.left, r.bottom-r.top),
-		//	&Gdiplus::StringFormat(),
-		//	&Gdiplus::SolidBrush(Gdiplus::Color(255, rr, gg, bb)));
+		HDC hMemDC = pKit->pView->GetMemDC();
+		Gdiplus::Graphics& g = pKit->pView->GetGraphics();
+		Gdiplus::Font font(hMemDC, m_hFont);
+		Gdiplus::StringFormat format;
+		format.SetAlignment(Gdiplus::StringAlignmentCenter);
+		format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
+		g.DrawString(m_szText.c_str(), m_szText.length(), &font, GetRectF(), &format, &m_brushText);
 	}
 }
 

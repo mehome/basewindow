@@ -280,18 +280,15 @@ public:
 	void SetFont(const LOGFONT& f);
 	void SetFont(HFONT h);
 	HFONT GetFont();
-	void SetTextColor(COLORREF color);
-	COLORREF GetTextColor()const;
-	void SetAlignment(DWORD align);
-	DWORD GetAlignment()const;
+	void SetTextColor(const Gdiplus::Color& color);
+	Gdiplus::Color GetTextColor()const;
 	void SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize = false);
 	const std::wstring& GetText()const;
-	SIZE GetTextSize();
+	NodePair GetTextSize();
 	void DrawNode(DrawKit* pKit);
 protected:
 	HFONT m_hFont;
-	COLORREF m_dwColor;
-	DWORD m_dwAlignment;
+	Gdiplus::SolidBrush m_brushText;
 	std::wstring m_szText;
 };
 

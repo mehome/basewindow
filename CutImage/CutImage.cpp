@@ -277,7 +277,7 @@ bool CCutImageScene::Init()
 {
 	RECT rect=GetRect();
 
-	CImageLayer* pTitleContent=new CImageLayer(this);
+	CImageLayer* pTitleContent=new CColorLayer(this);
 	pTitleContent->CreateImageLayerByColor(0, 122, 204);
 	pTitleContent->SetSize(rect.right, 30);
 	pTitleContent->SetPos(rect.right/2.0f, 15.0f);
