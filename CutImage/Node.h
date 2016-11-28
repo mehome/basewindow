@@ -4,7 +4,6 @@
 #include <list>
 #include <map>
 #include <string>
-#include <tuple>
 #include <vector>
 #include "View.h"
 
@@ -89,7 +88,7 @@ public:
 
 	virtual void SetPos(float px, float py);
 	virtual void SetPos(int x, int y);
-	virtual const NodePair& GetPos()const;
+	virtual const NodePair& GetPos();
 
 	virtual void SetScale(float sx, float sy);
 	virtual const NodePair& GetScale()const;
@@ -171,6 +170,7 @@ public:
 	bool RemoveChild(CNode* pNode, bool bDelete);
 	void NeedUpdate(NodeUpdateFlag flag);
 	RECT GetRect();
+	const NodePair& GetPos();
 	void DrawNode(DrawKit* pKit);
 	void SetContentMargin(int l, int t, int r, int b);
 	void SetSpacing(int spacing);

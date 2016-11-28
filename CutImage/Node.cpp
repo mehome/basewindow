@@ -149,14 +149,14 @@ void CNode::SetRect(const RECT& rect)
 	if (m_pParent)
 	{
 		RECT r = m_pParent->GetRect();
-		m_pairPos.first = rect.left - r.left + w / 2.0f;
-		m_pairPos.second = rect.top - r.top + h / 2.0f;
+		m_pairPos.first = rect.left - r.left + w * m_pairAnchor.first;
+		m_pairPos.second = rect.top - r.top + h * m_pairAnchor.first;
 	}
 	else
 	{
 		m_rect = rect;
-		m_pairPos.first = w / 2.0f;
-		m_pairPos.second = h / 2.0f;
+		m_pairPos.first = w * m_pairAnchor.first;
+		m_pairPos.second = h * m_pairAnchor.first;
 	}
 
 	NeedUpdate(UpdateFlagReSize);
@@ -179,13 +179,13 @@ void CNode::CalculateRect()
 	if (m_bNeedUpdateRect)
 	{
 		m_bNeedUpdateRect = false;
+
+		m_rectF.X = -m_pairAnchor.first*m_pairSize.first;
+		m_rectF.Y = -m_pairAnchor.second*m_pairSize.second;
+		m_rectF.Width = m_pairSize.first;
+		m_rectF.Height = m_pairSize.second;
 		if (m_pParent)
 		{
-			m_rectF.X = -m_pairAnchor.first*m_pairSize.first;
-			m_rectF.Y = -m_pairAnchor.second*m_pairSize.second;
-			m_rectF.Width = m_pairSize.first;
-			m_rectF.Height = m_pairSize.second;
-			/////
 			RECT r = m_pParent->GetRect();
 			float fx = r.left + m_pairPos.first;
 			float fy = r.top + m_pairPos.second;
@@ -348,7 +348,7 @@ void CNode::SetPos(int x, int y)
 	SetPos(1.0f*x, 1.0f*y);
 }
 
-const NodePair& CNode::GetPos()const
+const NodePair& CNode::GetPos()
 {
 	return m_pairPos;
 }
@@ -572,6 +572,8 @@ bool CNode::Destroy()
 
 void CNode::DrawNode(DrawKit* pDrawKit)
 {
+	// 对于非根节点,原点自己的在锚点
+	// 对于根节点(scene),原点在自己的左上角
 	if(m_bNeedSortChild)
 	{
 		SortChild();
@@ -581,6 +583,14 @@ void CNode::DrawNode(DrawKit* pDrawKit)
 	const NodePair *pPos, *pScale;
 	Gdiplus::Graphics&g = pDrawKit->pView->GetGraphics();
 	Gdiplus::GraphicsState state;
+	const NodeRectF* pThisRectF(NULL);
+	//在绘制子节点之前,首先将原点移到左上角,根节点(scene)不需要
+	if(pDrawKit->pParent)
+	{
+		pThisRectF = &GetRectF();
+		g.TranslateTransform(pThisRectF->X, pThisRectF->Y);
+	}
+
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = *iter;
@@ -597,6 +607,12 @@ void CNode::DrawNode(DrawKit* pDrawKit)
 			pNode->DrawNode(pDrawKit);
 			g.Restore(state);
 		}
+	}
+
+	// 移动回来
+	if(pThisRectF)
+	{
+		g.TranslateTransform(-pThisRectF->X, -pThisRectF->Y);
 	}
 }
 
@@ -847,10 +863,16 @@ RECT CHLayout::GetRect()
 		if(IsNeedUpdateRect())
 		{
 			SetRect(rect);
-			NeedUpdate(UpdateFlagClean);
+			rect = CNode::GetRect();
 		}
 	}
 	return rect;
+}
+
+const NodePair& CHLayout::GetPos()
+{
+	GetRect();
+	return CNode::GetPos();
 }
 
 void CHLayout::ReLayout()
@@ -1133,6 +1155,7 @@ void CScene::SetDirector(CDirector* pDir)
 void CScene::DrawScene()
 {
 	m_DrawKit.pView->ClearBuffer();
+	m_DrawKit.pParent = NULL;
 	DrawNode(&m_DrawKit);
 	m_DrawKit.pView->SwapBuffer();
 }
@@ -1236,7 +1259,8 @@ void CShadowScene::SetView(CGDIView* view)
 	rect.top += m_iShadowSize;
 	rect.right -= m_iShadowSize;
 	rect.bottom -= m_iShadowSize;
-	//view->GetGraphics().TranslateTransform((float)m_iShadowSize, (float)m_iShadowSize);
+	view->GetGraphics().ResetTransform();
+	view->GetGraphics().TranslateTransform((float)m_iShadowSize, (float)m_iShadowSize);
 
 	SetRect(rect);
 }
@@ -1244,6 +1268,7 @@ void CShadowScene::SetView(CGDIView* view)
 void CShadowScene::DrawScene()
 {
 	ClearScene();
+	m_DrawKit.pParent = NULL;
 	DrawNode(&m_DrawKit);
 	DrawShadow();
 	SwapScene();
