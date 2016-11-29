@@ -277,7 +277,7 @@ bool CCutImageScene::Init()
 {
 	RECT rect=GetRect();
 
-	CImageLayer* pTitleContent=new CColorLayer(this);
+	CColorLayer* pTitleContent=new CColorLayer(this);
 	pTitleContent->CreateImageLayerByColor(0, 122, 204);
 	pTitleContent->SetSize(rect.right, 30);
 	pTitleContent->SetPos(rect.right/2.0f, 15.0f);
@@ -289,7 +289,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);

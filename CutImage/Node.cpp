@@ -249,7 +249,7 @@ void CNode::SetSize(int w, int h)
 	SetSize(1.0f*w, 1.0f*h);
 }
 
-const NodePair& CNode::GetSize()const
+const NodePair& CNode::GetSize()
 {
 	return m_pairSize;
 }
@@ -875,6 +875,12 @@ const NodePair& CHLayout::GetPos()
 	return CNode::GetPos();
 }
 
+const NodePair& CHLayout::GetSize()
+{
+	GetRect();
+	return CNode::GetSize();
+}
+
 void CHLayout::ReLayout()
 {
 	auto& children = Child();
@@ -983,7 +989,6 @@ void CHLayout::ReLayout()
 
 void CHLayout::DrawNode(DrawKit* pKit)
 {
-	GetRect();
 	if(m_bNeedReLayout)
 	{
 		m_bNeedReLayout = false;
@@ -1401,23 +1406,22 @@ LRESULT CDirector::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool&
 	return res;
 }
 
-CImageLayer::CImageLayer(CNode* pParent) :CNode(pParent),
+CImageLayer::CImageLayer(CNode* pParent) :CColorLayer(pParent),
 m_pData(NULL),
 m_hDc(NULL),
-m_hBitmap(NULL)
+m_hBitmap(NULL),
+m_pBitmap(NULL)
 {
 }
 
 CImageLayer::~CImageLayer()
 {
+	if(m_pBitmap)
+		delete m_pBitmap;
 	if (m_hBitmap)
-	{
 		DeleteObject(m_hBitmap);
-	}
 	if (m_hDc)
-	{
 		DeleteDC(m_hDc);
-	}
 }
 
 bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
@@ -1493,9 +1497,9 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 	bi.bmiHeader = m_Info;
 
 	if (m_hBitmap)
-	{
 		DeleteObject(m_hBitmap);
-	}
+	if(m_pBitmap)
+		delete m_pBitmap;
 	//m_hBitmap=::CreateDIBitmap(hRealDC,
 	//	&bi,
 	//	CBM_INIT,
@@ -1516,6 +1520,8 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 		m_hDc = CreateCompatibleDC(hRealDC);
 	}
 	SelectObject(m_hDc, m_hBitmap);
+	m_pBitmap = Gdiplus::Bitmap::FromBITMAPINFO(&bi, m_pData);
+	assert(m_pBitmap->GetLastStatus() == Gdiplus::Ok);
 
 	if (bUseImageSizeAsNodeSize)
 	{
@@ -1589,8 +1595,9 @@ void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, in
 
 void CImageLayer::DrawNode(DrawKit* pkit)
 {
-	RECT r = GetRect();
-	DrawImage(r.left, r.top, r.right - r.left, r.bottom - r.top);
+	//RECT r = GetRect();
+	//DrawImage(r.left, r.top, r.right - r.left, r.bottom - r.top);
+	pkit->pView->GetGraphics().DrawImage(m_pBitmap, GetRectF());
 }
 
 const std::wstring& CImageLayer::GetNodeClassName()const
@@ -1599,7 +1606,7 @@ const std::wstring& CImageLayer::GetNodeClassName()const
 	return name;
 }
 
-CColorLayer::CColorLayer(CNode* parent):CImageLayer(parent),
+CColorLayer::CColorLayer(CNode* parent):CNode(parent),
 	m_brush(Gdiplus::Color())
 {
 
@@ -1608,25 +1615,12 @@ CColorLayer::CColorLayer(CNode* parent):CImageLayer(parent),
 bool CColorLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
 	m_brush.SetColor(Gdiplus::Color(a, r, g, b));
-	if (m_hBitmap)
-	{
-		DeleteObject(m_hBitmap);
-	}
-	if (m_hDc)
-	{
-		DeleteDC(m_hDc);
-	}
 	return true;
 }
 
 void CColorLayer::DrawNode(DrawKit* pKit)
 {
-	if (m_hBitmap)
-		return CImageLayer::DrawNode(pKit);
-
-	auto&g = pKit->pView->GetGraphics();
-	auto&rect = GetRectF();
-	g.FillRectangle(&m_brush, rect);
+	pKit->pView->GetGraphics().FillRectangle(&m_brush, GetRectF());
 }
 
 CTextLayer::CTextLayer(CNode* pParent) :

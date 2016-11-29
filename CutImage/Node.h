@@ -78,7 +78,7 @@ public:
 
 	virtual void SetSize(float w, float h);
 	virtual void SetSize(int w, int h);
-	virtual const NodePair& GetSize()const;
+	virtual const NodePair& GetSize();
 	virtual void SetMinSize(float x, float y);
 	virtual void SetMaxSize(float x, float y);
 	virtual const NodePair& GetMinSize()const;
@@ -171,6 +171,7 @@ public:
 	void NeedUpdate(NodeUpdateFlag flag);
 	RECT GetRect();
 	const NodePair& GetPos();
+	const NodePair& GetSize();
 	void DrawNode(DrawKit* pKit);
 	void SetContentMargin(int l, int t, int r, int b);
 	void SetSpacing(int spacing);
@@ -236,14 +237,24 @@ private:
 	CScene*   m_pCurrentScene;
 };
 
-class CImageLayer : public CNode
+class CColorLayer : public CNode
+{
+public:
+	explicit CColorLayer(CNode* parent = NULL);
+	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
+	void DrawNode(DrawKit* pKit);
+protected:
+	Gdiplus::SolidBrush m_brush;
+};
+
+class CImageLayer : public CColorLayer
 {
 public:
 	explicit CImageLayer(CNode* pParent = NULL);
 	~CImageLayer();
 	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
 	bool CreateImageLayerByFile(const std::wstring& sFileName);
-	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
+	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
 	virtual void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
 	void DrawNode(DrawKit* pKit);
 	const std::wstring& GetNodeClassName()const;
@@ -260,16 +271,7 @@ protected:
 	unsigned char* m_pData;
 	HDC m_hDc;
 	HBITMAP m_hBitmap;
-};
-
-class CColorLayer : public CImageLayer
-{
-public:
-	explicit CColorLayer(CNode* parent = NULL);
-	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
-	void DrawNode(DrawKit* pKit);
-protected:
-	Gdiplus::SolidBrush m_brush;
+	Gdiplus::Bitmap* m_pBitmap;
 };
 
 class CTextLayer : public CNode

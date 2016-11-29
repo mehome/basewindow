@@ -857,7 +857,7 @@ bool CMp3Show::Init()
 	//pBgImage->CreateImageLayerByFile(AppPath()+L"music.jpg");
 	//pBg->SetImageLayer(pBgImage);
 
-	CColorLayer* pBgColor = new CColorLayer();
+	CImageLayer* pBgColor = new CImageLayer();
 	pBgColor->CreateImageLayerByFile(AppPath() + L"music.jpg");
 	pBgColor->SetSizePolicy(SizePolicyExpanding);
 	pBgLayout->AddChild(pBgColor);
