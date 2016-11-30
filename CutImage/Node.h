@@ -252,8 +252,8 @@ class CImageLayer : public CColorLayer
 public:
 	explicit CImageLayer(CNode* pParent = NULL);
 	~CImageLayer();
-	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
-	bool CreateImageLayerByFile(const std::wstring& sFileName);
+	virtual bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
+	virtual bool CreateImageLayerByFile(const std::wstring& sFileName);
 	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
 	virtual void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
 	void DrawNode(DrawKit* pKit);
@@ -271,6 +271,17 @@ protected:
 	unsigned char* m_pData;
 	HDC m_hDc;
 	HBITMAP m_hBitmap;
+};
+
+class CBitmapLayer : public CImageLayer
+{
+public:
+	explicit CBitmapLayer(CNode* pParent = NULL);
+	~CBitmapLayer();
+	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize);
+	bool CreateImageLayerByFile(const std::wstring& sFileName);
+	void DrawNode(DrawKit* pKit);
+protected:
 	Gdiplus::Bitmap* m_pBitmap;
 };
 
