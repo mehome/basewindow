@@ -77,6 +77,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BaseWindow.cpp" />
+    <ClCompile Include="CustomStream.cpp" />
     <ClCompile Include="CutImage.cpp" />
     <ClCompile Include="HttpBase.cpp" />
     <ClCompile Include="Log.cpp" />
@@ -90,6 +91,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseWindow.h" />
+    <ClInclude Include="CustomStream.h" />
     <ClInclude Include="CutImage.h" />
     <ClInclude Include="Mp3Player.h" />
     <ClInclude Include="Task.h" />

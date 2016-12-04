@@ -1621,6 +1621,14 @@ CBitmapLayer::CBitmapLayer(CNode* pParent)
 {
 }
 
+CBitmapLayer::CBitmapLayer(Gdiplus::Bitmap* pBitmap, CNode*pParent)
+	:CImageLayer(pParent),
+	m_pBitmap(pBitmap)
+{
+	if (m_pBitmap)
+		SetSize((float)m_pBitmap->GetWidth(), (float)m_pBitmap->GetHeight());
+}
+
 CBitmapLayer::~CBitmapLayer()
 {
 	if(m_pBitmap)

@@ -277,6 +277,7 @@ class CBitmapLayer : public CImageLayer
 {
 public:
 	explicit CBitmapLayer(CNode* pParent = NULL);
+	CBitmapLayer(Gdiplus::Bitmap* pBitmap, CNode*pParent=NULL);
 	~CBitmapLayer();
 	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize);
 	bool CreateImageLayerByFile(const std::wstring& sFileName);
