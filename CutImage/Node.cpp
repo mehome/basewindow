@@ -1615,53 +1615,6 @@ void CColorLayer::DrawNode(DrawKit* pKit)
 	pKit->pView->GetGraphics().FillRectangle(&m_brush, GetRectF());
 }
 
-CBitmapLayer::CBitmapLayer(CNode* pParent)
-	:CImageLayer(pParent),
-	m_pBitmap(NULL)
-{
-}
-
-CBitmapLayer::CBitmapLayer(Gdiplus::Bitmap* pBitmap, CNode*pParent)
-	:CImageLayer(pParent),
-	m_pBitmap(pBitmap)
-{
-	if (m_pBitmap)
-		SetSize((float)m_pBitmap->GetWidth(), (float)m_pBitmap->GetHeight());
-}
-
-CBitmapLayer::~CBitmapLayer()
-{
-	if(m_pBitmap)
-		delete m_pBitmap;
-}
-
-bool CBitmapLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool b)
-{
-	if(m_pBitmap)
-		delete m_pBitmap;
-	if(CImageLayer::CreateImageLayerByData(pData, w, h, bitcount, b))
-	{
-		BITMAPINFO bi;
-		bi.bmiHeader = CImageLayer::GetImageInfo();
-		m_pBitmap = Gdiplus::Bitmap::FromBITMAPINFO(&bi, CImageLayer::ImageData());
-		return m_pBitmap->GetLastStatus() == Gdiplus::Ok;
-	}
-	return false;
-}
-
-bool CBitmapLayer::CreateImageLayerByFile(const std::wstring& sFileName)
-{
-	if(m_pBitmap)
-		delete m_pBitmap;
-	m_pBitmap = Gdiplus::Bitmap::FromFile(sFileName.c_str());
-	return m_pBitmap->GetLastStatus() == Gdiplus::Ok;
-}
-
-void CBitmapLayer::DrawNode(DrawKit* pKit)
-{
-	pKit->pView->GetGraphics().DrawImage(m_pBitmap, GetRectF());
-}
-
 CTextLayer::CTextLayer(CNode* pParent) :
 	CNode(pParent),
 	m_hFont(NULL),

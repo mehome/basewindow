@@ -80,7 +80,7 @@ bool CGDIView::Init(HWND hWnd)
 	SelectObject(m_MemDC, m_MemBitmap);
 	SetBkMode(m_MemDC, TRANSPARENT);
 	SetStretchBltMode(m_MemDC, STRETCH_HALFTONE);
-
+	SetGraphicsMode(m_MemDC, GM_ADVANCED);
 	m_pGraphics = Gdiplus::Graphics::FromHDC(m_MemDC);
 
 	return true;
@@ -140,6 +140,15 @@ void CGDIView::DoRefresh()
 void CGDIView::WndRectChanged()
 {
 	GetClientRect(m_Wnd, &m_rectWnd);
+}
+
+void CGDIView::Transform(float tx, float ty, float sx, float sy, float r)
+{
+	//XFORM xform;
+	//float s(sin(r)), c(cos(r));
+	//xform.eDx = tx;
+	//xform.eDy = ty;
+	//xform.eM11=
 }
 
 CGDIViewAlpha::CGDIViewAlpha()

@@ -894,7 +894,7 @@ void CMp3Show::DrawNode(DrawKit* pKit)
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	std::string mp3Name("C:\\Users\\Think\\Desktop\\我的音乐\\Bad Romance .mp3");
+	std::string mp3Name("C:\\Users\\Think\\Desktop\\我的音乐\\4 Real.mp3");
 	if (!m_decoder.Initialize(mp3Name, true))
 		return false;
 	CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
@@ -1107,17 +1107,7 @@ End:
 
 void CMp3PlayerWindow::ShowAlbum(char* pData, unsigned int len)
 {
-	CCustomStream* pStream = new CCustomStream(pData, len);
-	Gdiplus::Bitmap* pTemp = Gdiplus::Bitmap::FromStream(pStream);
-	pStream->Release();
-
-	if (pTemp->GetLastStatus() == Gdiplus::Ok)
-	{
-		CBitmapLayer* pNode = new CBitmapLayer(pTemp, m_pShow);
-		pNode->SetPos(300, 200);
-	}
-	else
-		delete pTemp;
+	delete[] pData;
 }
 
 CMp3PlayerWindow::CMp3PlayerWindow():

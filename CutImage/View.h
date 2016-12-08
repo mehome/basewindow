@@ -60,6 +60,7 @@ public:
 	void Refresh();
 	void DoRefresh();
 	virtual void WndRectChanged();
+	void Transform(float tx, float ty, float sx, float sy, float r);
 protected:
 	HWND m_Wnd;
 	RECT m_rectWnd;
