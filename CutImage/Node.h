@@ -68,6 +68,7 @@ public:
 	virtual void SetRect(const RECT& rect);
 	virtual RECT GetRect();
 	virtual const NodeRectF& GetRectF();
+	virtual const RECT& GetRectI();
 
 	virtual void SetParent(CNode* p);
 	virtual CNode* GetParent()const;
@@ -148,6 +149,7 @@ private:
 	NodePair m_pairScale;
 	float m_floatRotate;
 	RECT m_rect;
+	RECT m_rectI;
 	NodeRectF m_rectF;
 	NodePair m_pairMinSize;
 	NodePair m_pairMaxSize;
@@ -244,7 +246,7 @@ public:
 	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
 	void DrawNode(DrawKit* pKit);
 protected:
-	Gdiplus::SolidBrush m_brush;
+	std::unique_ptr<void, win_handle_deleter<0>> m_hBrush;
 };
 
 class CImageLayer : public CColorLayer
@@ -281,15 +283,15 @@ public:
 	void SetFont(const LOGFONT& f);
 	void SetFont(HFONT h);
 	HFONT GetFont();
-	void SetTextColor(const Gdiplus::Color& color);
-	Gdiplus::Color GetTextColor()const;
+	void SetTextColor(COLORREF color);
+	COLORREF GetTextColor()const;
 	void SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize = false);
 	const std::wstring& GetText()const;
-	NodePair GetTextSize();
+	SIZE GetTextSize();
 	void DrawNode(DrawKit* pKit);
 protected:
 	HFONT m_hFont;
-	Gdiplus::SolidBrush m_brushText;
+	COLORREF m_color;
 	std::wstring m_szText;
 };
 
@@ -331,9 +333,9 @@ public:
 	void MouseUp(POINT point, unsigned int flag, bool l);
 protected:
 	ButtonCallback m_callback;
-	Gdiplus::Color m_bgNormal;
-	Gdiplus::Color m_bgHighLight;
-	Gdiplus::Color m_borderNormal;
-	Gdiplus::Color m_borderHighLight;
+	std::unique_ptr<void, win_handle_deleter<0>> m_bgNormal;
+	std::unique_ptr<void, win_handle_deleter<0>> m_bgHighLight;
+	std::unique_ptr<void, win_handle_deleter<0>> m_borderNormal;
+	std::unique_ptr<void, win_handle_deleter<0>> m_borderHighLight;
 	int m_iBorderWidth;
 };

@@ -56,11 +56,10 @@ public:
 	HWND GetWnd()const {return m_Wnd;}
 	RECT GetWndRect()const {return m_rectWnd;}
 	RECT GetScreenRect()const {return m_rectScreen;}
-	Gdiplus::Graphics& GetGraphics() { return *m_pGraphics; };
+	//Gdiplus::Graphics& GetGraphics() { return *m_pGraphics; };
 	void Refresh();
 	void DoRefresh();
 	virtual void WndRectChanged();
-	void Transform(float tx, float ty, float sx, float sy, float r);
 protected:
 	HWND m_Wnd;
 	RECT m_rectWnd;

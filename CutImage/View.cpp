@@ -142,15 +142,6 @@ void CGDIView::WndRectChanged()
 	GetClientRect(m_Wnd, &m_rectWnd);
 }
 
-void CGDIView::Transform(float tx, float ty, float sx, float sy, float r)
-{
-	//XFORM xform;
-	//float s(sin(r)), c(cos(r));
-	//xform.eDx = tx;
-	//xform.eDy = ty;
-	//xform.eM11=
-}
-
 CGDIViewAlpha::CGDIViewAlpha()
 {
 	blendFunc_.SourceConstantAlpha = 255;
