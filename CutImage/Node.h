@@ -324,8 +324,8 @@ class CButtonNode : public CTextLayer
 public:
 	explicit CButtonNode(CNode* pParent = NULL);
 	void SetCallback(ButtonCallback ck);
-	void SetBgColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight);
-	void SetBorderColor(const Gdiplus::Color&normal, const Gdiplus::Color& highlight);
+	void SetBgColor(COLORREF normal, COLORREF highlight);
+	void SetBorderColor(COLORREF normal, COLORREF highlight);
 	void SetBorderWidth(int width);
 	void DrawNode(DrawKit* pKit);
 	void MouseEnter();

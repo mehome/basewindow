@@ -192,8 +192,8 @@ void CNode::CalculateRect()
 		m_rectF.Width = m_pairSize.first;
 		m_rectF.Height = m_pairSize.second;
 		// m_rectF.X  is negative
-		m_rectI.left = static_cast<int>(m_rectF.X - 0.5f);
-		m_rectI.top = static_cast<int>(m_rectF.Y - 0.5f);
+		m_rectI.left = static_cast<int>(m_rectF.X);
+		m_rectI.top = static_cast<int>(m_rectF.Y);
 		m_rectI.right = static_cast<int>(m_rectI.left + m_pairSize.first + 0.5f);
 		m_rectI.bottom = static_cast<int>(m_rectI.top + m_pairSize.second + 0.5f);
 		if (m_pParent)
@@ -1818,8 +1818,8 @@ CButtonNode::CButtonNode(CNode* pParent) :CTextLayer(pParent)
 	m_bgNormal.reset(CreateSolidBrush(RGB(220, 220, 220)));
 	m_bgHighLight.reset(CreateSolidBrush(RGB(240, 240, 240)));
 	m_iBorderWidth = 1;
-	m_borderNormal.reset(CreatePen(PS_SOLID, 1, RGB(50, 50, 50)));
-	m_borderHighLight.reset(CreatePen(PS_SOLID, 1, RGB(80, 80, 80)));
+	m_borderNormal.reset(CreatePen(PS_SOLID, m_iBorderWidth, RGB(50, 50, 50)));
+	m_borderHighLight.reset(CreatePen(PS_SOLID, m_iBorderWidth, RGB(80, 80, 80)));
 }
 
 void CButtonNode::SetCallback(ButtonCallback ck)
@@ -1827,16 +1827,16 @@ void CButtonNode::SetCallback(ButtonCallback ck)
 	m_callback = ck;
 }
 
-void CButtonNode::SetBgColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight)
+void CButtonNode::SetBgColor(COLORREF normal, COLORREF highlight)
 {
-	m_bgNormal.reset(CreateSolidBrush(RGB(normal.GetR(), normal.GetG(), normal.GetB())));
-	m_bgHighLight.reset(CreateSolidBrush(RGB(highlight.GetR(), highlight.GetG(), highlight.GetB())));
+	m_bgNormal.reset(CreateSolidBrush(normal));
+	m_bgHighLight.reset(CreateSolidBrush(highlight));
 }
 
-void CButtonNode::SetBorderColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight)
+void CButtonNode::SetBorderColor(COLORREF normal, COLORREF highlight)
 {
-	m_borderNormal.reset(CreatePen(PS_SOLID, 1, RGB(normal.GetR(), normal.GetG(), normal.GetB())));
-	m_borderHighLight.reset(CreatePen(PS_SOLID, 1, RGB(highlight.GetR(), highlight.GetG(), highlight.GetB())));
+	m_borderNormal.reset(CreatePen(PS_SOLID, m_iBorderWidth, normal));
+	m_borderHighLight.reset(CreatePen(PS_SOLID, m_iBorderWidth, highlight));
 }
 
 void CButtonNode::SetBorderWidth(int width)
