@@ -105,8 +105,8 @@ void ClipRegion::DrawShadow()
 {
 	CNode* parent = GetParent();
 	assert(parent != NULL);
-	RECT rf  =GetRect();
-	RECT ri=dynamic_cast<CStaticImageNode* >(parent->GetChildByTag(CCutImageScene::TagMain))->GetImageLayer()->GetRect();
+	RECT rf  =GetRectI();
+	RECT ri=dynamic_cast<CStaticImageNode* >(parent->GetChildByTag(CCutImageScene::TagMain))->GetImageLayer()->GetRectI();
 
 	// left
 	if (rf.left > ri.left)
@@ -275,31 +275,58 @@ CCutImageScene::CCutImageScene():CShadowScene(3)
 
 bool CCutImageScene::Init()
 {
-	RECT rect=GetRect();
-
+	RECT rect= GetRect();
+	auto size = GetSize();
+	int w = rect.right - rect.left;
+	int h = rect.bottom - rect.top;
 	CColorLayer* pTitleContent=new CColorLayer(this);
 	pTitleContent->CreateImageLayerByColor(0, 122, 204);
-	pTitleContent->SetSize(rect.right, 30);
-	pTitleContent->SetPos(rect.right/2.0f, 15.0f);
+	pTitleContent->SetSize(size.first, 30.0f);
+	pTitleContent->SetPos(size.first/2, 15.0f);
 	pTitleContent->SetNCHitTest(HTCAPTION);
 
-	rect.left+=10;
-	rect.right-=120;
-	rect.top+=30;
+	CHLayout* pContent = new CHLayout();
+	rect.top += 30;
+	pContent->SetSize(size.first, size.second-30.0f);
+	pContent->SetPos(size.first/2, (h-30)/2.0f+30.0f);
+	AddChild(pContent);
+
 	{
-		m_pMain=new CStaticImageNode(PresentCenter, this);
-		CImageLayer* pLayer=new CImageLayer();
+		auto pMain = new CStaticImageNode(PresentCenter, pContent);
+		auto pLayer = new CImageLayer();
 		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
-			m_pMain->SetTag(TagMain);
-			m_pMain->SetRect(rect);
-			m_pMain->SetImageLayer(pLayer);
+			pMain->SetTag(TagMain);
+			pMain->SetImageLayer(pLayer);
 		}
-
-		m_pHead=new ClipRegion(128, this);
-		m_pHead->SetTag(TagHead);
-		m_pHead->SetPos(rect.left+(rect.right-rect.left)/2.0f, rect.top+(rect.bottom-rect.top)/2.0f);
+		pMain->SetSizePolicy(SizePolicyExpanding);
 	}
+
+	{
+		auto pControl = new CVLayout();
+		pControl->SetSpacing(20);
+		pControl->SetSize(120, 1);
+		pControl->SetSizePolicy(SizePolicyFixed);
+		pContent->AddChild(pControl);
+
+		CTextLayer* pPreview = new CTextLayer(pControl);
+		pPreview->SetText(L"预览", true);
+		
+		CButtonNode* pOK=new CButtonNode(pControl);
+		pOK->SetText(L"确定");
+		pOK->SetSize(100.0f, 25.0f);
+		pOK->SetMaxSize(100.0f, 25.0f);
+		pOK->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
+		pOK->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
+
+		CButtonNode* pCancel=new CButtonNode(pControl);
+		pCancel->SetText(L"取消");
+		pCancel->SetSize(100.0f, 25.0f);
+		pCancel->SetMaxSize(100.0f, 25.0f);
+		pCancel->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
+		pCancel->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
+	}
+	return true;
 
 	RECT r=rect;
 	r.left = rect.right+10;
@@ -326,8 +353,8 @@ bool CCutImageScene::Init()
 	CButtonNode* pOK=new CButtonNode(this);
 	pOK->SetTag(TagOK);
 	pOK->SetText(L"确定");
-	pOK->SetBorderColor(Gdiplus::Color(200, 200, 200), Gdiplus::Color(210, 210, 210));
-	pOK->SetBgColor(Gdiplus::Color(240, 240, 240), Gdiplus::Color(56, 89, 245));
+	pOK->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
+	pOK->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
 	pOK->SetCallback(std::bind(&CCutImageScene::OnButton, this, std::placeholders::_1));
 	r.top = r.bottom + 10;
 	r.bottom = r.top + 30;
@@ -336,8 +363,8 @@ bool CCutImageScene::Init()
 	CButtonNode* pCancel=new CButtonNode(this);
 	pCancel->SetTag(TagCancel);
 	pCancel->SetText(L"取消");
-	pCancel->SetBorderColor(Gdiplus::Color(200, 200, 200), Gdiplus::Color(210, 210, 210));
-	pCancel->SetBgColor(Gdiplus::Color(240, 240, 240), Gdiplus::Color(56, 89, 245));
+	pCancel->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
+	pCancel->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
 	pCancel->SetCallback(std::bind(&CCutImageScene::OnButton, this, std::placeholders::_1));
 	r.top = r.bottom + 10;
 	r.bottom = r.top + 30;
@@ -581,7 +608,7 @@ void CCutImageWindow::InitCutImage()
 	style &= ~WS_CAPTION;    // 去除非客户区域
 	style &= ~WS_SIZEBOX;    // 禁止更改窗口大小, same as WS_THICKFRAME
 	style &= ~WS_MAXIMIZEBOX;
-	//SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
+	SetWindowLongPtr(GetHWND(), GWL_STYLE, style);
 
 	ReSize(600+6, 450+6, true);
 	//ReSize(50, 50, true);
@@ -594,15 +621,15 @@ void CCutImageWindow::InitCutImage()
 	//SetWindowRgn(GetHWND(), hRgn, false);
 	//DeleteObject(hRgn);
 
-	//CGDIView* pView=new CGDIViewAlpha();
-	//pView->Init(GetHWND());
-	//m_pDir.reset(new CDirector(pView));
-	//m_pDir->RunScene(new CCutImageScene());
-
-	CGDIView* pView=new CGDIView();  
+	CGDIView* pView=new CGDIViewAlpha();
 	pView->Init(GetHWND());
 	m_pDir.reset(new CDirector(pView));
-	m_pDir->RunScene(new CTestScene());
+	m_pDir->RunScene(new CCutImageScene());
+
+	//CGDIView* pView=new CGDIView();  
+	//pView->Init(GetHWND());
+	//m_pDir.reset(new CDirector(pView));
+	//m_pDir->RunScene(new CTestScene());
 }
 
 void CCutImageWindow::InitWeather()
@@ -672,20 +699,26 @@ bool CTestScene::Init()
 
 void CTestScene::DrawNode(DrawKit* pKit)
 {
-	{
-		CScene::DrawNode(pKit);
-		return;
-	}
+	//{
+	//	CScene::DrawNode(pKit);
+	//	return;
+	//}
 	RECT r=GetRect();
 	HDC hMemDC=GetView()->GetMemDC();
+	HDC hdc=hMemDC;
 	GetClientRect(GetView()->GetWnd(), &r);
-	r.right -= 0;
 
-	FillRect(hMemDC, &r, (HBRUSH)GetStockObject(DKGRAY_BRUSH));
 
-	r.right -= 1;
-	FillRect(hMemDC, &r, (HBRUSH)GetStockObject(LTGRAY_BRUSH));
+	//FillRect(hdc, &r, (HBRUSH)GetStockObject(DKGRAY_BRUSH));
+	XFORM xform={0};
+	xform.eM11=xform.eM22=1.0f;
+	xform.eDx=0.91f;
+	xform.eDy=0.91;
+	SetWorldTransform(hdc, &xform);
+	MoveToEx(hdc, 0, 0, NULL);
+	LineTo(hdc, 100, 100);
 
+	ModifyWorldTransform(hdc, &xform, MWT_IDENTITY);
 	return;
 	
 	int n=10;

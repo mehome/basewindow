@@ -194,8 +194,8 @@ void CNode::CalculateRect()
 		// m_rectF.X  is negative
 		m_rectI.left = static_cast<int>(m_rectF.X);
 		m_rectI.top = static_cast<int>(m_rectF.Y);
-		m_rectI.right = static_cast<int>(m_rectI.left + m_pairSize.first + 0.5f);
-		m_rectI.bottom = static_cast<int>(m_rectI.top + m_pairSize.second + 0.5f);
+		m_rectI.right = static_cast<int>(m_rectF.X + m_pairSize.first + 0.5f);
+		m_rectI.bottom = static_cast<int>(m_rectF.Y + m_pairSize.second + 0.5f);
 		if (m_pParent)
 		{
 			RECT r = m_pParent->GetRect();
@@ -1281,20 +1281,26 @@ void CShadowScene::SetView(CGDIView* view)
 	//assert(dynamic_cast<CGDIViewAlpha* >(view) != NULL);
 	CScene::SetView(view);
 
-	auto rect = view->GetWndRect();
-	rect.left += m_iShadowSize;
-	rect.top += m_iShadowSize;
-	rect.right -= m_iShadowSize;
-	rect.bottom -= m_iShadowSize;
+	if(!IsIconic(view->GetWnd()))
+	{
+		auto rect = view->GetWndRect();
+		rect.left += m_iShadowSize;
+		rect.top += m_iShadowSize;
+		rect.right -= m_iShadowSize;
+		rect.bottom -= m_iShadowSize;
 
-	SetRect(rect);
+		SetRect(rect);
+	}
 }
 
 void CShadowScene::DrawScene()
 {
 	ClearScene();
 	m_DrawKit.pParent = NULL;
+	HDC hdc = m_DrawKit.pView->GetMemDC();
+	SetViewportOrgEx(hdc, m_iShadowSize, m_iShadowSize, NULL);
 	DrawNode(&m_DrawKit);
+	SetViewportOrgEx(hdc, 0, 0, NULL);
 	DrawShadow();
 	SwapScene();
 }
