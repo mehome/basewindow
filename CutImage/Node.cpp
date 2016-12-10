@@ -192,10 +192,10 @@ void CNode::CalculateRect()
 		m_rectF.Width = m_pairSize.first;
 		m_rectF.Height = m_pairSize.second;
 		// m_rectF.X  is negative
-		m_rectI.left = static_cast<int>(m_rectF.X);
-		m_rectI.top = static_cast<int>(m_rectF.Y);
-		m_rectI.right = static_cast<int>(m_rectF.X + m_pairSize.first + 0.5f);
-		m_rectI.bottom = static_cast<int>(m_rectF.Y + m_pairSize.second + 0.5f);
+		m_rectI.left = static_cast<int>(m_rectF.X-0.5f);
+		m_rectI.top = static_cast<int>(m_rectF.Y-0.5f);
+		m_rectI.right = static_cast<int>(m_rectI.left + m_pairSize.first + 0.5f);
+		m_rectI.bottom = static_cast<int>(m_rectI.top + m_pairSize.second + 0.5f);
 		if (m_pParent)
 		{
 			RECT r = m_pParent->GetRect();
@@ -1279,10 +1279,10 @@ CShadowScene::CShadowScene(int shadowSize) :m_iShadowSize(shadowSize)
 void CShadowScene::SetView(CGDIView* view)
 {
 	//assert(dynamic_cast<CGDIViewAlpha* >(view) != NULL);
-	CScene::SetView(view);
-
-	if(!IsIconic(view->GetWnd()))
+	if (!IsIconic(view->GetWnd()))
 	{
+		CScene::SetView(view);
+
 		auto rect = view->GetWndRect();
 		rect.left += m_iShadowSize;
 		rect.top += m_iShadowSize;

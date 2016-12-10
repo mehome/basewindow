@@ -70,7 +70,7 @@ bool ClipRegion::Init()
 
 void ClipRegion::DrawNode(DrawKit* pKit)
 {
-	RECT r = GetRect();
+	RECT r = GetRectI();
 	HDC hMemDC = GetView()->GetMemDC();
 	int i = (r.right - r.left) / 3;
 
@@ -105,8 +105,15 @@ void ClipRegion::DrawShadow()
 {
 	CNode* parent = GetParent();
 	assert(parent != NULL);
-	RECT rf  =GetRectI();
-	RECT ri=dynamic_cast<CStaticImageNode* >(parent->GetChildByTag(CCutImageScene::TagMain))->GetImageLayer()->GetRectI();
+	RECT rf  =GetRect();
+	RECT ri=dynamic_cast<CStaticImageNode* >(parent->GetChildByTag(CCutImageScene::TagMain))->GetImageLayer()->GetRect();
+
+	POINT old;
+	XFORM xfold;
+	HDC hdc = GetView()->GetMemDC();
+	GetWorldTransform(hdc, &xfold);
+	ModifyWorldTransform(hdc, NULL, MWT_IDENTITY);
+	SetViewportOrgEx(hdc, 0, 0, &old);
 
 	// left
 	if (rf.left > ri.left)
@@ -122,6 +129,8 @@ void ClipRegion::DrawShadow()
 	// bottom
 	if (rf.bottom < ri.bottom)
 		m_pShadowLayer->DrawImage(rf.left, rf.bottom, rf.right - rf.left, ri.bottom - rf.bottom);
+	SetViewportOrgEx(hdc, old.x, old.y, NULL);
+	SetWorldTransform(hdc, &xfold);
 }
 
 RECT ClipRegion::GetRect()
@@ -137,7 +146,7 @@ RECT ClipRegion::GetRect()
 
 void ClipRegion::CreateRect8()
 {
-	RECT rect=GetRect();
+	RECT rect=GetRectI();
 
 	int x(rect.left),
 		y(rect.top),
@@ -275,58 +284,31 @@ CCutImageScene::CCutImageScene():CShadowScene(3)
 
 bool CCutImageScene::Init()
 {
-	RECT rect= GetRect();
-	auto size = GetSize();
-	int w = rect.right - rect.left;
-	int h = rect.bottom - rect.top;
+	RECT rect=GetRect();
+
 	CColorLayer* pTitleContent=new CColorLayer(this);
 	pTitleContent->CreateImageLayerByColor(0, 122, 204);
-	pTitleContent->SetSize(size.first, 30.0f);
-	pTitleContent->SetPos(size.first/2, 15.0f);
+	pTitleContent->SetSize(rect.right - rect.left, 30);
+	pTitleContent->SetPos((rect.right - rect.left) / 2.0f, 15.0f);
 	pTitleContent->SetNCHitTest(HTCAPTION);
 
-	CHLayout* pContent = new CHLayout();
-	rect.top += 30;
-	pContent->SetSize(size.first, size.second-30.0f);
-	pContent->SetPos(size.first/2, (h-30)/2.0f+30.0f);
-	AddChild(pContent);
-
+	rect.left+=10;
+	rect.right-=120;
+	rect.top+=30;
 	{
-		auto pMain = new CStaticImageNode(PresentCenter, pContent);
-		auto pLayer = new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
+		m_pMain=new CStaticImageNode(PresentCenter, this);
+		CImageLayer* pLayer=new CImageLayer();
+		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
 		{
-			pMain->SetTag(TagMain);
-			pMain->SetImageLayer(pLayer);
+			m_pMain->SetTag(TagMain);
+			m_pMain->SetRect(rect);
+			m_pMain->SetImageLayer(pLayer);
 		}
-		pMain->SetSizePolicy(SizePolicyExpanding);
+
+		m_pHead=new ClipRegion(128, this);
+		m_pHead->SetTag(TagHead);
+		m_pHead->SetPos(rect.left+(rect.right-rect.left)/2.0f, rect.top+(rect.bottom-rect.top)/2.0f);
 	}
-
-	{
-		auto pControl = new CVLayout();
-		pControl->SetSpacing(20);
-		pControl->SetSize(120, 1);
-		pControl->SetSizePolicy(SizePolicyFixed);
-		pContent->AddChild(pControl);
-
-		CTextLayer* pPreview = new CTextLayer(pControl);
-		pPreview->SetText(L"预览", true);
-		
-		CButtonNode* pOK=new CButtonNode(pControl);
-		pOK->SetText(L"确定");
-		pOK->SetSize(100.0f, 25.0f);
-		pOK->SetMaxSize(100.0f, 25.0f);
-		pOK->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
-		pOK->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
-
-		CButtonNode* pCancel=new CButtonNode(pControl);
-		pCancel->SetText(L"取消");
-		pCancel->SetSize(100.0f, 25.0f);
-		pCancel->SetMaxSize(100.0f, 25.0f);
-		pCancel->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
-		pCancel->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
-	}
-	return true;
 
 	RECT r=rect;
 	r.left = rect.right+10;
@@ -699,26 +681,20 @@ bool CTestScene::Init()
 
 void CTestScene::DrawNode(DrawKit* pKit)
 {
-	//{
-	//	CScene::DrawNode(pKit);
-	//	return;
-	//}
+	{
+		CScene::DrawNode(pKit);
+		return;
+	}
 	RECT r=GetRect();
 	HDC hMemDC=GetView()->GetMemDC();
-	HDC hdc=hMemDC;
 	GetClientRect(GetView()->GetWnd(), &r);
+	r.right -= 0;
 
+	FillRect(hMemDC, &r, (HBRUSH)GetStockObject(DKGRAY_BRUSH));
 
-	//FillRect(hdc, &r, (HBRUSH)GetStockObject(DKGRAY_BRUSH));
-	XFORM xform={0};
-	xform.eM11=xform.eM22=1.0f;
-	xform.eDx=0.91f;
-	xform.eDy=0.91;
-	SetWorldTransform(hdc, &xform);
-	MoveToEx(hdc, 0, 0, NULL);
-	LineTo(hdc, 100, 100);
+	r.right -= 1;
+	FillRect(hMemDC, &r, (HBRUSH)GetStockObject(LTGRAY_BRUSH));
 
-	ModifyWorldTransform(hdc, &xform, MWT_IDENTITY);
 	return;
 	
 	int n=10;
