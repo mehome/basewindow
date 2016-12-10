@@ -1447,14 +1447,9 @@ CImageLayer::~CImageLayer()
 		DeleteDC(m_hDc);
 }
 
-bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
+bool CImageLayer::CreateImageLayerByBitmap(Gdiplus::Bitmap* pBitmap)
 {
-	std::unique_ptr<Gdiplus::Bitmap> pBitmap(Gdiplus::Bitmap::FromFile(sFileName.c_str()));
-	if (pBitmap->GetLastStatus() != Gdiplus::Ok)
-	{
-		return false;
-	}
-
+	assert(pBitmap && pBitmap->GetLastStatus() == Gdiplus::Ok);
 	Gdiplus::PixelFormat format = pBitmap->GetPixelFormat();
 	UINT size = Gdiplus::GetPixelFormatSize(format);
 	Gdiplus::Rect rect(0, 0, pBitmap->GetWidth(), pBitmap->GetHeight());
@@ -1485,6 +1480,26 @@ bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
 	pBitmap->UnlockBits(&data);
 
 	return bRes;
+}
+
+bool CImageLayer::CreateImageLayerByStream(IStream* pStream)
+{
+	std::unique_ptr<Gdiplus::Bitmap> pBitmap(Gdiplus::Bitmap::FromStream(pStream));
+	if (pBitmap->GetLastStatus() != Gdiplus::Ok)
+	{
+		return false;
+	}
+	return this->CreateImageLayerByBitmap(pBitmap.get());
+}
+
+bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
+{
+	std::unique_ptr<Gdiplus::Bitmap> pBitmap(Gdiplus::Bitmap::FromFile(sFileName.c_str()));
+	if (pBitmap->GetLastStatus() != Gdiplus::Ok)
+	{
+		return false;
+	}
+	return this->CreateImageLayerByBitmap(pBitmap.get());
 }
 
 bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize)
@@ -1564,6 +1579,51 @@ bool CImageLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsi
 	}
 
 	return CreateImageLayerByData(data, 16, 16, 32);
+}
+
+bool CImageLayer::ScaleImageInside(int w, int h)
+{
+	assert(w > 0 && h > 0);
+	if (!m_hDc || !m_hBitmap)
+		return false;
+	BITMAPINFO bi;
+	int stride;
+	HDC hRealDC;
+	HDC hdc;
+	HBITMAP hBitmap;
+
+	if (GetScene() == NULL)
+		hRealDC = CGDIView::GetScreenDC();
+	else
+		hRealDC = GetView()->GetRealDC();
+
+	stride = w * m_Info.biBitCount / 8;
+	if (stride % 4 != 0)
+	{
+		stride = stride / 4 * 4 + 4;
+	}
+	bi.bmiHeader = m_Info;
+	bi.bmiHeader.biHeight = h;
+	bi.bmiHeader.biWidth = w;
+	bi.bmiHeader.biSizeImage = w*stride;
+
+	hBitmap = CreateDIBSection(hRealDC,
+		&bi,
+		DIB_RGB_COLORS,
+		(void**)&m_pData,
+		NULL,
+		0);
+	hdc = CreateCompatibleDC(hRealDC);
+	SelectObject(hdc, hBitmap);
+	SetStretchBltMode(hdc, STRETCH_HALFTONE);
+	StretchBlt(hdc, 0, 0, w, h, m_hDc, 0, 0, m_Info.biWidth, m_Info.biHeight, SRCCOPY);
+
+	DeleteObject(m_hBitmap);
+	DeleteObject(m_hDc);
+	m_hBitmap = hBitmap;
+	m_hDc = hdc;
+	m_Info = bi.bmiHeader;
+	return true;
 }
 
 void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity)

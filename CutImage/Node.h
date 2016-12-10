@@ -254,20 +254,17 @@ class CImageLayer : public CColorLayer
 public:
 	explicit CImageLayer(CNode* pParent = NULL);
 	~CImageLayer();
-	virtual bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
-	virtual bool CreateImageLayerByFile(const std::wstring& sFileName);
+	bool CreateImageLayerByBitmap(Gdiplus::Bitmap* pBitmap);
+	bool CreateImageLayerByStream(IStream* pStream);
+	bool CreateImageLayerByFile(const std::wstring& sFileName);
+	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
 	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
-	virtual void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
+	bool ScaleImageInside(int new_w, int new_h);
+	void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
 	void DrawNode(DrawKit* pKit);
 	const std::wstring& GetNodeClassName()const;
-	unsigned char* ImageData()const
-	{
-		return m_pData;
-	}
-	const BITMAPINFOHEADER& GetImageInfo()const
-	{
-		return m_Info;
-	}
+	unsigned char* ImageData()const { return m_pData; }
+	const BITMAPINFOHEADER& GetImageInfo()const { return m_Info; }
 protected:
 	BITMAPINFOHEADER m_Info;
 	unsigned char* m_pData;

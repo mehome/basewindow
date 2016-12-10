@@ -667,7 +667,7 @@ bool CTestScene::Init()
 	CButtonNode* p2 = new CButtonNode();
 	p2->SetText(L"sc", true);
 	pMain->AddChild(p2);
-	pMain->SetContentMargin(1, 20, 5, 30);
+	pMain->SetContentMargin(2, 20, 5, 30);
 	pMain->SetSpacing(10);
 
 	CButtonNode* p3=new CButtonNode();

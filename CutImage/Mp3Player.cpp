@@ -884,7 +884,7 @@ void CMp3Show::DrawNode(DrawKit* pKit)
 	for (int i = 0; i < cgBarNum; ++i)
 	{
 		rect.left = 10 + i*w;
-		rect.right = rect.left + w;
+		rect.right = rect.left + w-1;
 		rect.top = int(rect.bottom - m_fft[i] * rect.bottom);
 		Rectangle(hMemDC, rect.left, rect.top, rect.right, rect.bottom);
 	}
@@ -894,7 +894,7 @@ void CMp3Show::DrawNode(DrawKit* pKit)
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	std::string mp3Name("C:\\Users\\Think\\Desktop\\我的音乐\\return to innocence.mp3");
+	std::string mp3Name("C:\\Users\\Think\\Desktop\\我的音乐\\Everybody Hurts.mp3");
 	if (!m_decoder.Initialize(mp3Name, true))
 		return false;
 	CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
@@ -1082,7 +1082,7 @@ void CMp3PlayerWindow::GetAlbum(std::string strMp3Name)
 		{
 			if (i + 1 < tagFrameSize && memcmp(data + i, jpg, 2) == 0)
 				break;
-			if (i + 3 < tagFrameSize && memcpy(data + 1, png, 4) == 0)
+			if (i + 3 < tagFrameSize && memcmp(data + i, png, 4) == 0)
 				break;
 		}
 		if (i >= tagFrameSize)
@@ -1107,7 +1107,17 @@ End:
 
 void CMp3PlayerWindow::ShowAlbum(char* pData, unsigned int len)
 {
-	delete[] pData;
+	CCustomStream* pStream = new CCustomStream(pData, len);
+	CImageLayer* pAlbum = new CImageLayer();
+	if (pAlbum->CreateImageLayerByStream(pStream))
+	{
+		pAlbum->ScaleImageInside(256, 256);
+		pAlbum->SetSize(256, 256);
+		pAlbum->SetPos(m_pShow->GetSize().first - 150.0f, 150.0f);
+		m_pShow->AddChild(pAlbum);
+	}
+
+	pStream->Release();
 }
 
 CMp3PlayerWindow::CMp3PlayerWindow():
