@@ -95,6 +95,7 @@ public:
 	virtual const NodePair& GetScale()const;
 	virtual void SetRotate(float r);
 	virtual float GetRotate()const;
+	        const NodePair& GetRorotateTri();
 
 	virtual void NeedUpdate(NodeUpdateFlag flag);
 	virtual bool IsNeedUpdateRect()const;
@@ -148,6 +149,7 @@ private:
 	NodePair m_pairPos;
 	NodePair m_pairScale;
 	float m_floatRotate;
+	NodePair m_pairRoatateTri;
 	RECT m_rect;
 	RECT m_rectI;
 	NodeRectF m_rectF;

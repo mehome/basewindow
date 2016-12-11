@@ -16,6 +16,7 @@ CNode::CNode(CNode* pParent) :
 	m_pairSize(0.5f, 0.5f),
 	m_pairScale(1.0f, 1.0f),
 	m_floatRotate(0.0f),
+	m_pairRoatateTri(sin(0.0f), cos(0.0f)),
 	m_pairMinSize(1.0f, 1.0f),
 	m_pairMaxSize(5000.0f, 5000.0f),
 	m_sizePolicy(SizePolicyFixed),
@@ -66,6 +67,7 @@ CNode::CNode(CNode&& rr)
 	m_pairPos = rr.m_pairPos;
 	m_pairScale = rr.m_pairScale;
 	m_floatRotate = rr.m_floatRotate;
+	m_pairRoatateTri = rr.m_pairRoatateTri;
 	m_Children = std::move(rr.m_Children);
 	m_pairMaxSize = rr.m_pairMaxSize;
 	m_pairMinSize = rr.m_pairMinSize;
@@ -375,11 +377,18 @@ const NodePair& CNode::GetScale()const
 void CNode::SetRotate(float r)
 {
 	m_floatRotate = r;
+	m_pairRoatateTri.first = sin(r);
+	m_pairRoatateTri.second = cos(r);
 }
 
 float CNode::GetRotate()const
 {
 	return m_floatRotate;
+}
+
+const NodePair& CNode::GetRorotateTri()
+{
+	return m_pairRoatateTri;
 }
 
 void CNode::NeedUpdate(NodeUpdateFlag flag)
@@ -610,9 +619,8 @@ void CNode::DrawNode(DrawKit* pDrawKit)
 		{
 			pPos = &pNode->GetPos();
 			pScale = &pNode->GetScale();
-			c = pNode->GetRotate();
-			s = sin(c);
-			c = cos(c);
+			s = pNode->GetRorotateTri().first;
+			c = pNode->GetRorotateTri().second;
 			GetWorldTransform(hMemDC, &xformold);
 			xform.eDx = pPos->first;
 			xform.eDy = pPos->second;
