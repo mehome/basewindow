@@ -1600,6 +1600,9 @@ bool CImageLayer::ScaleImageInside(int w, int h)
 	HDC hdc;
 	HBITMAP hBitmap;
 
+	if(m_Info.biWidth == w && m_Info.biHeight == h)
+		return true;
+
 	if (GetScene() == NULL)
 		hRealDC = CGDIView::GetScreenDC();
 	else
@@ -1624,7 +1627,18 @@ bool CImageLayer::ScaleImageInside(int w, int h)
 	hdc = CreateCompatibleDC(hRealDC);
 	SelectObject(hdc, hBitmap);
 	SetStretchBltMode(hdc, STRETCH_HALFTONE);
-	StretchBlt(hdc, 0, 0, w, h, m_hDc, 0, 0, m_Info.biWidth, m_Info.biHeight, SRCCOPY);
+	SetBrushOrgEx(hdc, 0, 0, NULL);
+	if(m_Info.biBitCount == 24)
+		StretchBlt(hdc, 0, 0, w, h, m_hDc, 0, 0, m_Info.biWidth, m_Info.biHeight, SRCCOPY);
+	else
+	{
+		BLENDFUNCTION ftn = { 0 };
+		ftn.BlendOp = AC_SRC_OVER;
+		ftn.AlphaFormat = AC_SRC_ALPHA;
+		ftn.BlendFlags = 0;
+		ftn.SourceConstantAlpha = 255;
+		AlphaBlend(hdc, 0, 0, w, h, m_hDc, 0, 0, m_Info.biWidth, m_Info.biHeight, ftn);
+	}
 
 	DeleteObject(m_hBitmap);
 	DeleteObject(m_hDc);
@@ -1928,8 +1942,8 @@ void CButtonNode::DrawNode(DrawKit* pKit)
 	CTextLayer::DrawNode(pKit);
 	SelectObject(hdc, pen);
 	MoveToEx(hdc, r.left, r.top, NULL);
-	LineTo(hdc, r.left, r.bottom);
-	LineTo(hdc, r.right, r.bottom);
+	LineTo(hdc, r.left, r.bottom-1);
+	LineTo(hdc, r.right, r.bottom-1);
 	LineTo(hdc, r.right, r.top);
 	LineTo(hdc, r.left, r.top);
 }

@@ -6,6 +6,7 @@ CCustomStream::CCustomStream(char* pData, DWORD len)
 	m_pData(pData),
 	m_dwOffset(0)
 {
+	m_liLen.HighPart = 0;
 	m_liLen.LowPart = len;
 }
 

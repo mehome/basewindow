@@ -68,6 +68,16 @@ bool ClipRegion::Init()
 	return CNode::Init();
 }
 
+void ClipRegion::CalculateRect()
+{
+	if(IsNeedUpdateRect())
+	{
+		CNode::CalculateRect();
+		CreateRect8();
+	}
+	CNode::CalculateRect();
+}
+
 void ClipRegion::DrawNode(DrawKit* pKit)
 {
 	RECT r = GetRectI();
@@ -95,7 +105,7 @@ void ClipRegion::DrawNode(DrawKit* pKit)
 	LineTo(hMemDC, r.left, r.bottom);
 	LineTo(hMemDC, r.left, r.top);
 
-	for (auto iter = m_vecRect8.begin(); iter != m_vecRect8.end(); ++iter)
+	for (auto iter = m_vecShowRect8.begin(); iter != m_vecShowRect8.end(); ++iter)
 	{
 		FillRect(hMemDC, &(*iter), m_FrameBrush);
 	}
@@ -133,67 +143,60 @@ void ClipRegion::DrawShadow()
 	SetWorldTransform(hdc, &xfold);
 }
 
-RECT ClipRegion::GetRect()
-{
-	if(IsNeedUpdateRect())
-	{
-		auto rect=CNode::GetRect();
-		CreateRect8();
-		return rect;
-	}
-	return CNode::GetRect();
-}
-
 void ClipRegion::CreateRect8()
 {
-	RECT rect=GetRectI();
+	int which(0);
+	while(which++<2)
+	{
+		RECT rect = (which==1?GetRectI():GetRect());
+		auto& vec = (which==1?m_vecShowRect8:m_vecRect8);
+		int x(rect.left),
+			y(rect.top),
+			w(rect.right - rect.left),
+			h(rect.bottom - rect.top);
 
-	int x(rect.left),
-		y(rect.top),
-		w(rect.right - rect.left),
-		h(rect.bottom - rect.top);
+		/*
+		0	7	6
+		1		5
+		2	3	4
+		*/
 
-	/*
-	0	7	6
-	1		5
-	2	3	4
-	*/
-
-	m_vecRect8.clear();
-	// left up
-	rect.left = x - n;
-	rect.right = rect.left + n;
-	rect.top = y - n;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// left middle
-	rect.top = y + h / 2 - n / 2;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// left down
-	rect.top = y + h;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);;
-	// down middle
-	rect.left = x + w / 2 - n / 2;
-	rect.right = rect.left + n;
-	m_vecRect8.push_back(rect);
-	// right down
-	rect.left = x + w;
-	rect.right = rect.left + n;
-	m_vecRect8.push_back(rect);
-	// right middle
-	rect.top = y + h / 2 - n / 2;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// right up
-	rect.top = y - n;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// up middle
-	rect.left = x + w / 2 - n / 2;
-	rect.right = rect.left + n;
-	m_vecRect8.push_back(rect);
+		vec.clear();
+		// left up
+		rect.left = x - n;
+		rect.right = rect.left + n;
+		rect.top = y - n;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// left middle
+		rect.top = y + h / 2 - n / 2;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// left down
+		rect.top = y + h;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);;
+		// down middle
+		rect.left = x + w / 2 - n / 2;
+		rect.right = rect.left + n;
+		vec.push_back(rect);
+		// right down
+		rect.left = x + w;
+		rect.right = rect.left + n;
+		vec.push_back(rect);
+		// right middle
+		rect.top = y + h / 2 - n / 2;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// right up
+		rect.top = y - n;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// up middle
+		rect.left = x + w / 2 - n / 2;
+		rect.right = rect.left + n;
+		vec.push_back(rect);
+	}
 }
 
 bool ClipRegion::IsPointINNode(POINT point)
@@ -298,7 +301,7 @@ bool CCutImageScene::Init()
 	{
 		m_pMain=new CStaticImageNode(PresentCenter, this);
 		CImageLayer* pLayer=new CImageLayer();
-		if(pLayer->CreateImageLayerByFile(L"C:\\Users\\Think\\Desktop\\1.jpg"))
+		if(pLayer->CreateImageLayerByFile(L"E:\\BaiduYunDownload\\1.jpg"))
 		{
 			m_pMain->SetTag(TagMain);
 			m_pMain->SetRect(rect);

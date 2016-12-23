@@ -133,7 +133,7 @@ public:
 	virtual CNode* GetCurrentNode();
 protected:
 	const NodeChild& Child()const { return m_Children; }
-	void CalculateRect();
+	virtual void CalculateRect();
 private:
 	bool m_bNeedInit;
 	bool m_bNeedUpdateRect;
