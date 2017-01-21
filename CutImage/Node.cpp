@@ -386,7 +386,7 @@ float CNode::GetRotate()const
 	return m_floatRotate;
 }
 
-const NodePair& CNode::GetRorotateTri()
+const NodePair& CNode::GetRotateTri()
 {
 	return m_pairRoatateTri;
 }
@@ -619,8 +619,8 @@ void CNode::DrawNode(DrawKit* pDrawKit)
 		{
 			pPos = &pNode->GetPos();
 			pScale = &pNode->GetScale();
-			s = pNode->GetRorotateTri().first;
-			c = pNode->GetRorotateTri().second;
+			s = pNode->GetRotateTri().first;
+			c = pNode->GetRotateTri().second;
 			GetWorldTransform(hMemDC, &xformold);
 			xform.eDx = pPos->first;
 			xform.eDy = pPos->second;

@@ -95,7 +95,7 @@ public:
 	virtual const NodePair& GetScale()const;
 	virtual void SetRotate(float r);
 	virtual float GetRotate()const;
-	        const NodePair& GetRorotateTri();
+	        const NodePair& GetRotateTri();
 
 	virtual void NeedUpdate(NodeUpdateFlag flag);
 	virtual bool IsNeedUpdateRect()const;
