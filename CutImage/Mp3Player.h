@@ -107,7 +107,7 @@ class CMp3Show : public CScene
 {
 public:
 	bool Init();
-	void DrawNode();
+	void DrawNode(DrawKit*);
 	float m_fft[cgBarNum];
 };
 
@@ -121,6 +121,8 @@ protected:
 	bool InitMp3Player();
 	bool WriteAudioData();
 	void GetSpectrum();
+	void GetAlbum(std::string strMp3Name);
+	void ShowAlbum(char* pData, unsigned int);
 protected:
 	std::unique_ptr<CDirector> m_pDir;
 	const int m_iSampleSize;

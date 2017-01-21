@@ -2,6 +2,9 @@
 
 #include <Windows.h>
 #include <string>
+#include "Task.h"
+
+#define WM_Custom_Task WM_USER+1234
 
 void SetThreadName(unsigned int threadId, const char* pName);
 const std::wstring& AppPath();
@@ -45,6 +48,7 @@ public:
 	virtual bool Init();
 	virtual void Destroy();
 	unsigned int ThreadId()const { return m_threadId; }
+	virtual bool PostTask(CTask* pTask);
 protected:
 	unsigned int m_threadId;
 };
@@ -52,7 +56,8 @@ protected:
 class CMessageLoop : public CApplication
 {
 public:
-	CMessageLoop();
+	static void RunTaskOnce(CTask* p);
+	CMessageLoop(bool bAutoDelete=false);
 	~CMessageLoop();
 	int Run();
 	bool Init();
@@ -60,6 +65,7 @@ public:
 	bool IsRunning()const { return m_bRunning; }
 protected:
 	bool m_bRunning;
+	bool m_bAutoDelete;
 	HANDLE m_hThread;
 	CSimpleLock m_lock;
 };

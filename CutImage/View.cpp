@@ -80,7 +80,8 @@ bool CGDIView::Init(HWND hWnd)
 	SelectObject(m_MemDC, m_MemBitmap);
 	SetBkMode(m_MemDC, TRANSPARENT);
 	SetStretchBltMode(m_MemDC, STRETCH_HALFTONE);
-
+	SetBrushOrgEx(m_MemDC, 0, 0, NULL);
+	SetGraphicsMode(m_MemDC, GM_ADVANCED);
 	m_pGraphics = Gdiplus::Graphics::FromHDC(m_MemDC);
 
 	return true;

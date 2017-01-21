@@ -16,8 +16,8 @@ public:
 	~ClipRegion();
 
 	bool Init();
-	void DrawNode();
-	RECT GetRect();
+	void DrawNode(DrawKit* pKit);
+	void CalculateRect();
 	bool IsPointINNode(POINT point);
 	void MouseTravel(POINT point, unsigned int flag);
 	void MouseDown(POINT point, unsigned int flag, bool l);
@@ -37,6 +37,7 @@ protected:
 	HCURSOR m_hCursor;
 	const int n;
 	std::vector<RECT> m_vecRect8;
+	std::vector<RECT> m_vecShowRect8;
 	CImageLayer* m_pShadowLayer;
 	CircularLayer* m_pCircularLayer;
 };
@@ -80,5 +81,5 @@ class CTestScene : public CScene
 {
 public:
 	bool Init();
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 };

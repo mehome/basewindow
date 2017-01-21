@@ -68,9 +68,19 @@ bool ClipRegion::Init()
 	return CNode::Init();
 }
 
-void ClipRegion::DrawNode()
+void ClipRegion::CalculateRect()
 {
-	RECT r = GetRect();
+	if(IsNeedUpdateRect())
+	{
+		CNode::CalculateRect();
+		CreateRect8();
+	}
+	CNode::CalculateRect();
+}
+
+void ClipRegion::DrawNode(DrawKit* pKit)
+{
+	RECT r = GetRectI();
 	HDC hMemDC = GetView()->GetMemDC();
 	int i = (r.right - r.left) / 3;
 
@@ -95,7 +105,7 @@ void ClipRegion::DrawNode()
 	LineTo(hMemDC, r.left, r.bottom);
 	LineTo(hMemDC, r.left, r.top);
 
-	for (auto iter = m_vecRect8.begin(); iter != m_vecRect8.end(); ++iter)
+	for (auto iter = m_vecShowRect8.begin(); iter != m_vecShowRect8.end(); ++iter)
 	{
 		FillRect(hMemDC, &(*iter), m_FrameBrush);
 	}
@@ -107,6 +117,13 @@ void ClipRegion::DrawShadow()
 	assert(parent != NULL);
 	RECT rf  =GetRect();
 	RECT ri=dynamic_cast<CStaticImageNode* >(parent->GetChildByTag(CCutImageScene::TagMain))->GetImageLayer()->GetRect();
+
+	POINT old;
+	XFORM xfold;
+	HDC hdc = GetView()->GetMemDC();
+	GetWorldTransform(hdc, &xfold);
+	ModifyWorldTransform(hdc, NULL, MWT_IDENTITY);
+	SetViewportOrgEx(hdc, 0, 0, &old);
 
 	// left
 	if (rf.left > ri.left)
@@ -122,69 +139,64 @@ void ClipRegion::DrawShadow()
 	// bottom
 	if (rf.bottom < ri.bottom)
 		m_pShadowLayer->DrawImage(rf.left, rf.bottom, rf.right - rf.left, ri.bottom - rf.bottom);
-}
-
-RECT ClipRegion::GetRect()
-{
-	if(IsNeedUpdateRect())
-	{
-		auto rect=CNode::GetRect();
-		CreateRect8();
-		return rect;
-	}
-	return CNode::GetRect();
+	SetViewportOrgEx(hdc, old.x, old.y, NULL);
+	SetWorldTransform(hdc, &xfold);
 }
 
 void ClipRegion::CreateRect8()
 {
-	RECT rect=GetRect();
+	int which(0);
+	while(which++<2)
+	{
+		RECT rect = (which==1?GetRectI():GetRect());
+		auto& vec = (which==1?m_vecShowRect8:m_vecRect8);
+		int x(rect.left),
+			y(rect.top),
+			w(rect.right - rect.left),
+			h(rect.bottom - rect.top);
 
-	int x(rect.left),
-		y(rect.top),
-		w(rect.right - rect.left),
-		h(rect.bottom - rect.top);
+		/*
+		0	7	6
+		1		5
+		2	3	4
+		*/
 
-	/*
-	0	7	6
-	1		5
-	2	3	4
-	*/
-
-	m_vecRect8.clear();
-	// left up
-	rect.left = x - n;
-	rect.right = rect.left + n;
-	rect.top = y - n;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// left middle
-	rect.top = y + h / 2 - n / 2;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// left down
-	rect.top = y + h;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);;
-	// down middle
-	rect.left = x + w / 2 - n / 2;
-	rect.right = rect.left + n;
-	m_vecRect8.push_back(rect);
-	// right down
-	rect.left = x + w;
-	rect.right = rect.left + n;
-	m_vecRect8.push_back(rect);
-	// right middle
-	rect.top = y + h / 2 - n / 2;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// right up
-	rect.top = y - n;
-	rect.bottom = rect.top + n;
-	m_vecRect8.push_back(rect);
-	// up middle
-	rect.left = x + w / 2 - n / 2;
-	rect.right = rect.left + n;
-	m_vecRect8.push_back(rect);
+		vec.clear();
+		// left up
+		rect.left = x - n;
+		rect.right = rect.left + n;
+		rect.top = y - n;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// left middle
+		rect.top = y + h / 2 - n / 2;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// left down
+		rect.top = y + h;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);;
+		// down middle
+		rect.left = x + w / 2 - n / 2;
+		rect.right = rect.left + n;
+		vec.push_back(rect);
+		// right down
+		rect.left = x + w;
+		rect.right = rect.left + n;
+		vec.push_back(rect);
+		// right middle
+		rect.top = y + h / 2 - n / 2;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// right up
+		rect.top = y - n;
+		rect.bottom = rect.top + n;
+		vec.push_back(rect);
+		// up middle
+		rect.left = x + w / 2 - n / 2;
+		rect.right = rect.left + n;
+		vec.push_back(rect);
+	}
 }
 
 bool ClipRegion::IsPointINNode(POINT point)
@@ -277,10 +289,10 @@ bool CCutImageScene::Init()
 {
 	RECT rect=GetRect();
 
-	CImageLayer* pTitleContent=new CImageLayer(this);
+	CColorLayer* pTitleContent=new CColorLayer(this);
 	pTitleContent->CreateImageLayerByColor(0, 122, 204);
-	pTitleContent->SetSize(rect.right, 30);
-	pTitleContent->SetPos(rect.right/2.0f, 15.0f);
+	pTitleContent->SetSize(rect.right - rect.left, 30);
+	pTitleContent->SetPos((rect.right - rect.left) / 2.0f, 15.0f);
 	pTitleContent->SetNCHitTest(HTCAPTION);
 
 	rect.left+=10;
@@ -326,8 +338,8 @@ bool CCutImageScene::Init()
 	CButtonNode* pOK=new CButtonNode(this);
 	pOK->SetTag(TagOK);
 	pOK->SetText(L"确定");
-	pOK->SetBorderColor(Gdiplus::Color(200, 200, 200), Gdiplus::Color(210, 210, 210));
-	pOK->SetBgColor(Gdiplus::Color(240, 240, 240), Gdiplus::Color(56, 89, 245));
+	pOK->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
+	pOK->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
 	pOK->SetCallback(std::bind(&CCutImageScene::OnButton, this, std::placeholders::_1));
 	r.top = r.bottom + 10;
 	r.bottom = r.top + 30;
@@ -336,8 +348,8 @@ bool CCutImageScene::Init()
 	CButtonNode* pCancel=new CButtonNode(this);
 	pCancel->SetTag(TagCancel);
 	pCancel->SetText(L"取消");
-	pCancel->SetBorderColor(Gdiplus::Color(200, 200, 200), Gdiplus::Color(210, 210, 210));
-	pCancel->SetBgColor(Gdiplus::Color(240, 240, 240), Gdiplus::Color(56, 89, 245));
+	pCancel->SetBorderColor(RGB(200, 200, 200), RGB(210, 210, 210));
+	pCancel->SetBgColor(RGB(240, 240, 240), RGB(56, 89, 245));
 	pCancel->SetCallback(std::bind(&CCutImageScene::OnButton, this, std::placeholders::_1));
 	r.top = r.bottom + 10;
 	r.bottom = r.top + 30;
@@ -599,7 +611,7 @@ void CCutImageWindow::InitCutImage()
 	m_pDir.reset(new CDirector(pView));
 	m_pDir->RunScene(new CCutImageScene());
 
-	//CGDIView* pView=new CGDIView();
+	//CGDIView* pView=new CGDIView();  
 	//pView->Init(GetHWND());
 	//m_pDir.reset(new CDirector(pView));
 	//m_pDir->RunScene(new CTestScene());
@@ -658,7 +670,7 @@ bool CTestScene::Init()
 	CButtonNode* p2 = new CButtonNode();
 	p2->SetText(L"sc", true);
 	pMain->AddChild(p2);
-	pMain->SetContentMargin(1, 20, 5, 30);
+	pMain->SetContentMargin(2, 20, 5, 30);
 	pMain->SetSpacing(10);
 
 	CButtonNode* p3=new CButtonNode();
@@ -670,10 +682,10 @@ bool CTestScene::Init()
 	return CScene::Init();
 }
 
-void CTestScene::DrawNode()
+void CTestScene::DrawNode(DrawKit* pKit)
 {
 	{
-		CScene::DrawNode();
+		CScene::DrawNode(pKit);
 		return;
 	}
 	RECT r=GetRect();

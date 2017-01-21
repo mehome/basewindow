@@ -4,7 +4,6 @@
 #include <list>
 #include <map>
 #include <string>
-#include <tuple>
 #include <vector>
 #include "View.h"
 
@@ -13,9 +12,9 @@ class CScene;
 class CNode;
 
 typedef std::pair<float, float> NodePair;
-typedef std::pair<int, int> NodePairInt;
 typedef std::function<bool(CNode*)> NodeFinder;
 typedef std::vector<CNode* > NodeChild;
+typedef Gdiplus::RectF NodeRectF;
 
 enum NodeSizePolicy
 {
@@ -31,6 +30,13 @@ enum NodeUpdateFlag
 	UpdateFlagReLocation = 1,
 	UpdateFlagReSortchild,
 	UpdateFlagReLayout
+};
+
+struct DrawKit
+{
+	CNode* pParent;
+	CGDIView* pView;
+	CDirector* pDirect;
 };
 
 class CNode
@@ -61,6 +67,8 @@ public:
 
 	virtual void SetRect(const RECT& rect);
 	virtual RECT GetRect();
+	virtual const NodeRectF& GetRectF();
+	virtual const RECT& GetRectI();
 
 	virtual void SetParent(CNode* p);
 	virtual CNode* GetParent()const;
@@ -71,7 +79,7 @@ public:
 
 	virtual void SetSize(float w, float h);
 	virtual void SetSize(int w, int h);
-	virtual const NodePair& GetSize()const;
+	virtual const NodePair& GetSize();
 	virtual void SetMinSize(float x, float y);
 	virtual void SetMaxSize(float x, float y);
 	virtual const NodePair& GetMinSize()const;
@@ -81,7 +89,13 @@ public:
 
 	virtual void SetPos(float px, float py);
 	virtual void SetPos(int x, int y);
-	virtual const NodePair& GetPos()const;
+	virtual const NodePair& GetPos();
+
+	virtual void SetScale(float sx, float sy);
+	virtual const NodePair& GetScale()const;
+	virtual void SetRotate(float r);
+	virtual float GetRotate()const;
+	        const NodePair& GetRotateTri();
 
 	virtual void NeedUpdate(NodeUpdateFlag flag);
 	virtual bool IsNeedUpdateRect()const;
@@ -98,7 +112,7 @@ public:
 
 	virtual bool Init();
 	virtual bool Destroy();
-	virtual void DrawNode();
+	virtual void DrawNode(DrawKit* pDrawKit);
 	virtual void RefreshNode();
 	virtual CScene* GetScene();
 	virtual CGDIView* GetView();
@@ -119,6 +133,7 @@ public:
 	virtual CNode* GetCurrentNode();
 protected:
 	const NodeChild& Child()const { return m_Children; }
+	virtual void CalculateRect();
 private:
 	bool m_bNeedInit;
 	bool m_bNeedUpdateRect;
@@ -132,7 +147,12 @@ private:
 	NodePair m_pairAnchor;
 	NodePair m_pairSize;
 	NodePair m_pairPos;
+	NodePair m_pairScale;
+	float m_floatRotate;
+	NodePair m_pairRoatateTri;
 	RECT m_rect;
+	RECT m_rectI;
+	NodeRectF m_rectF;
 	NodePair m_pairMinSize;
 	NodePair m_pairMaxSize;
 	NodeSizePolicy m_sizePolicy;
@@ -154,7 +174,9 @@ public:
 	bool RemoveChild(CNode* pNode, bool bDelete);
 	void NeedUpdate(NodeUpdateFlag flag);
 	RECT GetRect();
-	void DrawNode();
+	const NodePair& GetPos();
+	const NodePair& GetSize();
+	void DrawNode(DrawKit* pKit);
 	void SetContentMargin(int l, int t, int r, int b);
 	void SetSpacing(int spacing);
 protected:
@@ -189,9 +211,8 @@ public:
 	virtual LRESULT MessageProc(UINT, WPARAM, LPARAM, bool& bProcessed);
 	virtual void DrawScene();
 	virtual bool EnableCustomNCHitTest(bool value);
-private:
-	CGDIView*  m_pView;
-	CDirector* m_pDir;
+protected:
+	DrawKit m_DrawKit;
 	bool m_bCustomNCHitTest;
 };
 
@@ -220,40 +241,37 @@ private:
 	CScene*   m_pCurrentScene;
 };
 
-class CImageLayer : public CNode
+class CColorLayer : public CNode
+{
+public:
+	explicit CColorLayer(CNode* parent = NULL);
+	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
+	void DrawNode(DrawKit* pKit);
+protected:
+	std::unique_ptr<void, win_handle_deleter<0>> m_hBrush;
+};
+
+class CImageLayer : public CColorLayer
 {
 public:
 	explicit CImageLayer(CNode* pParent = NULL);
 	~CImageLayer();
-	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
+	bool CreateImageLayerByBitmap(Gdiplus::Bitmap* pBitmap);
+	bool CreateImageLayerByStream(IStream* pStream);
 	bool CreateImageLayerByFile(const std::wstring& sFileName);
-	virtual bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
-	virtual void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
-	void DrawNode();
+	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize = true);
+	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
+	bool ScaleImageInside(int new_w, int new_h);
+	void DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity = 255);
+	void DrawNode(DrawKit* pKit);
 	const std::wstring& GetNodeClassName()const;
-	unsigned char* ImageData()const
-	{
-		return m_pData;
-	}
-	const BITMAPINFOHEADER& GetImageInfo()const
-	{
-		return m_Info;
-	}
+	unsigned char* ImageData()const { return m_pData; }
+	const BITMAPINFOHEADER& GetImageInfo()const { return m_Info; }
 protected:
 	BITMAPINFOHEADER m_Info;
 	unsigned char* m_pData;
 	HDC m_hDc;
 	HBITMAP m_hBitmap;
-};
-
-class CColorLayer : public CImageLayer
-{
-public:
-	explicit CColorLayer(CNode* parent = NULL);
-	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255);
-	void DrawNode();
-protected:
-	Gdiplus::SolidBrush m_brush;
 };
 
 class CTextLayer : public CNode
@@ -266,16 +284,13 @@ public:
 	HFONT GetFont();
 	void SetTextColor(COLORREF color);
 	COLORREF GetTextColor()const;
-	void SetAlignment(DWORD align);
-	DWORD GetAlignment()const;
 	void SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize = false);
 	const std::wstring& GetText()const;
 	SIZE GetTextSize();
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 protected:
 	HFONT m_hFont;
-	COLORREF m_dwColor;
-	DWORD m_dwAlignment;
+	COLORREF m_color;
 	std::wstring m_szText;
 };
 
@@ -308,18 +323,18 @@ class CButtonNode : public CTextLayer
 public:
 	explicit CButtonNode(CNode* pParent = NULL);
 	void SetCallback(ButtonCallback ck);
-	void SetBgColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight);
-	void SetBorderColor(const Gdiplus::Color&normal, const Gdiplus::Color& highlight);
+	void SetBgColor(COLORREF normal, COLORREF highlight);
+	void SetBorderColor(COLORREF normal, COLORREF highlight);
 	void SetBorderWidth(int width);
-	void DrawNode();
+	void DrawNode(DrawKit* pKit);
 	void MouseEnter();
 	void MouseLeave();
 	void MouseUp(POINT point, unsigned int flag, bool l);
 protected:
 	ButtonCallback m_callback;
-	Gdiplus::Color m_bgNormal;
-	Gdiplus::Color m_bgHighLight;
-	Gdiplus::Color m_borderNormal;
-	Gdiplus::Color m_borderHighLight;
+	std::unique_ptr<void, win_handle_deleter<0>> m_bgNormal;
+	std::unique_ptr<void, win_handle_deleter<0>> m_bgHighLight;
+	std::unique_ptr<void, win_handle_deleter<0>> m_borderNormal;
+	std::unique_ptr<void, win_handle_deleter<0>> m_borderHighLight;
 	int m_iBorderWidth;
 };

@@ -63,7 +63,6 @@ CApplication::~CApplication()
 int CApplication::Run()
 {
 	MSG msg;
-	m_threadId = GetCurrentThreadId();
 	
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
@@ -88,7 +87,15 @@ int CApplication::HandleQueueMessage(const MSG& msg)
 {
 	TRACE1("queue message time is %u\n", msg.time);
 	TRACE1("queue message type is %u\n", msg.message);
-	WM_USER;
+	if (msg.message == WM_Custom_Task)
+	{
+		CTask* pTask = (CTask*)(msg.wParam);
+		if (pTask)
+		{
+			pTask->Do();
+			delete pTask;
+		}
+	}
 	return 0;
 }
 
@@ -103,8 +110,31 @@ void CApplication::Destroy()
 	TRACE("application destroy\n");
 }
 
-CMessageLoop::CMessageLoop() :
+bool CApplication::PostTask(CTask* pTask)
+{
+	if (!pTask)
+		return false;
+	while (!PostThreadMessage(ThreadId(), WM_Custom_Task, (WPARAM)pTask, 0))
+	{
+		if (ERROR_INVALID_THREAD_ID == GetLastError())
+			Sleep(0);
+		else
+			return false;
+	}
+	return true;
+}
+
+void CMessageLoop::RunTaskOnce(CTask* p)
+{
+	CMessageLoop* pOnce = new CMessageLoop(true);
+	pOnce->Init();
+	pOnce->PostTask(p);
+	pOnce->Destroy();
+}
+
+CMessageLoop::CMessageLoop(bool bAutoDelete) :
 	m_bRunning(false),
+	m_bAutoDelete(bAutoDelete),
 	m_hThread(NULL)
 {
 }
@@ -114,8 +144,11 @@ CMessageLoop::~CMessageLoop()
 	if(m_hThread)
 	{
 		m_bRunning=false;
-		WaitForSingleObject(m_hThread, 1000);
-		CloseHandle(m_hThread);
+		if (!m_bAutoDelete)
+		{
+			WaitForSingleObject(m_hThread, 1000);
+			CloseHandle(m_hThread);
+		}
 		m_hThread=NULL;
 	}
 }
@@ -138,13 +171,24 @@ int CMessageLoop::Run()
 			break;
 		}
 
-		Sleep(5);
 		HandleQueueMessage(msg);
-		++n;
+	}
+
+	while (++n<50)
+	{
+		if (PeekMessage(&msg, (HWND)-1, 0, 0, PM_REMOVE))
+			HandleQueueMessage(msg);
 	}
 
 	TRACE("worker thread stop\n");
 	m_bRunning=false;
+
+	if (m_bAutoDelete)
+	{
+		HANDLE hHandle = m_hThread;
+		delete this;
+		CloseHandle(hHandle);
+	}
 	return 0;
 }
 

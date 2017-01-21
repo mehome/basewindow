@@ -1,5 +1,6 @@
 #include "Mp3Player.h"
-#include <process.h>
+#include "CustomStream.h"
+#include <fstream>
 
 #pragma comment(lib, "dsound.lib")
 #pragma comment(lib, "wmvcore.lib")
@@ -857,7 +858,7 @@ bool CMp3Show::Init()
 	//pBgImage->CreateImageLayerByFile(AppPath()+L"music.jpg");
 	//pBg->SetImageLayer(pBgImage);
 
-	CColorLayer* pBgColor = new CColorLayer();
+	CImageLayer* pBgColor = new CImageLayer();
 	pBgColor->CreateImageLayerByFile(AppPath() + L"music.jpg");
 	pBgColor->SetSizePolicy(SizePolicyExpanding);
 	pBgLayout->AddChild(pBgColor);
@@ -865,9 +866,9 @@ bool CMp3Show::Init()
 	return CScene::Init();
 }
 
-void CMp3Show::DrawNode()
+void CMp3Show::DrawNode(DrawKit* pKit)
 {
-	CNode::DrawNode();
+	CNode::DrawNode(pKit);
 
 	HDC hMemDC = GetView()->GetMemDC();
 	static std::unique_ptr<void, win_handle_deleter<>> hBrush(CreateSolidBrush(RGB(220, 60, 0)));
@@ -883,7 +884,7 @@ void CMp3Show::DrawNode()
 	for (int i = 0; i < cgBarNum; ++i)
 	{
 		rect.left = 10 + i*w;
-		rect.right = rect.left + w;
+		rect.right = rect.left + w-1;
 		rect.top = int(rect.bottom - m_fft[i] * rect.bottom);
 		Rectangle(hMemDC, rect.left, rect.top, rect.right, rect.bottom);
 	}
@@ -893,8 +894,10 @@ void CMp3Show::DrawNode()
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	if (!m_decoder.Initialize("C:\\Users\\Think\\Desktop\\我的音乐\\4 Real.mp3", true))
+	std::string mp3Name("C:\\Users\\Think\\Desktop\\我的音乐\\Everybody Hurts.mp3");
+	if (!m_decoder.Initialize(mp3Name, true))
 		return false;
+	CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
 
 	auto info = m_decoder.SoundInfo();
 	m_iAudioLen = info.wf.nAvgBytesPerSec*1; /// 1 second buffer
@@ -1031,6 +1034,92 @@ void CMp3PlayerWindow::GetSpectrum()
 	}
 }
 
+void CMp3PlayerWindow::GetAlbum(std::string strMp3Name)
+{
+	Sleep(200);
+
+	bool bGotAlbum(false);
+	std::ifstream file;
+	char head[10];
+	unsigned int id3v2TagSize, readed(0), tagFrameSize;
+
+	file.open(strMp3Name, std::ifstream::binary);
+	if (!file.is_open())
+		return;
+	file.read(head, 10);
+	if (file.gcount() != 10)
+		goto End;
+	if (strncmp(head, "ID3", 3) != 0)
+		goto End;
+	// id3v2标签大小，不包含已读10字节标签头大小
+	id3v2TagSize = (head[6] << 21) | (head[7] << 14) | (head[8] << 7) | (head[9]);
+	while (readed < id3v2TagSize)
+	{
+		file.read(head, 10);
+		if (file.gcount() != 10)
+			goto End;
+		// 标签帧大小，不包含已读10字节标签帧头大小
+		tagFrameSize = ((unsigned char)head[4] << 24) |
+			((unsigned char)head[5] << 16) |
+			((unsigned char)head[6] << 8) |
+			((unsigned char)head[7]);
+
+		if (_strnicmp(head, "APIC", 4) != 0)
+		{
+			file.seekg(tagFrameSize, std::ifstream::cur);
+			readed += (10 + tagFrameSize);
+			continue;
+		}
+
+		char* data(new char[tagFrameSize]);
+		file.read(data, tagFrameSize);
+		if (file.gcount() != tagFrameSize)
+			goto End;
+		unsigned int i(0);
+		unsigned char jpg[] = { 0xff, 0xd8 };
+		unsigned char png[] = { 0x89, 0x50, 0x4e, 0x47 };
+		for (; i < tagFrameSize; ++i)
+		{
+			if (i + 1 < tagFrameSize && memcmp(data + i, jpg, 2) == 0)
+				break;
+			if (i + 3 < tagFrameSize && memcmp(data + i, png, 4) == 0)
+				break;
+		}
+		if (i >= tagFrameSize)
+		{
+			delete[]data;
+			goto End;
+		}
+
+		memcpy(data, data + i, tagFrameSize - i);
+		CTask* pTask = new CTask2<CMp3PlayerWindow, char*, unsigned int>(this, &CMp3PlayerWindow::ShowAlbum, data, tagFrameSize-i);
+		if (!PostTask(pTask))
+		{
+			delete pTask;
+			delete[]data;
+		}
+
+		break;
+	}
+End:
+	file.close();
+}
+
+void CMp3PlayerWindow::ShowAlbum(char* pData, unsigned int len)
+{
+	CCustomStream* pStream = new CCustomStream(pData, len);
+	CImageLayer* pAlbum = new CImageLayer();
+	if (pAlbum->CreateImageLayerByStream(pStream))
+	{
+		pAlbum->ScaleImageInside(256, 256);
+		pAlbum->SetSize(256, 256);
+		pAlbum->SetPos(m_pShow->GetSize().first - 150.0f, 150.0f);
+		m_pShow->AddChild(pAlbum);
+	}
+
+	pStream->Release();
+}
+
 CMp3PlayerWindow::CMp3PlayerWindow():
 	m_iSampleSize(512),
 	m_fft(m_iSampleSize),
@@ -1059,7 +1148,6 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 		pView->Init(GetHWND());
 		m_pDir.reset(new CDirector(pView));
 		m_pShow=new CMp3Show();
-		assert(m_pShow);
 		m_pDir->RunScene(m_pShow);
 
 		if(InitMp3Player())
@@ -1128,6 +1216,8 @@ int CMp3PlayerWindow::Run()
 
 		if(msg.message == WM_QUIT)
 			break;
+		if (msg.hwnd == NULL && msg.message > WM_USER)
+			HandleQueueMessage(msg);
 		if (!TranslateAccelerator(msg.hwnd, NULL, &msg))
 		{
 			TranslateMessage(&msg);

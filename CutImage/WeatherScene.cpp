@@ -2,8 +2,9 @@
 #include <tchar.h>
 
 bool WeatherScene::Init()
-{
+{/*
 	m_szCityName=GetCity();
+	//m_szCityName = L"北京市";
 	if(m_szCityName.empty())
 	{
 		return false;
@@ -112,8 +113,9 @@ bool WeatherScene::Init()
 
 		//风向
 		RECT rect_temp = pL->GetRect();
-		SIZE size = pL->GetTextSize();
-		rect_temp.left += size.cx + 5;
+		auto size = pL->GetTextSize();
+		
+		rect_temp.left += size.first + 5;
 		JsonValue& wind = today[L"wind"];
 		if (wind.GetType() != JsonValue::JVString)
 		{
@@ -197,7 +199,8 @@ bool WeatherScene::Init()
 
 	bRes=CScene::Init();
 End:
-	return bRes;
+	return bRes;*/
+return true;
 }
 
 std::wstring WeatherScene::GetCity()
@@ -291,7 +294,7 @@ WeatherDayGeneral::WeatherDayGeneral(const std::wstring& date,
 }
 
 bool WeatherDayGeneral::Init()
-{
+{/*
 	LOGFONT lg;
 
 	memset(&lg, 0, sizeof(LOGFONT));
@@ -311,7 +314,9 @@ bool WeatherDayGeneral::Init()
 	pL->SetAnchor(0, 0);
 	pL->SetFont(lg);
 	pL->SetTextColor(RGB(40, 40, 40));
-	size = pL->GetTextSize();
+	auto sizePair = pL->GetTextSize();
+	size.cx = sizePair.first;
+	size.cy = sizePair.second;
 	pL->SetPos(0, y);
 	pL->SetSize(GetSize().first, (float)size.cy);
 	y += size.cy + 1;
@@ -323,10 +328,10 @@ bool WeatherDayGeneral::Init()
 	pL->SetAnchor(0, 0);
 	pL->SetFont(lg);
 	pL->SetTextColor(RGB(80, 80, 80));
-	size = pL->GetTextSize();
+	sizePair = pL->GetTextSize();
 	pL->SetPos(0, y);
-	pL->SetSize(GetSize().first, (float)size.cy);
-	y += size.cy + 5;
+	pL->SetSize(GetSize().first, sizePair.second);
+	y += sizePair.second + 5;
 
 	CStaticImageNode *pPic = new CStaticImageNode(PresentCenter, this);
 	CImageLayer* pImage=new CImageLayer(pPic);
@@ -338,5 +343,6 @@ bool WeatherDayGeneral::Init()
 		pPic->SetImageLayer(pImage);
 	}
 
-	return CNode::Init();
+	return CNode::Init();*/
+	return true;
 }

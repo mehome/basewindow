@@ -46,7 +46,7 @@ protected:
 };
 
 template<typename T, typename Param1T, typename Param2T, typename RT=void>
-class CTask2
+class CTask2 : public CTask
 {
 public:
 	typedef RT(T::*F)(Param1T, Param2T);

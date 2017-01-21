@@ -14,6 +14,9 @@ CNode::CNode(CNode* pParent) :
 	m_pParent(NULL),
 	m_pairAnchor(0.5f, 0.5f),
 	m_pairSize(0.5f, 0.5f),
+	m_pairScale(1.0f, 1.0f),
+	m_floatRotate(0.0f),
+	m_pairRoatateTri(sin(0.0f), cos(0.0f)),
 	m_pairMinSize(1.0f, 1.0f),
 	m_pairMaxSize(5000.0f, 5000.0f),
 	m_sizePolicy(SizePolicyFixed),
@@ -62,6 +65,9 @@ CNode::CNode(CNode&& rr)
 	m_pairAnchor = rr.m_pairAnchor;
 	m_pairSize = rr.m_pairSize;
 	m_pairPos = rr.m_pairPos;
+	m_pairScale = rr.m_pairScale;
+	m_floatRotate = rr.m_floatRotate;
+	m_pairRoatateTri = rr.m_pairRoatateTri;
 	m_Children = std::move(rr.m_Children);
 	m_pairMaxSize = rr.m_pairMaxSize;
 	m_pairMinSize = rr.m_pairMinSize;
@@ -138,21 +144,22 @@ void CNode::SetRect(const RECT& rect)
 {
 	int w = rect.right - rect.left;
 	int h = rect.bottom - rect.top;
-
+	
+	assert(w >= 0 && h >= 0);
 	m_pairSize.first = w*1.0f;
 	m_pairSize.second = h*1.0f;
 
 	if (m_pParent)
 	{
 		RECT r = m_pParent->GetRect();
-		m_pairPos.first = rect.left - r.left + w / 2.0f;
-		m_pairPos.second = rect.top - r.top + h / 2.0f;
+		m_pairPos.first = rect.left - r.left + w * m_pairAnchor.first;
+		m_pairPos.second = rect.top - r.top + h * m_pairAnchor.first;
 	}
 	else
 	{
 		m_rect = rect;
-		m_pairPos.first = w / 2.0f;
-		m_pairPos.second = h / 2.0f;
+		m_pairPos.first = w * m_pairAnchor.first;
+		m_pairPos.second = h * m_pairAnchor.first;
 	}
 
 	NeedUpdate(UpdateFlagReSize);
@@ -160,16 +167,44 @@ void CNode::SetRect(const RECT& rect)
 
 RECT CNode::GetRect()
 {
+	CalculateRect();
+	return m_rect;
+}
+
+const NodeRectF& CNode::GetRectF()
+{
+	CalculateRect();
+	return m_rectF;
+}
+
+const RECT& CNode::GetRectI()
+{
+	CalculateRect();
+	return m_rectI;
+}
+
+void CNode::CalculateRect()
+{
 	if (m_bNeedUpdateRect)
 	{
 		m_bNeedUpdateRect = false;
+
+		m_rectF.X = -m_pairAnchor.first*m_pairSize.first;
+		m_rectF.Y = -m_pairAnchor.second*m_pairSize.second;
+		m_rectF.Width = m_pairSize.first;
+		m_rectF.Height = m_pairSize.second;
+		// m_rectF.X  is negative
+		m_rectI.left = static_cast<int>(m_rectF.X-0.5f);
+		m_rectI.top = static_cast<int>(m_rectF.Y-0.5f);
+		m_rectI.right = static_cast<int>(m_rectI.left + m_pairSize.first + 0.5f);
+		m_rectI.bottom = static_cast<int>(m_rectI.top + m_pairSize.second + 0.5f);
 		if (m_pParent)
 		{
 			RECT r = m_pParent->GetRect();
 			float fx = r.left + m_pairPos.first;
 			float fy = r.top + m_pairPos.second;
-			fx -= m_pairSize.first * m_pairAnchor.first;
-			fy -= m_pairSize.second * m_pairAnchor.second;
+			fx += m_rectF.X;
+			fy += m_rectF.Y;
 
 			m_rect.left = static_cast<int>(fx + 0.5f);
 			m_rect.top = static_cast<int>(fy + 0.5f);
@@ -177,7 +212,6 @@ RECT CNode::GetRect()
 			m_rect.bottom = static_cast<int>(fy + m_pairSize.second + 0.5f);
 		}
 	}
-	return m_rect;
 }
 
 void CNode::SetParent(CNode* p)
@@ -207,6 +241,7 @@ void CNode::ChangeParent(CNode* pNew)
 
 void CNode::SetAnchor(float x, float y)
 {
+	assert(x >= 0 && x <= 1.0 && y >= 0 && y <= 1.0f);
 	m_pairAnchor.first = x;
 	m_pairAnchor.second = y;
 	NeedUpdate(UpdateFlagReLocation);
@@ -219,8 +254,7 @@ NodePair CNode::GetAnchor()const
 
 void CNode::SetSize(float w, float h)
 {
-	if (w<m_pairMinSize.first || w>m_pairMaxSize.first || h<m_pairMinSize.second || h>m_pairMaxSize.second)
-		return;
+	assert(w >= 0 && h >= 0);
 	m_pairSize.first = w;
 	m_pairSize.second = h;
 	NeedUpdate(UpdateFlagReSize);
@@ -231,17 +265,14 @@ void CNode::SetSize(int w, int h)
 	SetSize(1.0f*w, 1.0f*h);
 }
 
-const NodePair& CNode::GetSize()const
+const NodePair& CNode::GetSize()
 {
 	return m_pairSize;
 }
 
 void CNode::SetMinSize(float x, float y)
 {
-	if (x < 1.0f || y < 1.0f || x>m_pairMaxSize.first || y>m_pairMaxSize.second)
-		return;
-	if (x == m_pairMinSize.first && y == m_pairMinSize.second)
-		return;
+	assert(x >= 1.0f && y >= 1.0f && x <= m_pairMaxSize.first && y <= m_pairMaxSize.second);
 	m_pairMinSize.first = x;
 	m_pairMinSize.second = y;
 
@@ -267,10 +298,7 @@ void CNode::SetMinSize(float x, float y)
 
 void CNode::SetMaxSize(float x, float y)
 {
-	if (x < 1.0f || y < 1.0f || x < m_pairMinSize.first || y < m_pairMinSize.second)
-		return;
-	if (x == m_pairMaxSize.first && y == m_pairMaxSize.second)
-		return;
+	assert(x >= 1.0f && y >= 1.0f && x >= m_pairMinSize.first && y >= m_pairMinSize.second);
 	m_pairMaxSize.first = x;
 	m_pairMaxSize.second = y;
 
@@ -330,9 +358,37 @@ void CNode::SetPos(int x, int y)
 	SetPos(1.0f*x, 1.0f*y);
 }
 
-const NodePair& CNode::GetPos()const
+const NodePair& CNode::GetPos()
 {
-	return m_pairSize;
+	return m_pairPos;
+}
+
+void CNode::SetScale(float sx, float sy)
+{
+	m_pairScale.first = sx;
+	m_pairScale.second = sy;
+}
+
+const NodePair& CNode::GetScale()const
+{
+	return m_pairScale;
+}
+
+void CNode::SetRotate(float r)
+{
+	m_floatRotate = r;
+	m_pairRoatateTri.first = sin(r);
+	m_pairRoatateTri.second = cos(r);
+}
+
+float CNode::GetRotate()const
+{
+	return m_floatRotate;
+}
+
+const NodePair& CNode::GetRotateTri()
+{
+	return m_pairRoatateTri;
 }
 
 void CNode::NeedUpdate(NodeUpdateFlag flag)
@@ -531,19 +587,62 @@ bool CNode::Destroy()
 	return true;
 }
 
-void CNode::DrawNode()
+void CNode::DrawNode(DrawKit* pDrawKit)
 {
+	// 对于非根节点,原点在自己的锚点
+	// 对于根节点(scene),原点在自己的左上角
 	if(m_bNeedSortChild)
 	{
 		SortChild();
 	}
 
 	CNode* pNode;
+	const NodePair *pPos, *pScale;
+	const NodeRectF* pThisRectF(NULL);
+	XFORM xform = { 0 }, xformold;
+	HDC hMemDC = pDrawKit->pView->GetMemDC();
+	float s, c;
+	//在绘制子节点之前,首先将原点移到左上角,根节点(scene)不需要
+	if(pDrawKit->pParent && !m_Children.empty())
+	{
+		pThisRectF = &GetRectF();
+		xform.eM11 = xform.eM22 = 1.0f;
+		xform.eDx = pThisRectF->X;
+		xform.eDy = pThisRectF->Y;
+		ModifyWorldTransform(hMemDC, &xform, MWT_LEFTMULTIPLY);
+	}
+
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = *iter;
 		if (pNode->IsVisible())
-			pNode->DrawNode();
+		{
+			pPos = &pNode->GetPos();
+			pScale = &pNode->GetScale();
+			s = pNode->GetRotateTri().first;
+			c = pNode->GetRotateTri().second;
+			GetWorldTransform(hMemDC, &xformold);
+			xform.eDx = pPos->first;
+			xform.eDy = pPos->second;
+			xform.eM11 = c*pScale->first;
+			xform.eM12 = s*pScale->second;
+			xform.eM21 = -s*pScale->first;
+			xform.eM22 = c*pScale->second;
+			ModifyWorldTransform(hMemDC, &xform, MWT_LEFTMULTIPLY);
+			pDrawKit->pParent = this;
+			pNode->DrawNode(pDrawKit);
+			SetWorldTransform(hMemDC, &xformold);
+		}
+	}
+
+	// 移动回来
+	if(pThisRectF)
+	{
+		xform.eM11 = xform.eM22 = 1.0f;
+		xform.eM12 = xform.eM21 = 0;
+		xform.eDx = -pThisRectF->X;
+		xform.eDy = -pThisRectF->Y;
+		ModifyWorldTransform(hMemDC, &xform, MWT_LEFTMULTIPLY);
 	}
 }
 
@@ -794,10 +893,22 @@ RECT CHLayout::GetRect()
 		if(IsNeedUpdateRect())
 		{
 			SetRect(rect);
-			NeedUpdate(UpdateFlagClean);
+			rect = CNode::GetRect();
 		}
 	}
 	return rect;
+}
+
+const NodePair& CHLayout::GetPos()
+{
+	GetRect();
+	return CNode::GetPos();
+}
+
+const NodePair& CHLayout::GetSize()
+{
+	GetRect();
+	return CNode::GetSize();
 }
 
 void CHLayout::ReLayout()
@@ -906,16 +1017,15 @@ void CHLayout::ReLayout()
 	}
 }
 
-void CHLayout::DrawNode()
+void CHLayout::DrawNode(DrawKit* pKit)
 {
-	GetRect();
 	if(m_bNeedReLayout)
 	{
 		m_bNeedReLayout = false;
 		if (!Child().empty())
 			ReLayout();
 	}
-	CNode::DrawNode();
+	CNode::DrawNode(pKit);
 }
 
 void CHLayout::SetContentMargin(int l, int t, int r, int b)
@@ -1045,8 +1155,6 @@ void CVLayout::ReLayout()
 }
 
 CScene::CScene():
-	m_pView(NULL),
-	m_pDir(NULL),
 	m_bCustomNCHitTest(true)
 {
 }
@@ -1058,37 +1166,33 @@ CScene* CScene::GetScene()
 
 CGDIView* CScene::GetView()
 {
-	return m_pView;
+	return m_DrawKit.pView;
 }
 
 void CScene::SetView(CGDIView* view)
 {
 	assert(view != NULL);
-	m_pView = view;
-	auto rect = view->GetWndRect();
-
-	SetRect(rect);
+	m_DrawKit.pView = view;
+	SetRect(view->GetWndRect());
 }
 
 CDirector* CScene::GetDirector()
 {
-	return m_pDir;
+	return m_DrawKit.pDirect;
 }
 
 void CScene::SetDirector(CDirector* pDir)
 {
 	assert(pDir != NULL);
-	m_pDir = pDir;
+	m_DrawKit.pDirect = pDir;
 }
 
 void CScene::DrawScene()
 {
-	assert(m_pView != NULL);
-	assert(m_pDir != NULL);
-
-	m_pView->ClearBuffer();
-	DrawNode();
-	m_pView->SwapBuffer();
+	m_DrawKit.pView->ClearBuffer();
+	m_DrawKit.pParent = NULL;
+	DrawNode(&m_DrawKit);
+	m_DrawKit.pView->SwapBuffer();
 }
 
 bool CScene::EnableCustomNCHitTest(bool value)
@@ -1183,21 +1287,28 @@ CShadowScene::CShadowScene(int shadowSize) :m_iShadowSize(shadowSize)
 void CShadowScene::SetView(CGDIView* view)
 {
 	//assert(dynamic_cast<CGDIViewAlpha* >(view) != NULL);
-	CScene::SetView(view);
+	if (!IsIconic(view->GetWnd()))
+	{
+		CScene::SetView(view);
 
-	auto rect = view->GetWndRect();
-	rect.left += m_iShadowSize;
-	rect.top += m_iShadowSize;
-	rect.right -= m_iShadowSize;
-	rect.bottom -= m_iShadowSize;
+		auto rect = view->GetWndRect();
+		rect.left += m_iShadowSize;
+		rect.top += m_iShadowSize;
+		rect.right -= m_iShadowSize;
+		rect.bottom -= m_iShadowSize;
 
-	SetRect(rect);
+		SetRect(rect);
+	}
 }
 
 void CShadowScene::DrawScene()
 {
 	ClearScene();
-	DrawNode();
+	m_DrawKit.pParent = NULL;
+	HDC hdc = m_DrawKit.pView->GetMemDC();
+	SetViewportOrgEx(hdc, m_iShadowSize, m_iShadowSize, NULL);
+	DrawNode(&m_DrawKit);
+	SetViewportOrgEx(hdc, 0, 0, NULL);
 	DrawShadow();
 	SwapScene();
 }
@@ -1329,7 +1440,7 @@ LRESULT CDirector::MessageProc(UINT message, WPARAM wParam, LPARAM lParam, bool&
 	return res;
 }
 
-CImageLayer::CImageLayer(CNode* pParent) :CNode(pParent),
+CImageLayer::CImageLayer(CNode* pParent) :CColorLayer(pParent),
 m_pData(NULL),
 m_hDc(NULL),
 m_hBitmap(NULL)
@@ -1339,23 +1450,14 @@ m_hBitmap(NULL)
 CImageLayer::~CImageLayer()
 {
 	if (m_hBitmap)
-	{
 		DeleteObject(m_hBitmap);
-	}
 	if (m_hDc)
-	{
 		DeleteDC(m_hDc);
-	}
 }
 
-bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
+bool CImageLayer::CreateImageLayerByBitmap(Gdiplus::Bitmap* pBitmap)
 {
-	std::unique_ptr<Gdiplus::Bitmap> pBitmap(Gdiplus::Bitmap::FromFile(sFileName.c_str()));
-	if (pBitmap->GetLastStatus() != Gdiplus::Ok)
-	{
-		return false;
-	}
-
+	assert(pBitmap && pBitmap->GetLastStatus() == Gdiplus::Ok);
 	Gdiplus::PixelFormat format = pBitmap->GetPixelFormat();
 	UINT size = Gdiplus::GetPixelFormatSize(format);
 	Gdiplus::Rect rect(0, 0, pBitmap->GetWidth(), pBitmap->GetHeight());
@@ -1386,6 +1488,26 @@ bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
 	pBitmap->UnlockBits(&data);
 
 	return bRes;
+}
+
+bool CImageLayer::CreateImageLayerByStream(IStream* pStream)
+{
+	std::unique_ptr<Gdiplus::Bitmap> pBitmap(Gdiplus::Bitmap::FromStream(pStream));
+	if (pBitmap->GetLastStatus() != Gdiplus::Ok)
+	{
+		return false;
+	}
+	return this->CreateImageLayerByBitmap(pBitmap.get());
+}
+
+bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
+{
+	std::unique_ptr<Gdiplus::Bitmap> pBitmap(Gdiplus::Bitmap::FromFile(sFileName.c_str()));
+	if (pBitmap->GetLastStatus() != Gdiplus::Ok)
+	{
+		return false;
+	}
+	return this->CreateImageLayerByBitmap(pBitmap.get());
 }
 
 bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize)
@@ -1421,9 +1543,7 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 	bi.bmiHeader = m_Info;
 
 	if (m_hBitmap)
-	{
 		DeleteObject(m_hBitmap);
-	}
 	//m_hBitmap=::CreateDIBitmap(hRealDC,
 	//	&bi,
 	//	CBM_INIT,
@@ -1467,6 +1587,65 @@ bool CImageLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsi
 	}
 
 	return CreateImageLayerByData(data, 16, 16, 32);
+}
+
+bool CImageLayer::ScaleImageInside(int w, int h)
+{
+	assert(w > 0 && h > 0);
+	if (!m_hDc || !m_hBitmap)
+		return false;
+	BITMAPINFO bi;
+	int stride;
+	HDC hRealDC;
+	HDC hdc;
+	HBITMAP hBitmap;
+
+	if(m_Info.biWidth == w && m_Info.biHeight == h)
+		return true;
+
+	if (GetScene() == NULL)
+		hRealDC = CGDIView::GetScreenDC();
+	else
+		hRealDC = GetView()->GetRealDC();
+
+	stride = w * m_Info.biBitCount / 8;
+	if (stride % 4 != 0)
+	{
+		stride = stride / 4 * 4 + 4;
+	}
+	bi.bmiHeader = m_Info;
+	bi.bmiHeader.biHeight = h;
+	bi.bmiHeader.biWidth = w;
+	bi.bmiHeader.biSizeImage = w*stride;
+
+	hBitmap = CreateDIBSection(hRealDC,
+		&bi,
+		DIB_RGB_COLORS,
+		(void**)&m_pData,
+		NULL,
+		0);
+	hdc = CreateCompatibleDC(hRealDC);
+	SelectObject(hdc, hBitmap);
+	SetStretchBltMode(hdc, STRETCH_HALFTONE);
+	SetBrushOrgEx(hdc, 0, 0, NULL);
+	if(m_Info.biBitCount == 24)
+		StretchBlt(hdc, 0, 0, w, h, m_hDc, 0, 0, m_Info.biWidth, m_Info.biHeight, SRCCOPY);
+	else
+	{
+		BLENDFUNCTION ftn = { 0 };
+		ftn.BlendOp = AC_SRC_OVER;
+		ftn.AlphaFormat = AC_SRC_ALPHA;
+		ftn.BlendFlags = 0;
+		ftn.SourceConstantAlpha = 255;
+		AlphaBlend(hdc, 0, 0, w, h, m_hDc, 0, 0, m_Info.biWidth, m_Info.biHeight, ftn);
+	}
+
+	DeleteObject(m_hBitmap);
+	DeleteObject(m_hDc);
+	m_hBitmap = hBitmap;
+	m_hDc = hdc;
+	m_Info = bi.bmiHeader;
+	return true;
 }
 
 void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, int dest_h, unsigned char opacity)
@@ -1515,9 +1694,9 @@ void CImageLayer::DrawImage(int dest_leftup_x, int dest_leftup_y, int dest_w, in
 	}
 }
 
-void CImageLayer::DrawNode()
+void CImageLayer::DrawNode(DrawKit* pkit)
 {
-	RECT r = GetRect();
+	RECT r = GetRectI();
 	DrawImage(r.left, r.top, r.right - r.left, r.bottom - r.top);
 }
 
@@ -1527,45 +1706,26 @@ const std::wstring& CImageLayer::GetNodeClassName()const
 	return name;
 }
 
-CColorLayer::CColorLayer(CNode* parent):CImageLayer(parent),
-	m_brush(Gdiplus::Color())
+CColorLayer::CColorLayer(CNode* parent)
+	:CNode(parent)
 {
-
 }
 
 bool CColorLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
-	m_brush.SetColor(Gdiplus::Color(a, r, g, b));
-	if (m_hBitmap)
-	{
-		DeleteObject(m_hBitmap);
-	}
-	if (m_hDc)
-	{
-		DeleteDC(m_hDc);
-	}
+	m_hBrush.reset(CreateSolidBrush(RGB(r, g, b)));
 	return true;
 }
 
-void CColorLayer::DrawNode()
+void CColorLayer::DrawNode(DrawKit* pKit)
 {
-	if (m_hBitmap)
-		return CImageLayer::DrawNode();
-
-	auto rect = GetRect();
-	Gdiplus::Graphics& g = GetView()->GetGraphics();
-
-	g.FillRectangle(&m_brush, rect.left,
-		rect.top,
-		rect.right - rect.left,
-		rect.bottom - rect.top);
+	FillRect(pKit->pView->GetMemDC(), &GetRectI(), (HBRUSH)m_hBrush.get());
 }
 
 CTextLayer::CTextLayer(CNode* pParent) :
 	CNode(pParent),
 	m_hFont(NULL),
-	m_dwColor(RGB(1, 1, 1)),
-	m_dwAlignment(DT_CENTER | DT_SINGLELINE | DT_VCENTER)
+	m_color(RGB(1, 1, 1))
 {
 	m_hFont = CreateFont(20, 0, 0, 0, FW_THIN, FALSE, FALSE, FALSE,
 		GB2312_CHARSET,
@@ -1622,22 +1782,12 @@ HFONT CTextLayer::GetFont()
 
 void CTextLayer::SetTextColor(COLORREF color)
 {
-	m_dwColor = color;
+	m_color = color;
 }
 
 COLORREF CTextLayer::GetTextColor()const
 {
-	return m_dwColor;
-}
-
-void CTextLayer::SetAlignment(DWORD align)
-{
-	m_dwAlignment = align;
-}
-
-DWORD CTextLayer::GetAlignment()const
-{
-	return m_dwAlignment;
+	return m_color;
 }
 
 void CTextLayer::SetText(const std::wstring& sText, bool bUseTextSizeAsNodeSize)
@@ -1657,9 +1807,8 @@ const std::wstring& CTextLayer::GetText()const
 
 SIZE CTextLayer::GetTextSize()
 {
-	SIZE size;
 	HDC hMemDC = NULL;
-
+	SIZE size;
 	if (GetScene())
 	{
 		hMemDC = GetView()->GetMemDC();
@@ -1671,35 +1820,18 @@ SIZE CTextLayer::GetTextSize()
 
 	SelectObject(hMemDC, m_hFont);
 	GetTextExtentPoint32(hMemDC, m_szText.c_str(), m_szText.length(), &size);
-
 	return size;
 }
 
-void CTextLayer::DrawNode()
+void CTextLayer::DrawNode(DrawKit* pKit)
 {
-	HDC hMemDC = GetView()->GetMemDC();
-	RECT r = GetRect();
-	::SetTextColor(hMemDC, m_dwColor);
-	SelectObject(hMemDC, m_hFont);
-
 	if (!m_szText.empty())
 	{
-		DrawText(hMemDC,
-			m_szText.c_str(),
-			m_szText.length(),
-			&r,
-			m_dwAlignment);
-
-		//BYTE rr=GetRValue(m_dwColor);
-		//BYTE gg=GetGValue(m_dwColor);
-		//BYTE bb=GetBValue(m_dwColor);
-		//Gdiplus::Graphics g(hMemDC);
-		//g.DrawString(m_szText.c_str(),
-		//	m_szText.length(),
-		//	&Gdiplus::Font(hMemDC),
-		//	Gdiplus::RectF(r.left, r.top, r.right-r.left, r.bottom-r.top),
-		//	&Gdiplus::StringFormat(),
-		//	&Gdiplus::SolidBrush(Gdiplus::Color(255, rr, gg, bb)));
+		HDC hMemDC = pKit->pView->GetMemDC();
+		RECT r = GetRectI();
+		::SetTextColor(hMemDC, m_color);
+		SelectObject(hMemDC, m_hFont);
+		DrawText(hMemDC, m_szText.c_str(), m_szText.length(), &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 	}
 }
 
@@ -1771,11 +1903,11 @@ void CStaticImageNode::PutImage()
 
 CButtonNode::CButtonNode(CNode* pParent) :CTextLayer(pParent)
 {
-	m_bgNormal = Gdiplus::Color(255, 220, 220, 220);
-	m_bgHighLight = Gdiplus::Color(255, 240, 240, 240);
+	m_bgNormal.reset(CreateSolidBrush(RGB(220, 220, 220)));
+	m_bgHighLight.reset(CreateSolidBrush(RGB(240, 240, 240)));
 	m_iBorderWidth = 1;
-	m_borderNormal = Gdiplus::Color(255, 50, 50, 50);
-	m_borderHighLight = Gdiplus::Color(255, 80, 80, 80);
+	m_borderNormal.reset(CreatePen(PS_SOLID, m_iBorderWidth, RGB(50, 50, 50)));
+	m_borderHighLight.reset(CreatePen(PS_SOLID, m_iBorderWidth, RGB(80, 80, 80)));
 }
 
 void CButtonNode::SetCallback(ButtonCallback ck)
@@ -1783,16 +1915,16 @@ void CButtonNode::SetCallback(ButtonCallback ck)
 	m_callback = ck;
 }
 
-void CButtonNode::SetBgColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight)
+void CButtonNode::SetBgColor(COLORREF normal, COLORREF highlight)
 {
-	m_bgNormal = normal;
-	m_bgHighLight = highlight;
+	m_bgNormal.reset(CreateSolidBrush(normal));
+	m_bgHighLight.reset(CreateSolidBrush(highlight));
 }
 
-void CButtonNode::SetBorderColor(const Gdiplus::Color& normal, const Gdiplus::Color& highlight)
+void CButtonNode::SetBorderColor(COLORREF normal, COLORREF highlight)
 {
-	m_borderNormal = normal;
-	m_borderHighLight = highlight;
+	m_borderNormal.reset(CreatePen(PS_SOLID, m_iBorderWidth, normal));
+	m_borderHighLight.reset(CreatePen(PS_SOLID, m_iBorderWidth, highlight));
 }
 
 void CButtonNode::SetBorderWidth(int width)
@@ -1800,16 +1932,20 @@ void CButtonNode::SetBorderWidth(int width)
 	m_iBorderWidth = width;
 }
 
-void CButtonNode::DrawNode()
+void CButtonNode::DrawNode(DrawKit* pKit)
 {
-	RECT r = GetRect();
-	Gdiplus::Graphics& g = GetView()->GetGraphics();
-	Gdiplus::SolidBrush brush(IsMouseIN() ? m_bgHighLight : m_bgNormal);
-	Gdiplus::Pen pen((IsMouseIN() ? m_borderHighLight : m_borderNormal), (float)m_iBorderWidth);
-
-	g.FillRectangle(&brush, r.left, r.top, r.right - r.left, r.bottom - r.top);
-	CTextLayer::DrawNode();
-	g.DrawRectangle(&pen, r.left, r.top, r.right - r.left, r.bottom - r.top);
+	HDC hdc = pKit->pView->GetMemDC();
+	auto& r = GetRectI();
+	HBRUSH brush = HBRUSH(IsMouseIN() ? m_bgHighLight.get() : m_bgNormal.get());
+	HPEN pen = HPEN(IsMouseIN() ? m_borderHighLight.get() : m_borderNormal.get());
+	FillRect(hdc, &r, brush);
+	CTextLayer::DrawNode(pKit);
+	SelectObject(hdc, pen);
+	MoveToEx(hdc, r.left, r.top, NULL);
+	LineTo(hdc, r.left, r.bottom-1);
+	LineTo(hdc, r.right, r.bottom-1);
+	LineTo(hdc, r.right, r.top);
+	LineTo(hdc, r.left, r.top);
 }
 
 void CButtonNode::MouseEnter()

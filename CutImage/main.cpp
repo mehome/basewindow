@@ -33,18 +33,20 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	//}
 	//thread1.Destroy();
 
-	CCutImageWindow win;
-	win.InitWindow(hInstance);
-	win.Show();
-	return app.Run();
 
-	//CoInitialize(NULL);
-
-	//CMp3PlayerWindow win;
+	//CCutImageWindow win;
 	//win.InitWindow(hInstance);
 	//win.Show();
-	//auto res=win.Run();
+	//return app.Run();
 
-	//CoUninitialize();
-	//return res;
+
+	CoInitialize(NULL);
+
+	CMp3PlayerWindow win;
+	win.InitWindow(hInstance);
+	win.Show();
+	auto res=win.Run();
+
+	CoUninitialize();
+	return res;
 }
