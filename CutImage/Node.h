@@ -149,7 +149,7 @@ private:
 	NodePair m_pairPos;
 	NodePair m_pairScale;
 	float m_floatRotate;
-	NodePair m_pairRoatateTri;
+	NodePair m_pairRotateTri;
 	RECT m_rect;
 	RECT m_rectI;
 	NodeRectF m_rectF;

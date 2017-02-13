@@ -16,7 +16,7 @@ CNode::CNode(CNode* pParent) :
 	m_pairSize(0.5f, 0.5f),
 	m_pairScale(1.0f, 1.0f),
 	m_floatRotate(0.0f),
-	m_pairRoatateTri(sin(0.0f), cos(0.0f)),
+	m_pairRotateTri(sin(0.0f), cos(0.0f)),
 	m_pairMinSize(1.0f, 1.0f),
 	m_pairMaxSize(5000.0f, 5000.0f),
 	m_sizePolicy(SizePolicyFixed),
@@ -59,15 +59,19 @@ CNode::CNode(CNode&& rr)
 	m_iTag = rr.m_iTag;
 	m_iZOrder = rr.m_iZOrder;
 	m_iNCHitTest = rr.m_iNCHitTest;
-	m_pParent = rr.m_pParent;
-	rr.m_pParent = NULL;
+	if (rr.m_pParent)
+	{
+		m_pParent = rr.m_pParent;
+		m_pParent->RemoveChild(&rr, false);
+		m_pParent->AddChild(this);
+	}
 	m_rect = rr.m_rect;
 	m_pairAnchor = rr.m_pairAnchor;
 	m_pairSize = rr.m_pairSize;
 	m_pairPos = rr.m_pairPos;
 	m_pairScale = rr.m_pairScale;
 	m_floatRotate = rr.m_floatRotate;
-	m_pairRoatateTri = rr.m_pairRoatateTri;
+	m_pairRotateTri = rr.m_pairRotateTri;
 	m_Children = std::move(rr.m_Children);
 	m_pairMaxSize = rr.m_pairMaxSize;
 	m_pairMinSize = rr.m_pairMinSize;
@@ -194,8 +198,8 @@ void CNode::CalculateRect()
 		m_rectF.Width = m_pairSize.first;
 		m_rectF.Height = m_pairSize.second;
 		// m_rectF.X  is negative
-		m_rectI.left = static_cast<int>(m_rectF.X-0.5f);
-		m_rectI.top = static_cast<int>(m_rectF.Y-0.5f);
+		m_rectI.left = static_cast<int>(m_rectF.X);
+		m_rectI.top = static_cast<int>(m_rectF.Y);
 		m_rectI.right = static_cast<int>(m_rectI.left + m_pairSize.first + 0.5f);
 		m_rectI.bottom = static_cast<int>(m_rectI.top + m_pairSize.second + 0.5f);
 		if (m_pParent)
@@ -377,8 +381,8 @@ const NodePair& CNode::GetScale()const
 void CNode::SetRotate(float r)
 {
 	m_floatRotate = r;
-	m_pairRoatateTri.first = sin(r);
-	m_pairRoatateTri.second = cos(r);
+	m_pairRotateTri.first = sin(r);
+	m_pairRotateTri.second = cos(r);
 }
 
 float CNode::GetRotate()const
@@ -388,7 +392,7 @@ float CNode::GetRotate()const
 
 const NodePair& CNode::GetRotateTri()
 {
-	return m_pairRoatateTri;
+	return m_pairRotateTri;
 }
 
 void CNode::NeedUpdate(NodeUpdateFlag flag)
@@ -611,6 +615,7 @@ void CNode::DrawNode(DrawKit* pDrawKit)
 		xform.eDy = pThisRectF->Y;
 		ModifyWorldTransform(hMemDC, &xform, MWT_LEFTMULTIPLY);
 	}
+	GetWorldTransform(hMemDC, &xformold);
 
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
@@ -621,7 +626,6 @@ void CNode::DrawNode(DrawKit* pDrawKit)
 			pScale = &pNode->GetScale();
 			s = pNode->GetRotateTri().first;
 			c = pNode->GetRotateTri().second;
-			GetWorldTransform(hMemDC, &xformold);
 			xform.eDx = pPos->first;
 			xform.eDy = pPos->second;
 			xform.eM11 = c*pScale->first;
