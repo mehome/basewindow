@@ -1,7 +1,9 @@
 #pragma once
 #include "BaseWindow.h"
 #include "Node.h"
+#include "AV.h"
 #include "Thread.h"
+
 #include <InitGuid.h>
 #include <dsound.h>
 #include <mmsystem.h>
@@ -134,6 +136,7 @@ protected:
 	int m_iAudioLast;
 	CSound m_sound;
 	CWM m_decoder;
+	CSimpleDecoder sd;
 	CFastFourierTransform m_fft;
 
 	CMp3Show* m_pShow;

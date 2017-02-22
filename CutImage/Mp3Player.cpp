@@ -894,12 +894,23 @@ void CMp3Show::DrawNode(DrawKit* pKit)
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	std::string mp3Name("e:\\1.mp3");
-	if (!m_decoder.Initialize(mp3Name, true))
-		return false;
-	CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
+	//std::string mp3Name("d:\\1.mp3");
+	//if (!m_decoder.Initialize(mp3Name, true))
+	//	return false;
+	//CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
 
-	auto info = m_decoder.SoundInfo();
+	//auto info = m_decoder.SoundInfo();
+	av_register_all();
+	sd.LoadFile("e:\\1.mp3");
+	sd.ConfigureVideoOut();
+
+	PCMWAVEFORMAT info;
+	info.wBitsPerSample = 16;
+	info.wf.nBlockAlign = 4;
+	info.wf.nChannels = 2;
+	info.wf.nSamplesPerSec = 44100;
+	info.wf.wFormatTag = WAVE_FORMAT_PCM;
+	info.wf.nAvgBytesPerSec = 44100 * 4;
 	m_iAudioLen = info.wf.nAvgBytesPerSec*1; /// 1 second buffer
 	m_iAudioLast = 0;
 	m_pAudioBuf.reset(new char[m_iAudioLen*2]);
@@ -916,7 +927,8 @@ bool CMp3PlayerWindow::WriteAudioData()
 
 	if (m_iAudioLast < m_iAudioLen / 2)
 	{
-		len = m_decoder.OutputData(pSoundData + m_iAudioLast, m_iAudioLen - m_iAudioLast);
+		//len = m_decoder.OutputData(pSoundData + m_iAudioLast, m_iAudioLen - m_iAudioLast);
+		sd.DecodeAudio((uint8_t*)pSoundData + m_iAudioLast, m_iAudioLen - m_iAudioLast, len);
 		m_iAudioLast += len;
 	}
 	if (m_iAudioLast < 1)

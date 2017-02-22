@@ -52,10 +52,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\ffmpeg_sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>.\ffmpeg_sdk\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -76,6 +78,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AV.cpp" />
     <ClCompile Include="BaseWindow.cpp" />
     <ClCompile Include="CustomStream.cpp" />
     <ClCompile Include="CutImage.cpp" />
@@ -90,6 +93,7 @@
     <ClCompile Include="WeatherScene.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AV.h" />
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="CustomStream.h" />
     <ClInclude Include="CutImage.h" />

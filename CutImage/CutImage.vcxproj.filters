@@ -35,6 +35,9 @@
     <ClCompile Include="CustomStream.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="AV.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseWindow.h">
@@ -68,6 +71,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CustomStream.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AV.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

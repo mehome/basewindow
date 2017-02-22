@@ -217,7 +217,7 @@ void CMessageLoop::Destroy()
 	CLockGuard<CSimpleLock> guard(&m_lock);
 	if(m_bRunning)
 	{
-		m_bRunning=false;
 		PostThreadMessage(ThreadId(), WM_QUIT, 0, 0);
+		m_bRunning = false;
 	}
 }
