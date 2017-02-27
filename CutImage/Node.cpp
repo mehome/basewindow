@@ -1725,7 +1725,8 @@ void CColorLayer::DrawNode(DrawKit* pKit)
 CTextLayer::CTextLayer(CNode* pParent) :
 	CNode(pParent),
 	m_hFont(NULL),
-	m_color(RGB(1, 1, 1))
+	m_color(RGB(1, 1, 1)),
+	m_uiAlign(DT_CENTER | DT_VCENTER | DT_SINGLELINE)
 {
 	m_hFont = CreateFont(20, 0, 0, 0, FW_THIN, FALSE, FALSE, FALSE,
 		GB2312_CHARSET,
@@ -1831,8 +1832,13 @@ void CTextLayer::DrawNode(DrawKit* pKit)
 		RECT r = GetRectI();
 		::SetTextColor(hMemDC, m_color);
 		SelectObject(hMemDC, m_hFont);
-		DrawText(hMemDC, m_szText.c_str(), m_szText.length(), &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		DrawText(hMemDC, m_szText.c_str(), m_szText.length(), &r, m_uiAlign);
 	}
+}
+
+void CTextLayer::SetAlignment(UINT align)
+{
+	m_uiAlign = align;
 }
 
 CStaticImageNode::CStaticImageNode(int showType, CNode* pParent)

@@ -173,7 +173,6 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	//0error
 	//1ok,buffer is full
 	//2ok,
-	//3try again
 
 	int status(0);
 	DWORD dwWrite,dwPlay;
@@ -205,13 +204,13 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	hr=lpDSBSecond_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
 	if(hr!=DS_OK)
 	{
-		if(hr=DSERR_BUFFERLOST)
+		if (hr == DSERR_BUFFERLOST)
 		{
-			hr=lpDSBSecond_->Restore();
-			if(hr==DS_OK)
+			hr = lpDSBSecond_->Restore();
+			if (hr == DS_OK)
 			{
 				ClearBuffer(0);
-				iWritePos_=-1;
+				iWritePos_ = -1;
 				return 3;
 			}
 		}
@@ -894,7 +893,7 @@ void CMp3Show::DrawNode(DrawKit* pKit)
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	std::string mp3Name("C:\\Users\\Think\\Desktop\\Œ“µƒ“Ù¿÷\\Everybody Hurts.mp3");
+	std::string mp3Name("e:\\1.mp3");
 	if (!m_decoder.Initialize(mp3Name, true))
 		return false;
 	CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));

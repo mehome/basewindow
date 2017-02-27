@@ -41,12 +41,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 
 	CoInitialize(NULL);
-
 	CMp3PlayerWindow win;
 	win.InitWindow(hInstance);
 	win.Show();
 	auto res=win.Run();
-
 	CoUninitialize();
 	return res;
 }
