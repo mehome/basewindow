@@ -33,6 +33,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	//}
 	//thread1.Destroy();
 
+
 	//CCutImageWindow win;
 	//win.InitWindow(hInstance);
 	//win.Show();

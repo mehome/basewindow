@@ -126,7 +126,7 @@ bool CSound::Clear()
 	dwBufferLength_=0;
 	dwSilenceBytes_=0;
 	ulBufferPos_=0;
-	iWritePos_=-1;
+	iWritePos_ = 0;
 
 	return true;
 }
@@ -173,7 +173,6 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	//0error
 	//1ok,buffer is full
 	//2ok,
-	//3try again
 
 	int status(0);
 	DWORD dwWrite,dwPlay;
@@ -205,14 +204,14 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	hr=lpDSBSecond_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
 	if(hr!=DS_OK)
 	{
-		if(hr==DSERR_BUFFERLOST)
+		if (hr == DSERR_BUFFERLOST)
 		{
-			hr=lpDSBSecond_->Restore();
-			if(hr==DS_OK)
+			hr = lpDSBSecond_->Restore();
+			if (hr == DS_OK)
 			{
 				ClearBuffer(0);
-				iWritePos_=-1;
-				return 3;
+				iWritePos_ = 0;
+				return 2;
 			}
 		}
 		return 0;
@@ -246,9 +245,9 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 }
 void CSound::Seek()
 {
-	iWritePos_=-1;
-	ulBufferLength_=0;
-	ulBufferPos_=0;
+	iWritePos_ = 0;
+	ulBufferLength_ = 0;
+	ulBufferPos_ = 0;
 }
 
 bool CSound::SamplePosition(int &samplePos)

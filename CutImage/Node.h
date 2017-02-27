@@ -288,10 +288,12 @@ public:
 	const std::wstring& GetText()const;
 	SIZE GetTextSize();
 	void DrawNode(DrawKit* pKit);
+	void SetAlignment(UINT);
 protected:
 	HFONT m_hFont;
 	COLORREF m_color;
 	std::wstring m_szText;
+	UINT m_uiAlign;
 };
 
 enum PresentType
