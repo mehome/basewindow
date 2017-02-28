@@ -19,7 +19,7 @@ extern "C"
 
 
 #include <string>
-#include <stack>
+#include <queue>
 
 struct AudioParams
 {
@@ -107,6 +107,6 @@ protected:
 	uint8_t* m_aVideoOutBuf[4];
 	int    m_aVideoOutLines[4];
 
-	std::stack<AVPacket> m_AudioPacket;
-	std::stack<AVPacket> m_VideoPacket;
+	std::queue<AVPacket> m_AudioPacket;
+	std::queue<AVPacket> m_VideoPacket;
 };

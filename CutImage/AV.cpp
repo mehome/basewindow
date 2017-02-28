@@ -152,6 +152,12 @@ bool CSimpleDecoder::ConfigureAudioOut(AudioParams* pSrcAudioParams)
 		m_srcAudioParams.sample_fmt = m_pACodecContext->sample_fmt;
 		m_srcAudioParams.channels = m_pACodecContext->channels;
 		m_srcAudioParams.channel_layout = m_pACodecContext->channel_layout;
+
+		if (!m_srcAudioParams.channel_layout ||
+			av_get_channel_layout_nb_channels(m_srcAudioParams.channel_layout) != m_srcAudioParams.channels)
+		{
+			return false;
+		}
 	}
 	else
 	{
@@ -167,8 +173,13 @@ bool CSimpleDecoder::ConfigureAudioOut(AudioParams* pSrcAudioParams)
 		m_srcAudioParams.sample_fmt,
 		m_srcAudioParams.sample_rate, 0, NULL);
 
-	if (!m_pASwr || swr_init(m_pASwr) < 0)
+	if (!m_pASwr)
 	{
+		return false;
+	}
+	if (swr_init(m_pASwr) < 0)
+	{
+		swr_free(&m_pASwr);
 		return false;
 	}
 
@@ -268,7 +279,7 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 			}
 			else
 			{
-				packet = m_AudioPacket.top();
+				packet = m_AudioPacket.front();
 				m_AudioPacket.pop();
 			}
 
@@ -309,7 +320,6 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 		}
 
 		// step 2,½âÂë²¿·Ö
-	Decode:
 		res = avcodec_receive_frame(m_pACodecContext, m_pAFrame);
 		if (res == 0)
 		{
@@ -320,7 +330,8 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 
 			if (thisFrameChannelLayout != m_srcAudioParams.channel_layout ||
 				m_pAFrame->sample_rate != m_srcAudioParams.sample_rate ||
-				m_pAFrame->format != m_srcAudioParams.sample_fmt)
+				m_pAFrame->format != m_srcAudioParams.sample_fmt || 
+				!m_pASwr)
 			{
 				if (!ConfigureAudioOut(&AudioParams(m_pAFrame->sample_rate, av_frame_get_channels(m_pAFrame), thisFrameChannelLayout, (AVSampleFormat)m_pAFrame->format)))
 				{
@@ -336,7 +347,7 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 			outSize = av_samples_get_buffer_size(NULL, m_outAudioParams.channels, outCount, m_outAudioParams.sample_fmt, 0);
 			if (outSize > m_iAudioOutLen)
 			{
-				av_fast_malloc(&m_pAudioOutBuf, (unsigned int*)m_iAudioOutLen, outSize);
+				av_fast_malloc(&m_pAudioOutBuf, (unsigned int*)&m_iAudioOutLen, outSize);
 				if (!m_pAudioOutBuf)
 					return false;
 			}
@@ -388,7 +399,7 @@ ReadPacket:
 	}
 	else
 	{
-		packet = m_VideoPacket.top();
+		packet = m_VideoPacket.front();
 		m_VideoPacket.pop();
 	}
 	if (packet.stream_index == m_iVideoIndex)
@@ -413,13 +424,13 @@ ReadPacket:
 		m_AudioPacket.push(packet);
 	}
 
-Decode:
 	res = avcodec_receive_frame(m_pVCodecContext, m_pVFrame);
 	if (0 == res)
 	{
 		if (m_pVFrame->format != m_srcVideoParams.fmt ||
 			m_pVFrame->width != m_srcVideoParams.width ||
-			m_pVFrame->height != m_srcVideoParams.heigh)
+			m_pVFrame->height != m_srcVideoParams.heigh ||
+			!m_pVSws)
 		{
 			if (!ConfigureVideoOut(&m_outVideoParams, &VideoParams(m_pVFrame->width, m_pVFrame->height, (AVPixelFormat)m_pVFrame->format)))
 				return false;

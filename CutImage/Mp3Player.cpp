@@ -893,14 +893,15 @@ void CMp3Show::DrawNode(DrawKit* pKit)
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	//std::string mp3Name("d:\\1.mp3");
+	//std::string mp3Name("e:\\1.wma");
 	//if (!m_decoder.Initialize(mp3Name, true))
 	//	return false;
 	//CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
 
 	//auto info = m_decoder.SoundInfo();
 	av_register_all();
-	sd.LoadFile("e:\\1.mp3");
+	sd.LoadFile("e:\\3.wma");
+	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
 
 	PCMWAVEFORMAT info;
