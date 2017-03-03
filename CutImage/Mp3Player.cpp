@@ -339,19 +339,27 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 		return 0;
 	}
 
-	if(ulBufferPos_+ulBufferLength_ < dwBufferLength_)
+	dwTmp = ulBufferPos_ + ulBufferLength_;
+	if(dwTmp < dwBufferLength_)
 	{
-		//here dwPlay>=ulBufferPos_ && dwPlay<ulBufferPos_+ulBufferLength_
-		ulBufferLength_=ulBufferLength_-(dwPlay-ulBufferPos_);
-		ulBufferPos_=dwPlay;
-
-		dwRealWritePos=ulBufferPos_+ulBufferLength_;
-		dwAvaliableLength=min(dwWant,dwBufferLength_-ulBufferLength_);
+		if (dwPlay >= ulBufferPos_ && dwPlay < ulBufferPos_ + ulBufferLength_)
+		{
+			ulBufferLength_ = ulBufferLength_ - (dwPlay - ulBufferPos_);
+			ulBufferPos_ = dwPlay;
+			dwRealWritePos = ulBufferPos_ + ulBufferLength_;
+			dwAvaliableLength = min(dwWant, dwBufferLength_ - ulBufferLength_);
+		}
+		else
+		{
+			dwRealWritePos = dwWrite;
+			dwAvaliableLength = min(dwWant, dwBufferLength_);
+			ulBufferPos_ = dwRealWritePos;
+			ulBufferLength_ = dwAvaliableLength;
+		}
 	}
-	//有效缓冲区环回了
-	else
+	else //loop buffer
 	{
-		dwTmp=ulBufferLength_-(dwBufferLength_-ulBufferPos_);
+		dwTmp = dwTmp%dwBufferLength_;
 		if(dwTmp==ulBufferPos_)
 		{
 			if(dwPlay >= ulBufferPos_ && dwPlay<dwBufferLength_)
@@ -364,7 +372,6 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 				ulBufferPos_=dwPlay;
 				ulBufferLength_=dwTmp-dwPlay;
 			}
-			//缓冲区是满的，无需加数据
 			return 1;
 		}
 
@@ -384,13 +391,12 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 		}
 		else
 		{
-			TRACE("never here\n");
 			dwRealWritePos=dwWrite;
 			dwAvaliableLength=min(dwWant,dwBufferLength_);
 			ulBufferPos_=dwRealWritePos;
 			ulBufferLength_=dwAvaliableLength;
 		}
-	}//loop buffer
+	}
 	return 2;
 }//
 
@@ -900,7 +906,7 @@ bool CMp3PlayerWindow::InitMp3Player()
 
 	//auto info = m_decoder.SoundInfo();
 	av_register_all();
-	sd.LoadFile("e:\\3.wma");
+	sd.LoadFile("e:\\4.wma");
 	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
 
