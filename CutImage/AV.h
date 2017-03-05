@@ -77,11 +77,11 @@ public:
 	bool ConfigureAudioOut(AudioParams* srcAudioParams = NULL);
 	bool ConfigureVideoOut(VideoParams* destVideoParams = NULL, VideoParams* srcVideoParams = NULL);
 	bool DecodeAudio(uint8_t *rcv_buf, int buf_want_len, int& got_len);
-	bool DecodeVideo(uint8_t *rcv_buf, int buf_len);
-	void test();
+	bool DecodeVideo(uint8_t *rcv_buf, int buf_len, int& got_len);
 
 	int64_t GetDurationAll();
 	double GetFrameRate();
+	bool EndOfFile() { return m_bEndOf; }
 protected:
 	AVFormatContext* m_pFormatContext;
 	int m_iVideoIndex;
@@ -109,4 +109,13 @@ protected:
 
 	std::queue<AVPacket> m_AudioPacket;
 	std::queue<AVPacket> m_VideoPacket;
+};
+
+#include "RingBuffer.h"
+#include "Thread.h"
+class CAVDecodeLoop : public CSimpleDecoder
+{
+public:
+protected:
+	CSimpleLock m_lock;
 };

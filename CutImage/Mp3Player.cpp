@@ -26,6 +26,7 @@ CSound::CSound()
 
 	dwLockOffset_=0;
 	dwLockLen_=0;
+	uliTotalDataLen_ = 0;
 }
 
 CSound::~CSound()
@@ -127,6 +128,7 @@ bool CSound::Clear()
 	dwSilenceBytes_=0;
 	ulBufferPos_=0;
 	iWritePos_ = 0;
+	uliTotalDataLen_ = 0;
 
 	return true;
 }
@@ -241,6 +243,7 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 
 	dwWritePos = dwLockOffset_;
 	dwWriteLen = dwLockLen_;
+	uliTotalDataLen_ += dwLockLen_;
 	return 2;
 }
 void CSound::Seek()
@@ -268,6 +271,49 @@ bool CSound::SamplePosition(int &samplePos)
 
 	samplePos=static_cast<int>(dwPlay);
 	return true;
+}
+
+double CSound::PlayedTime()
+{
+	auto unplayed = UnPlayedDataLen();
+	if (uliTotalDataLen_ == uliTotalDataLen_ < unplayed)
+	{
+		return 0;
+	}
+	return 1.0*(uliTotalDataLen_ - unplayed) / waveFormat_.nAvgBytesPerSec;
+}
+
+DWORD CSound::UnPlayedDataLen()
+{
+	HRESULT hr;
+	DWORD dwTemp, dwPlay;
+
+	hr = lpDSBSecond_->GetCurrentPosition(&dwPlay, NULL);
+	if (FAILED(hr))
+	{
+		return 0;
+	}
+	dwTemp = ulBufferPos_ + ulBufferLength_;
+	if (dwTemp < dwBufferLength_)
+	{
+		if (dwPlay >= ulBufferPos_ && dwPlay < dwTemp)
+		{
+			return dwTemp - dwPlay;
+		}
+	}
+	else
+	{
+		dwTemp %= dwBufferLength_;
+		if (dwPlay >= ulBufferPos_ && dwPlay<dwBufferLength_)
+		{
+			return ulBufferLength_ - (dwPlay - ulBufferPos_);
+		}
+		else if (dwPlay >= 0 && dwPlay<dwTemp)
+		{
+			return dwTemp - dwPlay;
+		}
+	}
+	return 0;
 }
 
 void CSound::ClearBuffer(int type)
@@ -342,9 +388,9 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 	dwTmp = ulBufferPos_ + ulBufferLength_;
 	if(dwTmp < dwBufferLength_)
 	{
-		if (dwPlay >= ulBufferPos_ && dwPlay < ulBufferPos_ + ulBufferLength_)
+		if (dwPlay >= ulBufferPos_ && dwPlay < dwTmp)
 		{
-			ulBufferLength_ = ulBufferLength_ - (dwPlay - ulBufferPos_);
+			ulBufferLength_ = dwTmp - dwPlay;;
 			ulBufferPos_ = dwPlay;
 			dwRealWritePos = ulBufferPos_ + ulBufferLength_;
 			dwAvaliableLength = min(dwWant, dwBufferLength_ - ulBufferLength_);
@@ -382,7 +428,7 @@ int CSound::AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliabl
 			dwRealWritePos=dwTmp;
 			dwAvaliableLength=min(dwWant,dwBufferLength_-ulBufferLength_);
 		}
-		else if(dwPlay >=0 && dwPlay<=dwTmp)
+		else if(dwPlay >=0 && dwPlay<dwTmp)
 		{
 			ulBufferLength_=dwTmp-dwPlay;
 			ulBufferPos_=dwPlay;
@@ -906,7 +952,7 @@ bool CMp3PlayerWindow::InitMp3Player()
 
 	//auto info = m_decoder.SoundInfo();
 	av_register_all();
-	sd.LoadFile("e:\\4.wma");
+	sd.LoadFile("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\Unforgivable Sinner.mp4");
 	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
 
@@ -1224,6 +1270,7 @@ int CMp3PlayerWindow::Run()
 					GetSpectrum();
 					memcpy(&m_pShow->m_fft[0], m_pOldFFT.get(), sizeof(m_pShow->m_fft));
 					m_pShow->DrawScene();
+					//auto temp = m_sound.PlayedTime();
 				}
 				last.QuadPart=now.QuadPart;
 			}

@@ -275,7 +275,7 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 			{
 				res = ReadPacket(&packet);
 				if (res != 0)
-					return m_bEndOf;
+					return false;
 			}
 			else
 			{
@@ -385,11 +385,12 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 	return true;
 }
 
-bool CSimpleDecoder::DecodeVideo(uint8_t *buf, int buf_len)
+bool CSimpleDecoder::DecodeVideo(uint8_t *buf, int buf_len, int& len)
 {
 	AVPacket packet;
 	int res;
 
+	len = 0;
 ReadPacket:
 	if (m_VideoPacket.empty())
 	{
@@ -437,7 +438,15 @@ ReadPacket:
 		}
 
 		res = sws_scale(m_pVSws,m_pVFrame->data, m_pVFrame->linesize, 0, m_pVFrame->height, m_aVideoOutBuf, m_aVideoOutLines);
-		memcpy(buf, m_aVideoOutBuf[0], av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4));
+		len = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
+		if (len <= buf_len)
+		{
+			memcpy(buf, m_aVideoOutBuf[0], len);
+		}
+		else
+		{
+			return false;
+		}
 	}
 	else if (res == AVERROR(EAGAIN))
 	{
@@ -447,25 +456,6 @@ ReadPacket:
 		return false;
 
 	return true;
-}
-
-void CSimpleDecoder::test()
-{
-	AVPacket packet;
-
-	while (1)
-	{
-		if (ReadPacket(&packet) == 0)
-		{
-			if (packet.stream_index == m_iVideoIndex)
-				std::cout << "dts " << packet.dts << " pts " << packet.pts << std::endl;
-			av_packet_unref(&packet);
-		}
-		else
-		{
-			break;
-		}
-	}
 }
 
 int64_t CSimpleDecoder::GetDurationAll()

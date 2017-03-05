@@ -1,5 +1,6 @@
 #include "View.h"
 #pragma comment(lib, "gdiplus.lib")
+#pragma comment(lib, "winmm.lib")
 
 GdiplusInit& GdiplusInit::Instance()
 {
@@ -11,9 +12,11 @@ GdiplusInit::GdiplusInit()
 {
 	Gdiplus::GdiplusStartupInput input;
 	Gdiplus::GdiplusStartup(&m_token, &input, NULL);
+	timeBeginPeriod(1);
 }
 GdiplusInit::~GdiplusInit()
 {
+	timeEndPeriod(1);
 	Gdiplus::GdiplusShutdown(m_token);
 }
 
