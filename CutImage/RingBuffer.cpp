@@ -1,26 +1,34 @@
 #include "RingBuffer.h"
 #include <assert.h>
-#include <iostream>
+#include <Windows.h>
 
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-RingBuffer::RingBuffer(int len)
+RingBuffer::RingBuffer(int len, char* pOutsidebuf)
 	:m_iLen(len),
 	m_iUsableLen(0),
 	m_iWrite(0),
 	m_iRead(0),
-	m_bFull(false)
+	m_bFull(false),
+	m_bUseOutsideBuf(false)
 {
-	m_pBuf = new unsigned char[m_iLen];
-	assert(m_pBuf != NULL);
+	if (pOutsidebuf)
+	{
+		m_pBuf = pOutsidebuf;
+		m_bUseOutsideBuf = true;
+	}
+	else
+	{
+		m_pBuf = (char*)VirtualAlloc(NULL, (SIZE_T)len, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+		assert(m_pBuf != NULL);
+	}
 }
-
 
 RingBuffer::~RingBuffer()
 {
-	if (m_pBuf)
-		delete[]m_pBuf;
+	if (m_bUseOutsideBuf)
+		return;
 }
 
 int RingBuffer::WriteData(const char* pData, int len)
