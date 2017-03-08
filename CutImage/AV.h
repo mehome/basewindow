@@ -20,6 +20,7 @@ extern "C"
 
 #include <string>
 #include <queue>
+#include "RingBuffer.h"
 
 struct AudioParams
 {
@@ -76,6 +77,7 @@ public:
 	int ReadPacket(AVPacket* pPacket);
 	bool ConfigureAudioOut(AudioParams* srcAudioParams = NULL);
 	bool ConfigureVideoOut(VideoParams* destVideoParams = NULL, VideoParams* srcVideoParams = NULL);
+	bool DecodeAudio(RingBuffer*pBuf, int& got);
 	bool DecodeAudio(uint8_t *rcv_buf, int buf_want_len, int& got_len);
 	bool DecodeVideo(uint8_t *rcv_buf, int buf_len, int& got_len);
 
@@ -111,7 +113,6 @@ protected:
 	std::queue<AVPacket> m_VideoPacket;
 };
 
-#include "RingBuffer.h"
 #include "Thread.h"
 class CAVDecodeLoop : public CSimpleDecoder
 {

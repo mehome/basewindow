@@ -13,6 +13,7 @@ RingBuffer::RingBuffer(int len, char* pOutsidebuf)
 	m_bFull(false),
 	m_bUseOutsideBuf(false)
 {
+	assert(len > 0);
 	if (pOutsidebuf)
 	{
 		m_pBuf = pOutsidebuf;
@@ -29,6 +30,10 @@ RingBuffer::~RingBuffer()
 {
 	if (m_bUseOutsideBuf)
 		return;
+	if (m_pBuf)
+	{
+		VirtualFree(m_pBuf, 0, MEM_RELEASE);
+	}
 }
 
 int RingBuffer::WriteData(const char* pData, int len)

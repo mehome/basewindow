@@ -55,8 +55,7 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		avformat_close_input(&m_pFormatContext);
 		return false;
 	}
-	AVMEDIA_TYPE_NB;
-	AVERROR(EAGAIN);
+
 	for (n = 0; n < m_pFormatContext->nb_streams; ++n)
 	{
 		pStream = m_pFormatContext->streams[n];
@@ -245,18 +244,19 @@ bool CSimpleDecoder::ConfigureVideoOut(VideoParams* destVideoParams, VideoParams
 	return true;
 }
 
-bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
+bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 {
 	int res, n, outCount, outSize;
 	int64_t thisFrameChannelLayout;
 	AVPacket packet;
 	bool bWaitOtherSetp(false);
-
+	int want = pBuf->WriteableBufferLen();
 	len = 0;
 	n = min(want, m_iAudioOutRemaind);
 	if (n > 0)
 	{
-		memcpy(buf, m_pAudioOutBuf, n);
+		//memcpy(buf, m_pAudioOutBuf, n);
+		pBuf->WriteData((char*)m_pAudioOutBuf, n);
 		len = n;
 		want -= n;
 
@@ -357,7 +357,8 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 				return false;
 			outSize = av_samples_get_buffer_size(NULL, m_outAudioParams.channels, res, m_outAudioParams.sample_fmt, 1);
 			n = min(outSize, want);
-			memcpy(buf + len, m_pAudioOutBuf, n);
+			//memcpy(buf + len, m_pAudioOutBuf, n);
+			pBuf->WriteData((char*)m_pAudioOutBuf, n);
 			want -= n;
 			len += n;
 			if (n < outSize)
@@ -383,6 +384,13 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *buf, int want, int& len)
 		}
 	}
 	return true;
+}
+
+bool CSimpleDecoder::DecodeAudio(uint8_t *rcv_buf, int buf_want_len, int& got_len)
+{
+	assert(rcv_buf && buf_want_len > 0);
+	RingBuffer rb(buf_want_len, (char*)rcv_buf);
+	return DecodeAudio(&rb, got_len);
 }
 
 bool CSimpleDecoder::DecodeVideo(uint8_t *buf, int buf_len, int& len)

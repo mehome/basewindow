@@ -952,7 +952,7 @@ bool CMp3PlayerWindow::InitMp3Player()
 
 	//auto info = m_decoder.SoundInfo();
 	av_register_all();
-	sd.LoadFile("C:\\Users\\Think\\Desktop\\Œ“µƒ“Ù¿÷\\Unforgivable Sinner.mp4");
+	sd.LoadFile("e:\\4.wma");
 	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
 
