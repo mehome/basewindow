@@ -25,6 +25,9 @@ struct win_handle_deleter
 		case 3:
 			CloseHandle((HANDLE)p);
 			break;
+		case 4:
+			VirtualFree(p, 0, MEM_RELEASE);
+			break;
 		}
 	}
 };

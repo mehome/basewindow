@@ -952,7 +952,7 @@ bool CMp3PlayerWindow::InitMp3Player()
 
 	//auto info = m_decoder.SoundInfo();
 	av_register_all();
-	sd.LoadFile("e:\\4.wma");
+	sd.LoadFile("e:\\3.wma");
 	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
 
@@ -965,9 +965,11 @@ bool CMp3PlayerWindow::InitMp3Player()
 	info.wf.nAvgBytesPerSec = 44100 * 4;
 	m_iAudioLen = info.wf.nAvgBytesPerSec*1; /// 1 second buffer
 	m_iAudioLast = 0;
-	m_pAudioBuf.reset(new char[m_iAudioLen*2]);
+	m_pAudioBuf.reset((char*)VirtualAlloc(NULL, m_iAudioLen*4, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE));
+	assert(m_pAudioBuf.get());
 
-	m_sound.Initialize(info.wf, info.wBitsPerSample, m_iAudioLen, GetHWND());
+	m_iAudioLenDS = m_iAudioLen * 3;
+	m_sound.Initialize(info.wf, info.wBitsPerSample, m_iAudioLenDS, GetHWND());
 	m_sound.Start();
 	return WriteAudioData();
 }
@@ -996,13 +998,13 @@ bool CMp3PlayerWindow::WriteAudioData()
 	{
 		{
 			char *p=pSoundData + m_iAudioLen;
-			if(writePos+written < (DWORD)m_iAudioLen)
+			if(writePos+written < (DWORD)m_iAudioLenDS)
 			{
 				memcpy(p+writePos, pSoundData, written);
 			}
 			else
 			{
-				len=m_iAudioLen - writePos;
+				len= m_iAudioLenDS - writePos;
 				memcpy(p+writePos, pSoundData, len);
 				memcpy(p, pSoundData+len, written-len);
 			}
@@ -1029,13 +1031,13 @@ void CMp3PlayerWindow::GetSpectrum()
 	if (soundInfo.nChannels == 2 && soundInfo.wBitsPerSample == 16)
 	{
 		len = m_iSampleSize * 2 * 2;
-		if (pos + len < m_iAudioLen)
+		if (pos + len < m_iAudioLenDS)
 		{
 			memcpy(m_pSamples.get(), pAudio + pos, len);
 		}
 		else
 		{
-			i = m_iAudioLen - pos;
+			i = m_iAudioLenDS - pos;
 			memcpy(m_pSamples.get(), pAudio + pos, i);
 			memcpy(m_pSamples.get() + i, pAudio, len - i);
 		}

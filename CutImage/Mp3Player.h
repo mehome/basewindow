@@ -131,12 +131,13 @@ protected:
 protected:
 	std::unique_ptr<CDirector> m_pDir;
 	const int m_iSampleSize;
-	std::unique_ptr<char[]> m_pAudioBuf;
+	std::unique_ptr<char, win_handle_deleter<4>> m_pAudioBuf;
 	std::unique_ptr<char[]> m_pSamples;
 	std::unique_ptr<float[]> m_pSamplesFloat;
 	std::unique_ptr<float[]> m_pOldFFT;
 	int m_iAudioLen;
 	int m_iAudioLast;
+	int m_iAudioLenDS;
 	CSound m_sound;
 	CWM m_decoder;
 	CSimpleDecoder sd;
