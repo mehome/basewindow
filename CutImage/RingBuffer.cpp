@@ -5,7 +5,7 @@
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-RingBuffer::RingBuffer(int len, char* pOutsidebuf)
+RingBuffer::RingBuffer(int len, char* pOutsidebuf, int iUseableLen, int iUseableOff)
 	:m_iLen(len),
 	m_iUsableLen(0),
 	m_iWrite(0),
@@ -18,6 +18,25 @@ RingBuffer::RingBuffer(int len, char* pOutsidebuf)
 	{
 		m_pBuf = pOutsidebuf;
 		m_bUseOutsideBuf = true;
+		if (iUseableLen > 0 && iUseableLen <=len)
+		{
+			m_iUsableLen = iUseableLen;
+			if (iUseableOff > 0 && iUseableOff < len)
+			{
+				m_iRead = iUseableOff;
+			}
+
+			int n = m_iRead + m_iUsableLen;
+			if (n < len)
+			{
+				m_iWrite = n;
+			}
+			else
+			{
+				m_iWrite = n%len;
+				m_bFull = (m_iWrite == m_iRead);
+			}
+		}
 	}
 	else
 	{

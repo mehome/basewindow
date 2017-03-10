@@ -2,7 +2,7 @@
 class RingBuffer
 {
 public:
-	RingBuffer(int len, char* pOutsidebuf = 0);
+	RingBuffer(int len, char* pOutsidebuf = 0, int UseableLen = 0, int UseableLenOffset = 0);
 	~RingBuffer();
 	bool IsEmpty() { return m_iRead == m_iWrite && !m_bFull; }
 	bool IsFull() { return m_bFull; }

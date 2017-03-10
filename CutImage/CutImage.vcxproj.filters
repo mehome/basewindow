@@ -41,6 +41,9 @@
     <ClCompile Include="RingBuffer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MovieWindow.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseWindow.h">
@@ -80,6 +83,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="RingBuffer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MovieWindow.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

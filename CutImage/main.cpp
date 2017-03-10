@@ -2,6 +2,7 @@
 #include <tchar.h>
 #include "CutImage.h"
 #include "Mp3Player.h"
+#include "MovieWindow.h"
 #include "Thread.h"
 #include "Task.h"
 
@@ -38,6 +39,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	//win.InitWindow(hInstance);
 	//win.Show();
 	//return app.Run();
+
+	av_register_all();
+	CMovieWindow movieWin;
+	movieWin.InitWindow(hInstance);
+	movieWin.Show();
+	return movieWin.Run();
 
 	CoInitialize(NULL);
 	CMp3PlayerWindow win;

@@ -170,41 +170,41 @@ const WAVEFORMATEX& CSound::SoundFormat()const
 	return waveFormat_;
 }
 
-int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
+int CSound::Write(RingBuffer* pBuf, DWORD &dwWriteLen, DWORD& dwWritePos)
 {
 	//0error
 	//1ok,buffer is full
 	//2ok,
 
 	int status(0);
-	DWORD dwWrite,dwPlay;
+	DWORD dwWrite, dwPlay;
 	HRESULT hr;
-	unsigned char*pb1,*pb2;
-	DWORD dwb1,dwb2;
+	unsigned char*pb1, *pb2;
+	DWORD dwb1, dwb2;
 
 	//iWritePos_为零代表第一次写缓冲区
-	if(iWritePos_ == 0)
+	if (iWritePos_ == 0)
 	{
-		hr=lpDSBSecond_->GetCurrentPosition(&dwPlay,&dwWrite);
-		if(FAILED(hr))
+		hr = lpDSBSecond_->GetCurrentPosition(&dwPlay, &dwWrite);
+		if (FAILED(hr))
 		{
 			return 0;
 		}
 
-		dwLockOffset_=dwWrite;
-		dwLockLen_=min(dwLen,dwBufferLength_);
+		dwLockOffset_ = dwWrite;
+		dwLockLen_ = min(pBuf->ReadableBufferLen(), dwBufferLength_);
 	}
 	else
 	{
-		status=AvaliableBuffer(dwLen,dwLockOffset_,dwLockLen_);
-		if(status==0 || status==1)
+		status = AvaliableBuffer(pBuf->ReadableBufferLen(), dwLockOffset_, dwLockLen_);
+		if (status == 0 || status == 1)
 		{
 			return status;
 		}
 	}
 
-	hr=lpDSBSecond_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
-	if(hr!=DS_OK)
+	hr = lpDSBSecond_->Lock(dwLockOffset_, dwLockLen_, (LPVOID*)&pb1, &dwb1, (LPVOID*)&pb2, &dwb2, 0);
+	if (hr != DS_OK)
 	{
 		if (hr == DSERR_BUFFERLOST)
 		{
@@ -219,26 +219,26 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 		return 0;
 	}
 
-	if(pb1 != NULL)
+	if (pb1 != NULL)
 	{
-		memcpy(pb1,pData,dwb1);
+		pBuf->ReadData((char*)pb1, dwb1);
 	}
-	if(pb2 != NULL)
+	if (pb2 != NULL)
 	{
-		memcpy(pb2,(unsigned char*)pData+dwb1,dwb2);
+		pBuf->ReadData((char*)pb2, dwb2);
 	}
-	lpDSBSecond_->Unlock(pb1,dwb1,pb2,dwb2);
+	lpDSBSecond_->Unlock(pb1, dwb1, pb2, dwb2);
 
 	//更新对有效缓冲区（正在播放）的记录
-	if(iWritePos_ == 0)
+	if (iWritePos_ == 0)
 	{
 		iWritePos_ = 1;
-		ulBufferPos_=dwLockOffset_;
-		ulBufferLength_ = dwb1+dwb2;
+		ulBufferPos_ = dwLockOffset_;
+		ulBufferLength_ = dwb1 + dwb2;
 	}
 	else
 	{
-		ulBufferLength_ += (dwb1+dwb2);
+		ulBufferLength_ += (dwb1 + dwb2);
 	}
 
 	dwWritePos = dwLockOffset_;
@@ -246,6 +246,13 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 	uliTotalDataLen_ += dwLockLen_;
 	return 2;
 }
+
+int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
+{
+	RingBuffer rb(dwLen, (char*)pData, dwLen);
+	return Write(&rb, dwWriteLen, dwWritePos);
+}
+
 void CSound::Seek()
 {
 	iWritePos_ = 0;
@@ -951,8 +958,7 @@ bool CMp3PlayerWindow::InitMp3Player()
 	//CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
 	//auto info = m_decoder.SoundInfo();
 
-	av_register_all();
-	sd.LoadFile("e:\\1.wma");
+	sd.LoadFile("e:\\3.wma");
 	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
 	PCMWAVEFORMAT info;

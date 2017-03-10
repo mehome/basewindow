@@ -18,6 +18,7 @@ extern "C"
 #pragma comment(lib,"swresample.lib")
 
 
+#include <memory>
 #include <string>
 #include <queue>
 #include "RingBuffer.h"
@@ -71,6 +72,8 @@ public:
 	CSimpleDecoder();
 	int Interrupt();
 
+	bool HasVideo() { return m_iVideoIndex != -1; }
+	bool HasAudio() { return m_iAudioIndex != -1; }
 	bool LoadFile(std::string fileName);
 	void Clean();
 
@@ -114,9 +117,12 @@ protected:
 };
 
 #include "Thread.h"
-class CAVDecodeLoop : public CSimpleDecoder
+class CDecodeLoop : public CSimpleDecoder, public CMessageLoop
 {
 public:
+	int Run();
+	bool Init();
+	void Destroy();
 protected:
-	CSimpleLock m_lock;
+	std::unique_ptr<RingBuffer> m_pSoundBuf;
 };

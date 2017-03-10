@@ -123,6 +123,8 @@ void CSimpleDecoder::Clean()
 	if (m_pFormatContext)
 		avformat_close_input(&m_pFormatContext);
 	m_bEndOf = false;
+	m_iVideoIndex = -1;
+	m_iAudioIndex = -1;
 }
 
 int CSimpleDecoder::ReadPacket(AVPacket* pPacket)
@@ -489,4 +491,19 @@ double CSimpleDecoder::GetFrameRate()
 	}
 
 	return 0;
+}
+
+int CDecodeLoop::Run()
+{
+	return CMessageLoop::Run();
+}
+
+bool CDecodeLoop::Init()
+{
+	return CMessageLoop::Init();
+}
+
+void CDecodeLoop::Destroy()
+{
+	CMessageLoop::Destroy();
 }

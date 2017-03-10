@@ -3,6 +3,7 @@
 #include "Node.h"
 #include "AV.h"
 #include "Thread.h"
+#include "RingBuffer.h"
 
 #include <InitGuid.h>
 #include <dsound.h>
@@ -21,6 +22,7 @@ public:
 	void Stop();
 	bool IsPlaying()const { return bPlaying_; }
 	int Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos);
+	int Write(RingBuffer* pBuf, DWORD &dwWriteLen, DWORD& dwWritePos);
 	const WAVEFORMATEX& SoundFormat()const;
 	void Seek();
 	bool SamplePosition(int &samplePos);

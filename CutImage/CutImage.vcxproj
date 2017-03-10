@@ -85,6 +85,7 @@
     <ClCompile Include="HttpBase.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MovieWindow.cpp" />
     <ClCompile Include="Mp3Player.cpp" />
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="RingBuffer.cpp" />
@@ -98,6 +99,7 @@
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="CustomStream.h" />
     <ClInclude Include="CutImage.h" />
+    <ClInclude Include="MovieWindow.h" />
     <ClInclude Include="Mp3Player.h" />
     <ClInclude Include="RingBuffer.h" />
     <ClInclude Include="Task.h" />
