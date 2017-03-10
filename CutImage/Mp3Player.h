@@ -25,12 +25,12 @@ public:
 	void Seek();
 	bool SamplePosition(int &samplePos);
 	double PlayedTime();
+	DWORD UnPlayedDataLen();
 protected:
 	// type=0代表清空整个缓冲区
 	void ClearBuffer(int type);
 	// 获得安全的写入位置(未播放数据不会被覆盖)，以及可写的长度
 	int AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliableLength);
-	DWORD UnPlayedDataLen();
 protected:
 	bool bPlaying_;
 	LPDIRECTSOUND8 lpDS_;

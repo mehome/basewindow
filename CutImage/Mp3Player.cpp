@@ -276,7 +276,7 @@ bool CSound::SamplePosition(int &samplePos)
 double CSound::PlayedTime()
 {
 	auto unplayed = UnPlayedDataLen();
-	if (uliTotalDataLen_ == uliTotalDataLen_ < unplayed)
+	if (uliTotalDataLen_ == 0 || uliTotalDataLen_ < unplayed)
 	{
 		return 0;
 	}
@@ -949,13 +949,12 @@ bool CMp3PlayerWindow::InitMp3Player()
 	//if (!m_decoder.Initialize(mp3Name, true))
 	//	return false;
 	//CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
-
 	//auto info = m_decoder.SoundInfo();
+
 	av_register_all();
-	sd.LoadFile("e:\\3.wma");
+	sd.LoadFile("e:\\1.wma");
 	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
-
 	PCMWAVEFORMAT info;
 	info.wBitsPerSample = 16;
 	info.wf.nBlockAlign = 4;
@@ -963,6 +962,7 @@ bool CMp3PlayerWindow::InitMp3Player()
 	info.wf.nSamplesPerSec = 44100;
 	info.wf.wFormatTag = WAVE_FORMAT_PCM;
 	info.wf.nAvgBytesPerSec = 44100 * 4;
+
 	m_iAudioLen = info.wf.nAvgBytesPerSec*1; /// 1 second buffer
 	m_iAudioLast = 0;
 	m_pAudioBuf.reset((char*)VirtualAlloc(NULL, m_iAudioLen*4, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE));
@@ -988,7 +988,6 @@ bool CMp3PlayerWindow::WriteAudioData()
 	if (m_iAudioLast < 1)
 	{
 		TRACE("end of mp3\n");
-		m_sound.Stop();
 		return false;
 	}
 
@@ -1223,7 +1222,7 @@ LRESULT CMp3PlayerWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 	}
 	else if(message == WM_TIMER)
 	{
-		if(!WriteAudioData())
+		if(!WriteAudioData() && m_sound.UnPlayedDataLen() <= m_sound.SoundFormat().nAvgBytesPerSec/2)
 		{
 			KillTimer(hWnd, 101);
 			m_sound.Stop();
