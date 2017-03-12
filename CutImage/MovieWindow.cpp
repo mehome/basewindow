@@ -26,7 +26,11 @@ CMovieWindow::~CMovieWindow()
 
 LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
-	if (message == WM_CREATE)
+	if (message == WM_MOVING || message==WM_SIZING)
+	{
+		MainLoop();
+	}
+	else if (message == WM_CREATE)
 	{
 		RECT r1, r2;
 		GetWindowRect(hWnd, &r1);
@@ -41,7 +45,8 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pDir.reset(new CDirector(pView));
 		m_pDir->RunScene(new CMovieShow());
 
-		OpenFile("e:\\1.mp4");
+		//OpenFile("g:\\ËÀÊÌ.Deadpool.2016.BD-720p.1280X720.ÖÐÓ¢Ë«Óï-µç²¨×ÖÄ»×é.mp4");
+		OpenFile("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\J'aimerais tellement.mp4");
 	}
 
 	if (m_pDir.get())
@@ -116,7 +121,10 @@ __forceinline void CMovieWindow::MainLoop()
 		if (m_iCountForAudio > 20)
 		{
 			m_iCountForAudio = 0;
-			WriteAudioData();
+			if (!WriteAudioData())
+			{
+				m_sound.Stop();
+			}
 		}
 	}
 	else
@@ -135,9 +143,9 @@ bool CMovieWindow::WriteAudioData()
 
 	if (m_pSoundBuf->IsEmpty())
 	{
-
+		return false;
 	}
 
 	DWORD t1, t2;
-	return 2 == m_sound.Write(m_pSoundBuf.get(), t1, t2);
+	return 0 != m_sound.Write(m_pSoundBuf.get(), t1, t2);
 }

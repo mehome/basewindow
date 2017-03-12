@@ -958,7 +958,7 @@ bool CMp3PlayerWindow::InitMp3Player()
 	//CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
 	//auto info = m_decoder.SoundInfo();
 
-	sd.LoadFile("e:\\3.wma");
+	sd.LoadFile("C:\\Users\\Think\\Desktop\\Œ“µƒ“Ù¿÷\\The Day You Went Away.mp4");
 	sd.ConfigureAudioOut();
 	sd.ConfigureVideoOut();
 	PCMWAVEFORMAT info;
