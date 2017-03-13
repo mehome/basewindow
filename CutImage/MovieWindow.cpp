@@ -14,8 +14,7 @@ bool CMovieShow::Init()
 	return CScene::Init();
 }
 
-CMovieWindow::CMovieWindow():
-	m_iCountForAudio(0)
+CMovieWindow::CMovieWindow()
 {
 	QueryPerformanceFrequency(&m_liFreq);
 }
@@ -26,9 +25,13 @@ CMovieWindow::~CMovieWindow()
 
 LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
 {
-	if (message == WM_MOVING || message==WM_SIZING)
+	if (message == WM_TIMER)
 	{
-		MainLoop();
+		if (!WriteAudioData() && m_sound.UnPlayedDataLen() < m_sound.SoundFormat().nAvgBytesPerSec*0.4)
+		{
+			m_sound.Stop();
+			KillTimer(hWnd, (UINT_PTR)this);
+		}
 	}
 	else if (message == WM_CREATE)
 	{
@@ -45,8 +48,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pDir.reset(new CDirector(pView));
 		m_pDir->RunScene(new CMovieShow());
 
-		//OpenFile("g:\\ËÀÊÌ.Deadpool.2016.BD-720p.1280X720.ÖÐÓ¢Ë«Óï-µç²¨×ÖÄ»×é.mp4");
-		OpenFile("C:\\Users\\Think\\Desktop\\ÎÒµÄÒôÀÖ\\J'aimerais tellement.mp4");
+		OpenFile("e:\\1.mp4");
 	}
 
 	if (m_pDir.get())
@@ -105,7 +107,10 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 		m_pSoundBuf.reset(new RingBuffer(info.wf.nAvgBytesPerSec));
 		m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec * 3, GetHWND());
 		m_sound.Start();
-		return WriteAudioData();
+		if (WriteAudioData())
+		{
+			SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
+		}
 	}
 
 	return false;
@@ -117,15 +122,6 @@ __forceinline void CMovieWindow::MainLoop()
 	if (m_liNow.QuadPart - m_liLast.QuadPart > m_liInterval.QuadPart)
 	{
 		m_liLast.QuadPart = m_liNow.QuadPart;
-		++m_iCountForAudio;
-		if (m_iCountForAudio > 20)
-		{
-			m_iCountForAudio = 0;
-			if (!WriteAudioData())
-			{
-				m_sound.Stop();
-			}
-		}
 	}
 	else
 	{

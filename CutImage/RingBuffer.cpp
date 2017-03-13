@@ -1,5 +1,6 @@
 #include "RingBuffer.h"
 #include <assert.h>
+#include <iostream>
 #include <Windows.h>
 
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -11,7 +12,8 @@ RingBuffer::RingBuffer(int len, char* pOutsidebuf, int iUseableLen, int iUseable
 	m_iWrite(0),
 	m_iRead(0),
 	m_bFull(false),
-	m_bUseOutsideBuf(false)
+	m_bUseOutsideBuf(false),
+	m_pSavedIndex(NULL)
 {
 	assert(len > 0);
 	if (pOutsidebuf)
@@ -52,6 +54,10 @@ RingBuffer::~RingBuffer()
 	if (m_pBuf)
 	{
 		VirtualFree(m_pBuf, 0, MEM_RELEASE);
+	}
+	if (m_pSavedIndex)
+	{
+		delete[]m_pSavedIndex;
 	}
 }
 
@@ -136,4 +142,113 @@ int RingBuffer::ReadData(char* rcvbuf, int len)
 
 	m_iUsableLen -= done;
 	return done;
+}
+
+void RingBuffer::SaveIndexState()
+{
+	if (!m_pSavedIndex)
+	{
+		m_pSavedIndex = new int[4];
+	}
+	m_pSavedIndex[0] = this->m_iWrite;
+	m_pSavedIndex[1] = this->m_iRead;
+	m_pSavedIndex[2] = this->m_iUsableLen;
+	m_pSavedIndex[3] = this->m_bFull ? 1 : 0;
+}
+
+void RingBuffer::RestoreIndexState()
+{
+	if (!m_pSavedIndex)
+		return;
+	this->m_iWrite = m_pSavedIndex[0];
+	this->m_iRead = m_pSavedIndex[1];
+	this->m_iUsableLen = m_pSavedIndex[2];
+	this->m_bFull = m_pSavedIndex[3] != 0 ? true : false;
+}
+
+int RingBuffer::TransferData(RingBuffer* pDest, int want)
+{
+	const int kBufLen = 8192;
+	char buf[kBufLen];
+	int n, m, done(0);
+
+	n = pDest->WriteableBufferLen();
+	m = this->ReadableBufferLen();
+	want = min(want, n);
+	want = min(want, m);
+
+	while (want > 0)
+	{
+		n = min(want, kBufLen);
+		m = ReadData(buf, n);
+		assert(m == n);
+		m = pDest->WriteData(buf, n);
+		assert(m == n);
+		want -= m;
+		done += m;
+	}
+
+	return done;
+}
+
+bool RingBuffer::Resize(int newsize)
+{
+	assert(newsize > 0);
+	int oldsize = TotalBufferLen();
+	int transfer;
+
+	if (m_bUseOutsideBuf)
+		return false;
+	if (newsize == oldsize)
+		return true;
+	else if (newsize < oldsize)
+	{
+		if (ReadableBufferLen() > newsize)
+			return false;
+	}
+
+	this->SaveIndexState();
+
+	RingBuffer temp(newsize);
+	int u = ReadableBufferLen();
+	transfer = TransferData(&temp, u);
+	if (transfer == u)
+	{
+		operator=(std::move(temp));
+		return true;
+	}
+
+	this->RestoreIndexState();
+	return false;
+}
+
+RingBuffer& RingBuffer::operator=(RingBuffer&& rr)
+{
+	if (this == &rr)
+		return *this;
+	if (!m_bUseOutsideBuf)
+	{
+		if (m_pBuf)
+		{
+			VirtualFree(m_pBuf, 0, MEM_RELEASE);
+			m_pBuf = NULL;
+		}
+	}
+
+	if (m_pSavedIndex)
+	{
+		delete[]m_pSavedIndex;
+	}
+	this->m_pSavedIndex = rr.m_pSavedIndex;
+	this->m_pBuf = rr.m_pBuf;
+	rr.m_pSavedIndex = NULL;
+	rr.m_pBuf = NULL;
+	this->m_iLen = rr.m_iLen;
+	this->m_iRead = rr.m_iRead;
+	this->m_iWrite = rr.m_iWrite;
+	this->m_iUsableLen = rr.m_iUsableLen;
+	this->m_bFull = rr.m_bFull;
+	this->m_bUseOutsideBuf = rr.m_bUseOutsideBuf;
+
+	return *this;
 }

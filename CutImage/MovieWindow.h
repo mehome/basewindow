@@ -27,5 +27,4 @@ protected:
 	std::unique_ptr<RingBuffer> m_pSoundBuf;
 	CSimpleDecoder m_decoder;
 	CSound m_sound;
-	int m_iCountForAudio;
 };

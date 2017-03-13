@@ -11,6 +11,14 @@ public:
 	int WriteableBufferLen() { return m_iLen - m_iUsableLen; }
 	int WriteData(const char* pData, int len);
 	int ReadData(char* rcvbuf, int want);
+
+	void SaveIndexState();
+	void RestoreIndexState();
+	int TransferData(RingBuffer* pDest, int want);
+	bool Resize(int newsize);
+	RingBuffer& operator=(RingBuffer&& rr);
+	RingBuffer(RingBuffer&) = delete;
+	RingBuffer& operator=(RingBuffer&) = delete;
 protected:
 	char* m_pBuf;
 	int m_iLen;
@@ -19,4 +27,5 @@ protected:
 	int m_iRead;
 	bool m_bFull;
 	bool m_bUseOutsideBuf;
+	int* m_pSavedIndex;
 };

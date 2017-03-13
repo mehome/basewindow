@@ -82,7 +82,8 @@ public:
 	bool ConfigureVideoOut(VideoParams* destVideoParams = NULL, VideoParams* srcVideoParams = NULL);
 	bool DecodeAudio(RingBuffer*pBuf, int& got);
 	bool DecodeAudio(uint8_t *rcv_buf, int buf_want_len, int& got_len);
-	bool DecodeVideo(uint8_t *rcv_buf, int buf_len, int& got_len);
+	bool DecodeVideo(uint8_t *rcv_buf, int buf_len, int& got_len, int* w = 0, int* h = 0);
+	bool DecodeVideo(RingBuffer*pBuf, int&got, int* w = 0, int*h = 0);
 
 	int64_t GetDurationAll();
 	double GetFrameRate();
@@ -111,6 +112,7 @@ protected:
 	SwsContext* m_pVSws;
 	uint8_t* m_aVideoOutBuf[4];
 	int    m_aVideoOutLines[4];
+	bool m_bCurrentImageNotCopy;
 
 	std::queue<AVPacket> m_AudioPacket;
 	std::queue<AVPacket> m_VideoPacket;
@@ -123,6 +125,15 @@ public:
 	int Run();
 	bool Init();
 	void Destroy();
+	int GetAudioData(RingBuffer* pBuf, int want);
+	int GetImageData(RingBuffer* pBuf, int &w, int &h);
+protected:
+	inline void CacheAudioData();
+	inline void CacheImageData();
 protected:
 	std::unique_ptr<RingBuffer> m_pSoundBuf;
+	std::unique_ptr<RingBuffer> m_pImageBuf;
+	int m_iCachedImageCount;
+	CSimpleLock m_audioLock;
+	CSimpleLock m_videoLock;
 };
