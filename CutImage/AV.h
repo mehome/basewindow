@@ -70,6 +70,7 @@ class CSimpleDecoder
 {
 public:
 	CSimpleDecoder();
+	~CSimpleDecoder();
 	int Interrupt();
 
 	bool HasVideo() { return m_iVideoIndex != -1; }

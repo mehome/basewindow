@@ -31,6 +31,13 @@ CSimpleDecoder::CSimpleDecoder():
 	memset(m_aVideoOutBuf, 0, sizeof(m_aVideoOutBuf));
 }
 
+CSimpleDecoder::~CSimpleDecoder()
+{
+	Clean();
+	av_frame_free(&m_pAFrame);
+	av_frame_free(&m_pVFrame);
+}
+
 int CSimpleDecoder::Interrupt()
 {
 	return 0;
@@ -111,8 +118,6 @@ void CSimpleDecoder::Clean()
 		swr_free(&m_pASwr);
 	}
 
-	av_frame_free(&m_pAFrame);
-	av_frame_free(&m_pVFrame);
 	if (m_pACodecContext)
 	{
 		avcodec_free_context(&m_pACodecContext);
@@ -138,6 +143,7 @@ int CSimpleDecoder::ReadPacket(AVPacket* pPacket)
 			// ÎÄ¼þ½áÎ²
 			m_bEndOf = true;
 		}
+		m_bEndOf = true;
 	}
 
 	return res;
@@ -403,7 +409,10 @@ bool CSimpleDecoder::DecodeVideo(RingBuffer*pBuf, int&len, int* pW, int*pH)
 
 	len = 0;
 	if (m_bCurrentImageNotCopy)
+	{
+		res = m_outVideoParams.heigh;
 		goto Copy;
+	}
 ReadPacket:
 	if (m_VideoPacket.empty())
 	{
@@ -435,7 +444,8 @@ ReadPacket:
 	}
 	else
 	{
-		m_AudioPacket.push(packet);
+		//m_AudioPacket.push(packet);
+		av_packet_unref(&packet);
 	}
 
 	res = avcodec_receive_frame(m_pVCodecContext, m_pVFrame);
@@ -451,26 +461,23 @@ ReadPacket:
 		}
 
 		res = sws_scale(m_pVSws,m_pVFrame->data, m_pVFrame->linesize, 0, m_pVFrame->height, m_aVideoOutBuf, m_aVideoOutLines);
-		Copy:
+		assert(res == m_outVideoParams.heigh);
+	Copy:
 		len = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
-		if (len <= pBuf->WriteableBufferLen())
+		if (pW)
+			*pW = m_outVideoParams.width;
+		if (pH)
+			*pH = res;
+		if (pBuf && len <= pBuf->WriteableBufferLen())
 		{
 			//memcpy(buf, m_aVideoOutBuf[0], len);
 			pBuf->WriteData((char*)m_aVideoOutBuf[0], len);
 			m_bCurrentImageNotCopy = false;
-			if (pW)
-			{
-				*pW = m_pVFrame->width;
-			}
-			if (pH)
-			{
-				*pH = m_pVFrame->height;
-			}
 		}
 		else
 		{
 			m_bCurrentImageNotCopy = true;
-			return false;
+			return pBuf == NULL;
 		}
 	}
 	else if (res == AVERROR(EAGAIN))
@@ -531,9 +538,9 @@ int CDecodeLoop::Run()
 			HandleQueueMessage(msg);
 		}
 
-		CacheAudioData();
+		//CacheAudioData();
 		CacheImageData();
-		Sleep(5);
+		Sleep(3);
 	}
 
 	return 0;
@@ -548,7 +555,7 @@ bool CDecodeLoop::Init()
 	if (HasVideo())
 	{
 		int imageSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, m_pVCodecContext->width, m_pVCodecContext->height, 4);
-		m_pImageBuf.reset(new RingBuffer((12 + imageSize) * 10));
+		m_pImageBuf.reset(new RingBuffer((12 + imageSize) * 3));
 	}
 	m_iCachedImageCount = 0;
 	return CMessageLoop::Init();
@@ -570,6 +577,7 @@ int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 	CLockGuard<CSimpleLock> guard(&m_audioLock);
 	int done(00);
 
+	assert(m_pSoundBuf);
 	if (!m_pSoundBuf->IsEmpty())
 	{
 		done = m_pSoundBuf->TransferData(pBuf, want);
@@ -580,32 +588,26 @@ int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 int CDecodeLoop::GetImageData(RingBuffer* pBuf, int &w, int &h)
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
-	int imageData(0);
-	int n(4);
+	int info[3];
 
 	if (m_iCachedImageCount <1)
 	{
 		return 0;
 	}
 	m_pImageBuf->SaveIndexState();
-	m_pImageBuf->ReadData((char*)&imageData, 4);
-	if (n != 4)
-		goto Error;
-	n = m_pImageBuf->ReadData((char*)&w, 4);
-	if (n != 4)
-		goto Error;
-	n = m_pImageBuf->ReadData((char*)&h, 4);
-	if (n != 4)
+	if (12 != m_pImageBuf->ReadData((char*)info, 12))
 		goto Error;
 
+	w = info[1];
+	h = info[2];
 	pBuf->SaveIndexState();
-	if (imageData != m_pImageBuf->TransferData(pBuf, imageData))
+	if (info[0] != m_pImageBuf->TransferData(pBuf, info[0]))
 	{
 		pBuf->RestoreIndexState();
 		goto Error;
 	}
-
-	return imageData;
+	--m_iCachedImageCount;
+	return info[0];
 Error:
 	m_pImageBuf->RestoreIndexState();
 	return 0;
@@ -614,9 +616,46 @@ Error:
 __forceinline void CDecodeLoop::CacheAudioData()
 {
 	CLockGuard<CSimpleLock> guard(&m_audioLock);
+	int n;
+
+	if (EndOfFile())
+	{
+		return;
+	}
+	if (m_pSoundBuf->ReadableBufferLen() > m_pSoundBuf->TotalBufferLen()/2)
+	{
+		return;
+	}
+	if (DecodeAudio(m_pSoundBuf.get(), n))
+	{
+		return;
+	}
 }
 
 __forceinline void CDecodeLoop::CacheImageData()
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
+	int info[3];
+
+	if (m_iCachedImageCount > 2)
+		return;
+	if (!DecodeVideo(NULL, info[0], &info[1], &info[2]))
+	{
+		return;
+	}
+	if (info[0] > m_pImageBuf->WriteableBufferLen() + 12)
+	{
+		if (!m_pImageBuf->Resize(m_pImageBuf->TotalBufferLen() * 2))
+			return;
+	}
+
+	m_pImageBuf->SaveIndexState();
+	if (12 != m_pImageBuf->WriteData((char*)info, 12))
+		goto Error;
+	if (!DecodeVideo(m_pImageBuf.get(), info[1]) || info[1] != info[0])
+		goto Error;
+	++m_iCachedImageCount;
+	return;
+Error:
+	m_pImageBuf->RestoreIndexState();
 }

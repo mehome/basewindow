@@ -424,7 +424,7 @@ bool CNode::IsNeedUpdateRect()const
 
 bool CNode::AddChild(CNode* pNode)
 {
-	if (pNode &&
+	if (pNode && pNode != this &&
 		(pNode->GetParent() == NULL || pNode->GetParent() == this) &&
 		std::find(m_Children.begin(), m_Children.end(), pNode) == m_Children.end())
 	{
@@ -1870,7 +1870,11 @@ void CStaticImageNode::SetImageLayer(CImageLayer* pImage)
 	{
 		// É¾³ýÇ°Ò»ÕÅÍ¼Æ¬
 		if (pNode != pImage)
+		{
 			RemoveChild(pNode, true);
+			AddChild(pImage);
+			pImage->Init();
+		}
 		else
 			pNode->Init();
 	}

@@ -4,14 +4,31 @@ bool CMovieShow::Init()
 {
 	EnableCustomNCHitTest(false);
 
-	CHLayout* pLayout = new CHLayout(this);
-	pLayout->SetContentMargin(0, 0, 0, 0);
-
-	CImageLayer* pImage = new CImageLayer();
-	pImage->SetSizePolicy(SizePolicyExpanding);
-	pImage->CreateImageLayerByColor(0, 0, 0);
-	pLayout->AddChild(pImage);
+	m_pImage = new CImageLayer();
+	m_pImage->SetSizePolicy(SizePolicyExpanding);
+	m_pImage->CreateImageLayerByColor(0, 0, 0);
+	m_pImage->SetVisible(false);
+	AddChild(m_pImage);
 	return CScene::Init();
+}
+
+void CMovieShow::DrawNode(DrawKit* pDrawKit)
+{
+	//CScene::DrawNode(pDrawKit);
+	m_pImage->DrawImage(0, 0, m_pImage->GetImageInfo().biWidth, m_pImage->GetImageInfo().biHeight);
+}
+
+void CMovieShow::UpdateImage(RingBuffer*p, int w, int h)
+{
+	if (m_pImage->GetImageInfo().biWidth != w || m_pImage->GetImageInfo().biHeight != h)
+	{
+		m_pImage->CreateImageLayerByData((unsigned char*)p->Data(), w, h, 24);
+	}
+	else
+	{
+		memcpy(m_pImage->ImageData(), p->Data(), p->ReadableBufferLen());
+	}
+	p->Reset();
 }
 
 CMovieWindow::CMovieWindow()
@@ -21,6 +38,10 @@ CMovieWindow::CMovieWindow()
 
 CMovieWindow::~CMovieWindow()
 {
+	if (m_decoder.IsRunning())
+	{
+		m_decoder.Destroy();
+	}
 }
 
 LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
@@ -46,7 +67,8 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		CGDIView* pView = new CGDIView();
 		pView->Init(GetHWND());
 		m_pDir.reset(new CDirector(pView));
-		m_pDir->RunScene(new CMovieShow());
+		m_pShow = new CMovieShow();
+		m_pDir->RunScene(m_pShow);
 
 		OpenFile("e:\\1.mp4");
 	}
@@ -91,10 +113,21 @@ int CMovieWindow::Run()
 
 bool CMovieWindow::OpenFile(const std::string& fileName)
 {
+	if (m_decoder.IsRunning())
+	{
+		m_decoder.Destroy();
+	}
+	m_decoder.Clean();
+	m_sound.Stop();
+	m_sound.Clear();
+	KillTimer(GetHWND(), (UINT_PTR)this);
+
 	if (m_decoder.LoadFile(fileName))
 	{
 		m_decoder.ConfigureAudioOut();
 		m_decoder.ConfigureVideoOut();
+
+		m_pCurrImage.reset(new RingBuffer(1080 * 720 * 4));
 
 		PCMWAVEFORMAT info;
 		info.wBitsPerSample = 16;
@@ -103,14 +136,19 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 		info.wf.nSamplesPerSec = 44100;
 		info.wf.wFormatTag = WAVE_FORMAT_PCM;
 		info.wf.nAvgBytesPerSec = 44100 * 4;
-
 		m_pSoundBuf.reset(new RingBuffer(info.wf.nAvgBytesPerSec));
 		m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec * 3, GetHWND());
 		m_sound.Start();
-		if (WriteAudioData())
-		{
-			SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
-		}
+
+		//int n;
+		//DWORD t1, t2;
+		//m_decoder.DecodeAudio(m_pSoundBuf.get(), n);
+		//if (n > 0 && m_sound.Write(m_pSoundBuf.get(), t1, t2) != 0)
+		//{
+		//	SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
+		//}
+
+		m_decoder.Init();
 	}
 
 	return false;
@@ -118,10 +156,27 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 
 __forceinline void CMovieWindow::MainLoop()
 {
+	int n, imagew, imageh;
 	QueryPerformanceCounter(&m_liNow);
 	if (m_liNow.QuadPart - m_liLast.QuadPart > m_liInterval.QuadPart)
 	{
+		n = m_decoder.GetImageData(m_pCurrImage.get(), imagew, imageh);
+		if (n == 0)
+		{
+			if (imagew*imageh * 4 > m_pCurrImage->TotalBufferLen())
+			{
+				m_pCurrImage->Resize(imagew*imageh * 4);
+				return;
+			}
+			else
+			{
+				throw 1;
+			}
+		}
 		m_liLast.QuadPart = m_liNow.QuadPart;
+
+		m_pShow->UpdateImage(m_pCurrImage.get(), imagew, imageh);
+		m_pShow->DrawScene();
 	}
 	else
 	{
@@ -134,7 +189,7 @@ bool CMovieWindow::WriteAudioData()
 	int n;
 	if (m_pSoundBuf->ReadableBufferLen() < m_pSoundBuf->TotalBufferLen()/2)
 	{
-		m_decoder.DecodeAudio(m_pSoundBuf.get(), n);
+		n = m_decoder.GetAudioData(m_pSoundBuf.get(), m_pSoundBuf->WriteableBufferLen());
 	}
 
 	if (m_pSoundBuf->IsEmpty())

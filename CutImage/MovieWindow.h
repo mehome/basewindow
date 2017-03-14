@@ -5,6 +5,10 @@ class CMovieShow : public CScene
 {
 public:
 	bool Init();
+	void DrawNode(DrawKit* pDrawKit);
+	void UpdateImage(RingBuffer*p, int w, int h);
+protected:
+	CImageLayer* m_pImage;
 };
 
 class CMovieWindow : public CBaseWindow, public CApplication
@@ -25,6 +29,8 @@ protected:
 	LARGE_INTEGER m_liInterval;
 	std::unique_ptr<CDirector> m_pDir;
 	std::unique_ptr<RingBuffer> m_pSoundBuf;
-	CSimpleDecoder m_decoder;
+	std::unique_ptr<RingBuffer> m_pCurrImage;
+	CDecodeLoop m_decoder;
 	CSound m_sound;
+	CMovieShow* m_pShow;
 };

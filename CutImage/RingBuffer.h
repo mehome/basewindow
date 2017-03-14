@@ -9,6 +9,8 @@ public:
 	int TotalBufferLen() { return m_iLen; }
 	int ReadableBufferLen() { return m_iUsableLen; }
 	int WriteableBufferLen() { return m_iLen - m_iUsableLen; }
+	char* Data() { return m_pBuf; }
+	void Reset() { m_iWrite = m_iRead = m_iUsableLen = 0; m_bFull = false; }
 	int WriteData(const char* pData, int len);
 	int ReadData(char* rcvbuf, int want);
 
