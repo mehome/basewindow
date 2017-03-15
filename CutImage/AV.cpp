@@ -24,7 +24,8 @@ CSimpleDecoder::CSimpleDecoder():
 	m_iAudioOutLen(0),
 	m_iAudioOutRemaind(0),
 	m_pVSws(NULL),
-	m_bCurrentImageNotCopy(false)
+	m_bCurrentImageNotCopy(false),
+	m_pLineForReverse(NULL)
 {
 	m_pAFrame = av_frame_alloc();
 	m_pVFrame = av_frame_alloc();
@@ -107,6 +108,10 @@ void CSimpleDecoder::Clean()
 	{
 		sws_freeContext(m_pVSws);
 		m_pVSws = NULL;
+	}
+	if (m_pLineForReverse)
+	{
+		av_freep(&m_pLineForReverse);
 	}
 
 	if (m_pAudioOutBuf)
@@ -250,6 +255,14 @@ bool CSimpleDecoder::ConfigureVideoOut(VideoParams* destVideoParams, VideoParams
 		return false;
 	}
 
+	if (m_pLineForReverse)
+	{
+		av_freep(&m_pLineForReverse);
+	}
+	if (m_outVideoParams.fmt == AV_PIX_FMT_BGR24)
+	{
+		m_pLineForReverse = (uint8_t*)av_malloc(m_aVideoOutLines[0]);
+	}
 	return true;
 }
 
@@ -462,6 +475,10 @@ ReadPacket:
 
 		res = sws_scale(m_pVSws,m_pVFrame->data, m_pVFrame->linesize, 0, m_pVFrame->height, m_aVideoOutBuf, m_aVideoOutLines);
 		assert(res == m_outVideoParams.heigh);
+		if (m_pLineForReverse)
+		{
+			ReverseCurrentImage();
+		}
 	Copy:
 		len = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
 		if (pW)
@@ -522,6 +539,21 @@ double CSimpleDecoder::GetFrameRate()
 	return 0;
 }
 
+void CSimpleDecoder::ReverseCurrentImage()
+{
+	int n = m_pVFrame->height / 2;
+	uint8_t* p1, *p2;
+
+	for (int i = 0; i < n; ++i)
+	{
+		p1 = m_aVideoOutBuf[0] + i*m_aVideoOutLines[0];
+		p2 = m_aVideoOutBuf[0] + (m_pVFrame->height - 1 - i)*m_aVideoOutLines[0];
+		memcpy(m_pLineForReverse, p1, m_aVideoOutLines[0]);
+		memcpy(p1, p2, m_aVideoOutLines[0]);
+		memcpy(p2, m_pLineForReverse, m_aVideoOutLines[0]);
+	}
+}
+
 int CDecodeLoop::Run()
 {
 	MSG msg;
@@ -538,9 +570,12 @@ int CDecodeLoop::Run()
 			HandleQueueMessage(msg);
 		}
 
-		//CacheAudioData();
-		CacheImageData();
-		Sleep(3);
+		if (!EndOfFile())
+		{
+			//CacheAudioData();
+			CacheImageData();
+		}
+		Sleep(7);
 	}
 
 	return 0;
@@ -590,6 +625,7 @@ int CDecodeLoop::GetImageData(RingBuffer* pBuf, int &w, int &h)
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
 	int info[3];
 
+	w = h = 0;
 	if (m_iCachedImageCount <1)
 	{
 		return 0;
@@ -618,10 +654,6 @@ __forceinline void CDecodeLoop::CacheAudioData()
 	CLockGuard<CSimpleLock> guard(&m_audioLock);
 	int n;
 
-	if (EndOfFile())
-	{
-		return;
-	}
 	if (m_pSoundBuf->ReadableBufferLen() > m_pSoundBuf->TotalBufferLen()/2)
 	{
 		return;

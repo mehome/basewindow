@@ -90,6 +90,8 @@ public:
 	double GetFrameRate();
 	bool EndOfFile() { return m_bEndOf; }
 protected:
+	void ReverseCurrentImage();
+protected:
 	AVFormatContext* m_pFormatContext;
 	int m_iVideoIndex;
 	int m_iAudioIndex;
@@ -114,6 +116,7 @@ protected:
 	uint8_t* m_aVideoOutBuf[4];
 	int    m_aVideoOutLines[4];
 	bool m_bCurrentImageNotCopy;
+	uint8_t* m_pLineForReverse;
 
 	std::queue<AVPacket> m_AudioPacket;
 	std::queue<AVPacket> m_VideoPacket;

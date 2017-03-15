@@ -160,23 +160,21 @@ __forceinline void CMovieWindow::MainLoop()
 	QueryPerformanceCounter(&m_liNow);
 	if (m_liNow.QuadPart - m_liLast.QuadPart > m_liInterval.QuadPart)
 	{
+		m_liLast.QuadPart = m_liNow.QuadPart;
+
 		n = m_decoder.GetImageData(m_pCurrImage.get(), imagew, imageh);
 		if (n == 0)
 		{
 			if (imagew*imageh * 4 > m_pCurrImage->TotalBufferLen())
 			{
 				m_pCurrImage->Resize(imagew*imageh * 4);
-				return;
-			}
-			else
-			{
-				throw 1;
 			}
 		}
-		m_liLast.QuadPart = m_liNow.QuadPart;
-
-		m_pShow->UpdateImage(m_pCurrImage.get(), imagew, imageh);
-		m_pShow->DrawScene();
+		else
+		{
+			m_pShow->UpdateImage(m_pCurrImage.get(), imagew, imageh);
+			m_pShow->DrawScene();
+		}
 	}
 	else
 	{
