@@ -70,7 +70,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mp4");
+		OpenFile("g:\\权力的游戏.Game.of.Thrones.S06E08.中英字幕.WEB-HR.AAC.1024X576.x264.mp4");
 	}
 
 	if (m_pDir.get())

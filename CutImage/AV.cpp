@@ -243,7 +243,7 @@ bool CSimpleDecoder::ConfigureVideoOut(VideoParams* destVideoParams, VideoParams
 		m_outVideoParams.width,
 		m_outVideoParams.heigh,
 		m_outVideoParams.fmt,
-		SWS_BICUBIC, NULL, NULL, NULL);
+		SWS_POINT, NULL, NULL, NULL);
 	if (!m_pVSws)
 		return false;
 
@@ -487,7 +487,7 @@ ReadPacket:
 		info.dataSize = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
 		info.width = m_outVideoParams.width;
 		info.height = res;
-		info.dataSize = m_dCurrentPts;
+		info.pts = m_dCurrentPts;
 		if (pBuf && info.dataSize <= pBuf->WriteableBufferLen())
 		{
 			//memcpy(buf, m_aVideoOutBuf[0], len);
@@ -593,7 +593,7 @@ bool CDecodeLoop::Init()
 	if (HasVideo())
 	{
 		int imageSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, m_pVCodecContext->width, m_pVCodecContext->height, 4);
-		m_pImageBuf.reset(new RingBuffer((12 + imageSize) * 3));
+		m_pImageBuf.reset(new RingBuffer((16 + imageSize) * 5));
 	}
 	m_iCachedImageCount = 0;
 	return CMessageLoop::Init();
@@ -626,7 +626,6 @@ int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 int CDecodeLoop::GetImageData(RingBuffer* pBuf, int &w, int &h)
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
-	int info[3];
 
 	w = h = 0;
 	if (m_iCachedImageCount <1)
@@ -634,19 +633,19 @@ int CDecodeLoop::GetImageData(RingBuffer* pBuf, int &w, int &h)
 		return 0;
 	}
 	m_pImageBuf->SaveIndexState();
-	if (12 != m_pImageBuf->ReadData((char*)info, 12))
+	if (sizeof(FrameInfo) != m_pImageBuf->ReadData((char*)&m_frameDump, sizeof(FrameInfo)))
 		goto Error;
 
-	w = info[1];
-	h = info[2];
+	w = m_frameDump.width;
+	h = m_frameDump.height;
 	pBuf->SaveIndexState();
-	if (info[0] != m_pImageBuf->TransferData(pBuf, info[0]))
+	if (m_frameDump.dataSize != m_pImageBuf->TransferData(pBuf, m_frameDump.dataSize))
 	{
 		pBuf->RestoreIndexState();
 		goto Error;
 	}
 	--m_iCachedImageCount;
-	return info[0];
+	return m_frameDump.dataSize;
 Error:
 	m_pImageBuf->RestoreIndexState();
 	return 0;
@@ -671,7 +670,7 @@ __forceinline void CDecodeLoop::CacheImageData()
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
 
-	if (m_iCachedImageCount > 2)
+	if (m_iCachedImageCount > 3)
 		return;
 	if (!DecodeVideo(NULL, m_frameDump))
 	{
@@ -686,7 +685,7 @@ __forceinline void CDecodeLoop::CacheImageData()
 	m_pImageBuf->SaveIndexState();
 	if (sizeof(FrameInfo) != m_pImageBuf->WriteData((char*)&m_frameDump, sizeof(FrameInfo)))
 		goto Error;
-	if (!DecodeVideo(m_pImageBuf.get(), m_frameDump.dataSize) || info[1] != info[0])
+	if (!DecodeVideo(m_pImageBuf.get(), m_frameDump))
 		goto Error;
 	++m_iCachedImageCount;
 	return;
