@@ -44,7 +44,9 @@
     <ClCompile Include="MovieWindow.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="SyncVideo.cpp" />
+    <ClCompile Include="SyncVideo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseWindow.h">
@@ -89,7 +91,9 @@
     <ClInclude Include="MovieWindow.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="SyncVideo.h" />
+    <ClInclude Include="SyncVideo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="头文件">

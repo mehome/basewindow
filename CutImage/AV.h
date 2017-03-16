@@ -66,6 +66,14 @@ struct VideoParams
 	}
 };
 
+struct FrameInfo
+{
+	int width;
+	int height;
+	int dataSize;
+	double pts;
+};
+
 class CSimpleDecoder
 {
 public:
@@ -83,8 +91,8 @@ public:
 	bool ConfigureVideoOut(VideoParams* destVideoParams = NULL, VideoParams* srcVideoParams = NULL);
 	bool DecodeAudio(RingBuffer*pBuf, int& got);
 	bool DecodeAudio(uint8_t *rcv_buf, int buf_want_len, int& got_len);
-	bool DecodeVideo(uint8_t *rcv_buf, int buf_len, int& got_len, int* w = 0, int* h = 0);
-	bool DecodeVideo(RingBuffer*pBuf, int&got, int* w = 0, int*h = 0);
+	bool DecodeVideo(uint8_t *rcv_buf, int buf_len, FrameInfo& info);
+	bool DecodeVideo(RingBuffer*pBuf, FrameInfo& info);
 
 	int64_t GetDurationAll();
 	double GetFrameRate();
@@ -117,6 +125,8 @@ protected:
 	int    m_aVideoOutLines[4];
 	bool m_bCurrentImageNotCopy;
 	uint8_t* m_pLineForReverse;
+	double m_dCurrentPts;
+	double m_dVideotb;
 
 	std::queue<AVPacket> m_AudioPacket;
 	std::queue<AVPacket> m_VideoPacket;
@@ -140,4 +150,5 @@ protected:
 	int m_iCachedImageCount;
 	CSimpleLock m_audioLock;
 	CSimpleLock m_videoLock;
+	FrameInfo m_frameDump;
 };

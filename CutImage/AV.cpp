@@ -85,6 +85,7 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		avcodec_parameters_to_context(m_pVCodecContext, m_pFormatContext->streams[m_iVideoIndex]->codecpar);
 		m_pVCodec = avcodec_find_decoder(m_pVCodecContext->codec_id);
 		avcodec_open2(m_pVCodecContext, m_pVCodec, NULL);
+		m_dVideotb = av_q2d(m_pFormatContext->streams[m_iVideoIndex]->time_base);
 	}
 	if (m_iAudioIndex != -1)
 	{
@@ -415,12 +416,13 @@ bool CSimpleDecoder::DecodeAudio(uint8_t *rcv_buf, int buf_want_len, int& got_le
 	return DecodeAudio(&rb, got_len);
 }
 
-bool CSimpleDecoder::DecodeVideo(RingBuffer*pBuf, int&len, int* pW, int*pH)
+bool CSimpleDecoder::DecodeVideo(RingBuffer*pBuf, FrameInfo& info)
 {
 	AVPacket packet;
 	int res;
+	uint64_t pts;
 
-	len = 0;
+	info.dataSize = 0;
 	if (m_bCurrentImageNotCopy)
 	{
 		res = m_outVideoParams.heigh;
@@ -464,6 +466,8 @@ ReadPacket:
 	res = avcodec_receive_frame(m_pVCodecContext, m_pVFrame);
 	if (0 == res)
 	{
+		pts = av_frame_get_best_effort_timestamp(m_pVFrame);
+		m_dCurrentPts = pts == AV_NOPTS_VALUE ? NAN : pts*m_dVideotb;
 		if (m_pVFrame->format != m_srcVideoParams.fmt ||
 			m_pVFrame->width != m_srcVideoParams.width ||
 			m_pVFrame->height != m_srcVideoParams.heigh ||
@@ -480,15 +484,14 @@ ReadPacket:
 			ReverseCurrentImage();
 		}
 	Copy:
-		len = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
-		if (pW)
-			*pW = m_outVideoParams.width;
-		if (pH)
-			*pH = res;
-		if (pBuf && len <= pBuf->WriteableBufferLen())
+		info.dataSize = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
+		info.width = m_outVideoParams.width;
+		info.height = res;
+		info.dataSize = m_dCurrentPts;
+		if (pBuf && info.dataSize <= pBuf->WriteableBufferLen())
 		{
 			//memcpy(buf, m_aVideoOutBuf[0], len);
-			pBuf->WriteData((char*)m_aVideoOutBuf[0], len);
+			pBuf->WriteData((char*)m_aVideoOutBuf[0], info.dataSize);
 			m_bCurrentImageNotCopy = false;
 		}
 		else
@@ -507,11 +510,11 @@ ReadPacket:
 	return true;
 }
 
-bool CSimpleDecoder::DecodeVideo(uint8_t *buf, int buf_len, int& len, int* pW, int* pH)
+bool CSimpleDecoder::DecodeVideo(uint8_t *buf, int buf_len, FrameInfo& info)
 {
 	assert(buf && buf_len > 0);
 	RingBuffer rb(buf_len, (char*)buf);
-	return DecodeVideo(&rb, len, pW, pH);
+	return DecodeVideo(&rb, info);
 }
 
 int64_t CSimpleDecoder::GetDurationAll()
@@ -667,24 +670,23 @@ __forceinline void CDecodeLoop::CacheAudioData()
 __forceinline void CDecodeLoop::CacheImageData()
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
-	int info[3];
 
 	if (m_iCachedImageCount > 2)
 		return;
-	if (!DecodeVideo(NULL, info[0], &info[1], &info[2]))
+	if (!DecodeVideo(NULL, m_frameDump))
 	{
 		return;
 	}
-	if (info[0] > m_pImageBuf->WriteableBufferLen() + 12)
+	if (m_frameDump.dataSize+sizeof(FrameInfo) > m_pImageBuf->WriteableBufferLen())
 	{
 		if (!m_pImageBuf->Resize(m_pImageBuf->TotalBufferLen() * 2))
 			return;
 	}
 
 	m_pImageBuf->SaveIndexState();
-	if (12 != m_pImageBuf->WriteData((char*)info, 12))
+	if (sizeof(FrameInfo) != m_pImageBuf->WriteData((char*)&m_frameDump, sizeof(FrameInfo)))
 		goto Error;
-	if (!DecodeVideo(m_pImageBuf.get(), info[1]) || info[1] != info[0])
+	if (!DecodeVideo(m_pImageBuf.get(), m_frameDump.dataSize) || info[1] != info[0])
 		goto Error;
 	++m_iCachedImageCount;
 	return;

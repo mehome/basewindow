@@ -147,7 +147,12 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 		//{
 		//	SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
 		//}
-
+		{
+			LARGE_INTEGER fi, di;
+			fi.QuadPart = 1.0 / m_decoder.GetFrameRate()*m_liFreq.QuadPart;
+			di.QuadPart = 20.0 / 1000.0*m_liFreq.QuadPart;
+			m_pSync.reset(new CSyncVideoByFrameRate(fi, di));
+		}
 		m_decoder.Init();
 	}
 
@@ -156,24 +161,35 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 
 __forceinline void CMovieWindow::MainLoop()
 {
-	int n, imagew, imageh;
+	int n;
 	QueryPerformanceCounter(&m_liNow);
 	if (m_liNow.QuadPart - m_liLast.QuadPart > m_liInterval.QuadPart)
 	{
 		m_liLast.QuadPart = m_liNow.QuadPart;
 
-		n = m_decoder.GetImageData(m_pCurrImage.get(), imagew, imageh);
-		if (n == 0)
+		if (m_pCurrImage->ReadableBufferLen() < 1)
 		{
-			if (imagew*imageh * 4 > m_pCurrImage->TotalBufferLen())
+			n = m_decoder.GetImageData(m_pCurrImage.get(), m_iCurrentW, m_iCurrentH);
+			if (n == 0)
 			{
-				m_pCurrImage->Resize(imagew*imageh * 4);
+				if (m_iCurrentW*m_iCurrentH * 4 > m_pCurrImage->TotalBufferLen())
+				{
+					m_pCurrImage->Resize(m_iCurrentW*m_iCurrentH * 4);
+				}
 			}
 		}
-		else
+
+		if(m_pCurrImage->ReadableBufferLen() > 0)
 		{
-			m_pShow->UpdateImage(m_pCurrImage.get(), imagew, imageh);
-			m_pShow->DrawScene();
+			if (m_pSync->IsSwitchToNextFrame(m_liNow))
+			{
+				m_pShow->UpdateImage(m_pCurrImage.get(), m_iCurrentW, m_iCurrentH);
+				m_pShow->DrawScene();
+			}
+			else
+			{
+				Sleep(1);
+			}
 		}
 	}
 	else
