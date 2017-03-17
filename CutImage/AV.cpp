@@ -570,8 +570,8 @@ int CDecodeLoop::Run()
 
 		if (!EndOfFile())
 		{
-			CacheAudioData();
-			CacheImageData();
+			if (HasAudio())CacheAudioData();
+			if (HasVideo())CacheImageData();
 		}
 		Sleep(7);
 	}

@@ -70,7 +70,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mp4");
+		OpenFile("e:\\bing.mp4");
 	}
 
 	if (m_pDir.get())
@@ -129,27 +129,26 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 
 		m_pCurrImage.reset(new RingBuffer(1080 * 720 * 4));
 
-		PCMWAVEFORMAT info;
-		info.wBitsPerSample = 16;
-		info.wf.nBlockAlign = 4;
-		info.wf.nChannels = 2;
-		info.wf.nSamplesPerSec = 44100;
-		info.wf.wFormatTag = WAVE_FORMAT_PCM;
-		info.wf.nAvgBytesPerSec = 44100 * 4;
-		m_pSoundBuf.reset(new RingBuffer(info.wf.nAvgBytesPerSec));
-		m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec * 3, GetHWND());
-		m_sound.Start();
-
-		int n;
-		DWORD t1, t2;
-		m_decoder.DecodeAudio(m_pSoundBuf.get(), n);
-		if (n > 0 && m_sound.Write(m_pSoundBuf.get(), t1, t2) != 0)
-		{
-			SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
-		}
-
 		if(m_decoder.HasAudio())
 		{
+			PCMWAVEFORMAT info;
+			info.wBitsPerSample = 16;
+			info.wf.nBlockAlign = 4;
+			info.wf.nChannels = 2;
+			info.wf.nSamplesPerSec = 44100;
+			info.wf.wFormatTag = WAVE_FORMAT_PCM;
+			info.wf.nAvgBytesPerSec = 44100 * 4;
+			m_pSoundBuf.reset(new RingBuffer(info.wf.nAvgBytesPerSec));
+			m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec * 3, GetHWND());
+			m_sound.Start();
+
+			int n;
+			DWORD t1, t2;
+			m_decoder.DecodeAudio(m_pSoundBuf.get(), n);
+			if (n > 0 && m_sound.Write(m_pSoundBuf.get(), t1, t2) != 0)
+			{
+				SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
+			}
 			m_pSync.reset(new CSyncVideoByAudioTime());
 		}
 		else
