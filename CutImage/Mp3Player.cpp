@@ -13,6 +13,7 @@
 CSound::CSound()
 {
 	bPlaying_=false;
+	bPause_ = false;
 	lpDS_=NULL;
 	lpDSBSecond_=NULL;
 	lpDSBPrimary_ = NULL;
@@ -27,6 +28,7 @@ CSound::CSound()
 	dwLockOffset_=0;
 	dwLockLen_=0;
 	uliTotalDataLen_ = 0;
+	dwUnPlayed_ = 0;
 }
 
 CSound::~CSound()
@@ -144,24 +146,35 @@ int CSound::Start()
 		return TRUE;
 	}
 
-	hr=lpDSBSecond_->Play(0,0,DSCBSTART_LOOPING);
+	hr = lpDSBSecond_->Play(0, 0, DSBPLAY_LOOPING);
 	if(hr==DSERR_BUFFERLOST)
 	{
 		hr=lpDSBSecond_->Restore();
 		if(FAILED(hr))
 			return FALSE;
 	}
-	ClearBuffer(0);
+	if (!bPause_)
+		ClearBuffer(0);
 	bPlaying_=true;
+	bPause_ = false;
 	return TRUE;
 }
 
-void CSound::Stop()
+void CSound::Stop(bool pause)
 {
 	if(lpDSBSecond_ && bPlaying_)
 	{
 		lpDSBSecond_->Stop();
-		bPlaying_=FALSE;
+		bPlaying_ = false;
+		bPause_ = pause;
+		if (bPause_)
+		{
+			dwUnPlayed_ = UnPlayedDataLen();
+		}
+		else
+		{
+			dwUnPlayed_ = 0;
+		}
 	}
 }
 
@@ -294,6 +307,11 @@ DWORD CSound::UnPlayedDataLen()
 {
 	HRESULT hr;
 	DWORD dwTemp, dwPlay;
+
+	if (bPause_)
+	{
+		return dwUnPlayed_;
+	}
 
 	hr = lpDSBSecond_->GetCurrentPosition(&dwPlay, NULL);
 	if (FAILED(hr))

@@ -140,7 +140,7 @@ public:
 	bool Init();
 	void Destroy();
 	int GetAudioData(RingBuffer* pBuf, int want);
-	int GetImageData(RingBuffer* pBuf, int &w, int &h);
+	int GetImageData(RingBuffer* pBuf, FrameInfo& info);
 protected:
 	inline void CacheAudioData();
 	inline void CacheImageData();

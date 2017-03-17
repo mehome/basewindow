@@ -31,10 +31,10 @@ protected:
 	std::unique_ptr<CDirector> m_pDir;
 	std::unique_ptr<RingBuffer> m_pSoundBuf;
 	std::unique_ptr<RingBuffer> m_pCurrImage;
-	int m_iCurrentW;
-	int m_iCurrentH;
+	FrameInfo m_ImageInfo;
 	CDecodeLoop m_decoder;
 	CSound m_sound;
 	CMovieShow* m_pShow;
 	std::unique_ptr<ISyncVideo> m_pSync;
+	std::pair<double, double> m_pairForSyncAV;
 };

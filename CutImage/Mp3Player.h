@@ -19,7 +19,7 @@ public:
 	bool Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLength,HWND hWnd);
 	bool Clear();
 	int Start();
-	void Stop();
+	void Stop(bool pause = false);
 	bool IsPlaying()const { return bPlaying_; }
 	int Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos);
 	int Write(RingBuffer* pBuf, DWORD &dwWriteLen, DWORD& dwWritePos);
@@ -35,6 +35,7 @@ protected:
 	int AvaliableBuffer(DWORD dwWant,DWORD &dwRealWritePos,DWORD &dwAvaliableLength);
 protected:
 	bool bPlaying_;
+	bool bPause_;
 	LPDIRECTSOUND8 lpDS_;
 	LPDIRECTSOUNDBUFFER8 lpDSBSecond_;
 	LPDIRECTSOUNDBUFFER lpDSBPrimary_;
@@ -54,6 +55,7 @@ protected:
 	//写缓冲区时锁定的长度
 	DWORD dwLockLen_;
 	ULONGLONG uliTotalDataLen_;
+	DWORD dwUnPlayed_;
 };
 
 class CWM

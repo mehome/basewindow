@@ -278,7 +278,6 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 	n = min(want, m_iAudioOutRemaind);
 	if (n > 0)
 	{
-		//memcpy(buf, m_pAudioOutBuf, n);
 		pBuf->WriteData((char*)m_pAudioOutBuf, n);
 		len = n;
 		want -= n;
@@ -337,8 +336,7 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 			}
 			else if (packet.stream_index == m_iVideoIndex)
 			{
-				av_packet_unref(&packet);
-				//m_VideoPacket.push(packet);
+				m_VideoPacket.push(packet);
 			}
 		}
 
@@ -380,7 +378,6 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 				return false;
 			outSize = av_samples_get_buffer_size(NULL, m_outAudioParams.channels, res, m_outAudioParams.sample_fmt, 1);
 			n = min(outSize, want);
-			//memcpy(buf + len, m_pAudioOutBuf, n);
 			pBuf->WriteData((char*)m_pAudioOutBuf, n);
 			want -= n;
 			len += n;
@@ -459,8 +456,7 @@ ReadPacket:
 	}
 	else
 	{
-		//m_AudioPacket.push(packet);
-		av_packet_unref(&packet);
+		m_AudioPacket.push(packet);
 	}
 
 	res = avcodec_receive_frame(m_pVCodecContext, m_pVFrame);
@@ -490,7 +486,6 @@ ReadPacket:
 		info.pts = m_dCurrentPts;
 		if (pBuf && info.dataSize <= pBuf->WriteableBufferLen())
 		{
-			//memcpy(buf, m_aVideoOutBuf[0], len);
 			pBuf->WriteData((char*)m_aVideoOutBuf[0], info.dataSize);
 			m_bCurrentImageNotCopy = false;
 		}
@@ -575,7 +570,7 @@ int CDecodeLoop::Run()
 
 		if (!EndOfFile())
 		{
-			//CacheAudioData();
+			CacheAudioData();
 			CacheImageData();
 		}
 		Sleep(7);
@@ -593,7 +588,7 @@ bool CDecodeLoop::Init()
 	if (HasVideo())
 	{
 		int imageSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, m_pVCodecContext->width, m_pVCodecContext->height, 4);
-		m_pImageBuf.reset(new RingBuffer((16 + imageSize) * 5));
+		m_pImageBuf.reset(new RingBuffer((20 + imageSize) * 4));
 	}
 	m_iCachedImageCount = 0;
 	return CMessageLoop::Init();
@@ -623,29 +618,27 @@ int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 	return done;
 }
 
-int CDecodeLoop::GetImageData(RingBuffer* pBuf, int &w, int &h)
+int CDecodeLoop::GetImageData(RingBuffer* pBuf, FrameInfo& info)
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
 
-	w = h = 0;
+	info.height = info.height = 0;
 	if (m_iCachedImageCount <1)
 	{
 		return 0;
 	}
 	m_pImageBuf->SaveIndexState();
-	if (sizeof(FrameInfo) != m_pImageBuf->ReadData((char*)&m_frameDump, sizeof(FrameInfo)))
+	if (sizeof(FrameInfo) != m_pImageBuf->ReadData((char*)&info, sizeof(FrameInfo)))
 		goto Error;
 
-	w = m_frameDump.width;
-	h = m_frameDump.height;
 	pBuf->SaveIndexState();
-	if (m_frameDump.dataSize != m_pImageBuf->TransferData(pBuf, m_frameDump.dataSize))
+	if (info.dataSize != m_pImageBuf->TransferData(pBuf, info.dataSize))
 	{
 		pBuf->RestoreIndexState();
 		goto Error;
 	}
 	--m_iCachedImageCount;
-	return m_frameDump.dataSize;
+	return info.dataSize;
 Error:
 	m_pImageBuf->RestoreIndexState();
 	return 0;
@@ -670,7 +663,7 @@ __forceinline void CDecodeLoop::CacheImageData()
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
 
-	if (m_iCachedImageCount > 3)
+	if (m_iCachedImageCount > 2)
 		return;
 	if (!DecodeVideo(NULL, m_frameDump))
 	{

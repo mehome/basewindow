@@ -70,7 +70,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("g:\\权力的游戏.Game.of.Thrones.S06E08.中英字幕.WEB-HR.AAC.1024X576.x264.mp4");
+		OpenFile("e:\\1.mp4");
 	}
 
 	if (m_pDir.get())
@@ -140,18 +140,23 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 		m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec * 3, GetHWND());
 		m_sound.Start();
 
-		//int n;
-		//DWORD t1, t2;
-		//m_decoder.DecodeAudio(m_pSoundBuf.get(), n);
-		//if (n > 0 && m_sound.Write(m_pSoundBuf.get(), t1, t2) != 0)
-		//{
-		//	SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
-		//}
+		int n;
+		DWORD t1, t2;
+		m_decoder.DecodeAudio(m_pSoundBuf.get(), n);
+		if (n > 0 && m_sound.Write(m_pSoundBuf.get(), t1, t2) != 0)
 		{
-			LARGE_INTEGER fi, di;
+			SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
+		}
+
+		if(m_decoder.HasAudio())
+		{
+			m_pSync.reset(new CSyncVideoByAudioTime());
+		}
+		else
+		{
+			LARGE_INTEGER fi;
 			fi.QuadPart = 1.0 / m_decoder.GetFrameRate()*m_liFreq.QuadPart;
-			di.QuadPart = 20.0 / 1000.0*m_liFreq.QuadPart;
-			m_pSync.reset(new CSyncVideoByFrameRate(fi, di));
+			m_pSync.reset(new CSyncVideoByFrameRate(fi));
 		}
 		m_decoder.Init();
 	}
@@ -167,35 +172,48 @@ __forceinline void CMovieWindow::MainLoop()
 	{
 		m_liLast.QuadPart = m_liNow.QuadPart;
 
+		Again:
 		if (m_pCurrImage->ReadableBufferLen() < 1)
 		{
-			n = m_decoder.GetImageData(m_pCurrImage.get(), m_iCurrentW, m_iCurrentH);
+			n = m_decoder.GetImageData(m_pCurrImage.get(), m_ImageInfo);
 			if (n == 0)
 			{
-				if (m_iCurrentW*m_iCurrentH * 4 > m_pCurrImage->TotalBufferLen())
+				if (m_ImageInfo.dataSize > m_pCurrImage->TotalBufferLen())
 				{
-					m_pCurrImage->Resize(m_iCurrentW*m_iCurrentH * 4);
+					m_pCurrImage->Resize(m_ImageInfo.dataSize);
 				}
 			}
 		}
 
 		if(m_pCurrImage->ReadableBufferLen() > 0)
 		{
-			if (m_pSync->IsSwitchToNextFrame(m_liNow))
+			if (m_decoder.HasAudio())
 			{
-				m_pShow->UpdateImage(m_pCurrImage.get(), m_iCurrentW, m_iCurrentH);
-				m_pShow->DrawScene();
+				m_pairForSyncAV.first = m_sound.PlayedTime();
+				m_pairForSyncAV.second = m_ImageInfo.pts;
+				n = m_pSync->IsSwitchToNextFrame(&m_pairForSyncAV);
 			}
 			else
 			{
-				Sleep(1);
+				n = m_pSync->IsSwitchToNextFrame(&m_liNow);
+			}
+
+			switch (n)
+			{
+			case ISyncVideo::DoShowThisFrameNow:
+					m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
+					m_pShow->DrawScene();
+					break;
+			case ISyncVideo::DontShowThisFrameNow:
+					break;
+			case ISyncVideo::SkiThisFrame_ShowNext:
+				m_pCurrImage->Reset();
+				goto Again;
 			}
 		}
 	}
-	else
-	{
-		Sleep(1);
-	}
+
+	Sleep(1);
 }
 
 bool CMovieWindow::WriteAudioData()
