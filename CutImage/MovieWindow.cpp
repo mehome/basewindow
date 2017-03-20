@@ -54,6 +54,10 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			KillTimer(hWnd, (UINT_PTR)this);
 		}
 	}
+	else if (message == WM_SIZING || message == WM_MOVING)
+	{
+		MainLoop();
+	}
 	else if (message == WM_CREATE)
 	{
 		RECT r1, r2;
@@ -70,7 +74,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\bing.mp4");
+		OpenFile("e:\\1.flv");
 	}
 
 	if (m_pDir.get())
@@ -149,7 +153,7 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			{
 				SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
 			}
-			m_pSync.reset(new CSyncVideoByAudioTime());
+			m_pSync.reset(new CSyncVideoByAudioTime(1.0/m_decoder.GetFrameRate(), 20.0/1000));
 		}
 		else
 		{

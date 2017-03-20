@@ -29,8 +29,9 @@ protected:
 class CSyncVideoByAudioTime : public ISyncVideo
 {
 public:
-	CSyncVideoByAudioTime();
+	CSyncVideoByAudioTime(double fr, double gap);
 	int IsSwitchToNextFrame(void*);
 protected:
-	double m_dError;
+	double m_dFrameRate;
+	double m_dDisplayGap;
 };

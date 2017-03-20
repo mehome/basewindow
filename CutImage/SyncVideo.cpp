@@ -51,8 +51,9 @@ End:
 	return res;
 }
 
-CSyncVideoByAudioTime::CSyncVideoByAudioTime():
-	m_dError(0)
+CSyncVideoByAudioTime::CSyncVideoByAudioTime(double fr, double gap):
+	m_dFrameRate(fr),
+	m_dDisplayGap(gap)
 {
 }
 
@@ -66,26 +67,17 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 
 	if (d > 0)
 	{
-		if (d < 0.05)
-		{
-			m_dError += d;
-			return  DoShowThisFrameNow;
-		}
+		if (d < abs(pInfo->first + m_dDisplayGap - pInfo->second))
+			return DoShowThisFrameNow;
 		else
-		{
-			return DontShowThisFrameNow;
-		}
+			DontShowThisFrameNow;
 	}
 	else
 	{
 		if (d < -0.5)
 		{
-			m_dError = 0;
 			return SkiThisFrame_ShowNext;
 		}
-
-		m_dError += d;
 		return DoShowThisFrameNow;
 	}
-
 }
