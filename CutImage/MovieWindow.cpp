@@ -74,7 +74,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.flv");
+		OpenFile("e:\\1.mp4");
 	}
 
 	if (m_pDir.get())
@@ -117,21 +117,27 @@ int CMovieWindow::Run()
 
 bool CMovieWindow::OpenFile(const std::string& fileName)
 {
-	if (m_decoder.IsRunning())
-	{
-		m_decoder.Destroy();
-	}
+	m_decoder.Destroy();
 	m_decoder.Clean();
 	m_sound.Stop();
 	m_sound.Clear();
 	KillTimer(GetHWND(), (UINT_PTR)this);
 
+	auto pIo = new CFileMappingIO(fileName);
+	pIo->CreateBuffer(40960);
+	m_decoder.SetCustomIOContext(pIo);
 	if (m_decoder.LoadFile(fileName))
 	{
 		m_decoder.ConfigureAudioOut();
 		m_decoder.ConfigureVideoOut();
 
-		m_pCurrImage.reset(new RingBuffer(1080 * 720 * 4));
+		if (m_decoder.HasVideo())
+		{
+			m_decoder.DecodeVideo(NULL, m_ImageInfo);
+			m_pCurrImage.reset(new RingBuffer(m_ImageInfo.dataSize));
+			m_decoder.DecodeVideo(m_pCurrImage.get(), m_ImageInfo);
+			m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
+		}
 
 		if(m_decoder.HasAudio())
 		{

@@ -47,6 +47,9 @@
     <ClCompile Include="SyncVideo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="AVIOContext.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseWindow.h">
@@ -92,6 +95,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="SyncVideo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVIOContext.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

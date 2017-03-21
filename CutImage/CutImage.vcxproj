@@ -81,6 +81,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AV.cpp" />
+    <ClCompile Include="AVIOContext.cpp" />
     <ClCompile Include="BaseWindow.cpp" />
     <ClCompile Include="CustomStream.cpp" />
     <ClCompile Include="CutImage.cpp" />
@@ -99,6 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AV.h" />
+    <ClInclude Include="AVIOContext.h" />
     <ClInclude Include="BaseWindow.h" />
     <ClInclude Include="CustomStream.h" />
     <ClInclude Include="CutImage.h" />

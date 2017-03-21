@@ -22,6 +22,7 @@ extern "C"
 #include <string>
 #include <queue>
 #include "RingBuffer.h"
+#include "AVIOContext.h"
 
 struct AudioParams
 {
@@ -78,13 +79,14 @@ class CSimpleDecoder
 {
 public:
 	CSimpleDecoder();
-	~CSimpleDecoder();
+	virtual ~CSimpleDecoder();
 	int Interrupt();
 
 	bool HasVideo() { return m_iVideoIndex != -1; }
 	bool HasAudio() { return m_iAudioIndex != -1; }
 	bool LoadFile(std::string fileName);
 	void Clean();
+	void SetCustomIOContext(IIOContext* pIO);
 
 	int ReadPacket(AVPacket* pPacket);
 	bool ConfigureAudioOut(AudioParams* srcAudioParams = NULL);
@@ -100,6 +102,9 @@ public:
 protected:
 	void ReverseCurrentImage();
 protected:
+	int m_iInterrupt;
+	IIOContext* m_pCustomIOContext;
+	AVIOContext* m_pIOContext;
 	AVFormatContext* m_pFormatContext;
 	int m_iVideoIndex;
 	int m_iAudioIndex;

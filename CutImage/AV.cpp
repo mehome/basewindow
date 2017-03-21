@@ -11,6 +11,9 @@ int InterruptCB(void* para)
 }
 
 CSimpleDecoder::CSimpleDecoder():
+	m_iInterrupt(0),
+	m_pCustomIOContext(NULL),
+	m_pIOContext(NULL),
 	m_pFormatContext(NULL),
 	m_iAudioIndex(-1),
 	m_iVideoIndex(-1),
@@ -41,7 +44,7 @@ CSimpleDecoder::~CSimpleDecoder()
 
 int CSimpleDecoder::Interrupt()
 {
-	return 0;
+	return m_iInterrupt;
 }
 
 bool CSimpleDecoder::LoadFile(std::string fileName)
@@ -49,9 +52,22 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 	unsigned int n;
 	AVStream* pStream;
 
+	if (m_iAudioIndex != -1 || m_iVideoIndex != -1)
+	{
+		return false;
+	}
+
 	m_pFormatContext = avformat_alloc_context();
 	m_pFormatContext->interrupt_callback.callback = InterruptCB;
 	m_pFormatContext->interrupt_callback.opaque = this;
+
+	if (m_pCustomIOContext)
+	{
+		assert(m_pCustomIOContext->Buf());
+		m_pIOContext = avio_alloc_context(m_pCustomIOContext->Buf(), m_pCustomIOContext->BufLen(), 0, m_pCustomIOContext, ReadIO, WriteIO, SeekIO);
+		m_pFormatContext->pb = m_pIOContext;
+		AVSEEK_SIZE;
+	}
 
 	n = avformat_open_input(&m_pFormatContext, fileName.c_str(), NULL, NULL);
 	if (n != 0)
@@ -132,11 +148,36 @@ void CSimpleDecoder::Clean()
 	{
 		avcodec_free_context(&m_pVCodecContext);
 	}
+	if (m_pIOContext)
+	{
+		av_freep(&m_pIOContext->buffer);
+		av_freep(&m_pIOContext);
+	}
+	if (m_pCustomIOContext)
+	{
+		m_pCustomIOContext->Reset();
+		delete m_pCustomIOContext;
+		m_pCustomIOContext = NULL;
+	}
 	if (m_pFormatContext)
 		avformat_close_input(&m_pFormatContext);
 	m_bEndOf = false;
 	m_iVideoIndex = -1;
 	m_iAudioIndex = -1;
+}
+
+void CSimpleDecoder::SetCustomIOContext(IIOContext* pIO)
+{
+	if (m_iAudioIndex != -1 || m_iVideoIndex != -1)
+	{
+		return;
+	}
+	if (m_pCustomIOContext)
+	{
+		delete m_pCustomIOContext;
+		m_pCustomIOContext = NULL;
+	}
+	m_pCustomIOContext = pIO;
 }
 
 int CSimpleDecoder::ReadPacket(AVPacket* pPacket)
@@ -596,12 +637,14 @@ bool CDecodeLoop::Init()
 
 void CDecodeLoop::Destroy()
 {
+	m_iInterrupt = 1;
 	CMessageLoop::Destroy();
 	if (WaitForSingleObject(m_hThread, 200) == WAIT_TIMEOUT)
 	{
 		TerminateThread(m_hThread, -1);
 	}
 	Clean();
+	m_iInterrupt = 0;
 } 
 
 int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
