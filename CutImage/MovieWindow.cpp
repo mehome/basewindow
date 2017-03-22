@@ -35,6 +35,7 @@ CMovieWindow::CMovieWindow()
 {
 	QueryPerformanceFrequency(&m_liFreq);
 	m_dRefreshGap = 1.0 / 50.0;
+	m_iPlayStatue = 0;
 }
 
 CMovieWindow::~CMovieWindow()
@@ -59,6 +60,10 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	{
 		MainLoop();
 	}
+	else if (message == WM_LBUTTONDOWN)
+	{
+		Pause();
+	}
 	else if (message == WM_CREATE)
 	{
 		RECT r1, r2;
@@ -75,7 +80,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.flv");
+		OpenFile("e:\\1.mp4");
 	}
 
 	if (m_pDir.get())
@@ -123,6 +128,7 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 	m_sound.Stop();
 	m_sound.Clear();
 	KillTimer(GetHWND(), (UINT_PTR)this);
+	m_iPlayStatue = 0;
 
 	auto pIo = new CFileMappingIO(fileName);
 	pIo->CreateBuffer(40960);
@@ -177,8 +183,35 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 		}
 		m_decoder.Init();
 	}
+	m_iPlayStatue = 1;
 
-	return false;
+	return true;
+}
+
+void CMovieWindow::Pause()
+{
+	if (m_iPlayStatue == 0)
+		return;
+	if (1 == m_iPlayStatue)
+	{
+		if (m_decoder.HasAudio())
+		{
+			m_sound.Stop(true);
+		}
+		m_pSync->PausePlay();
+		m_iPlayStatue = 2;
+		//pause
+	}
+	else if (2==m_iPlayStatue)
+	{
+		if (m_decoder.HasAudio())
+		{
+			m_sound.Start();
+		}
+		m_pSync->PausePlay();
+		m_iPlayStatue = 1;
+		//resume
+	}
 }
 
 __forceinline void CMovieWindow::MainLoop()

@@ -20,6 +20,7 @@ public:
 	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
 	int Run();
 	bool OpenFile(const std::string& fileName);
+	void Pause();
 protected:
 	inline void MainLoop();
 	bool WriteAudioData();
@@ -38,4 +39,5 @@ protected:
 	CMovieShow* m_pShow;
 	std::unique_ptr<ISyncVideo> m_pSync;
 	std::pair<double, double> m_pairForSyncAV;
+	int m_iPlayStatue;
 };

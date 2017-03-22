@@ -21,6 +21,7 @@ public:
 	int Start();
 	void Stop(bool pause = false);
 	bool IsPlaying()const { return bPlaying_; }
+	bool IsPause()const { return bPause_; }
 	int Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos);
 	int Write(RingBuffer* pBuf, DWORD &dwWriteLen, DWORD& dwWritePos);
 	const WAVEFORMATEX& SoundFormat()const;

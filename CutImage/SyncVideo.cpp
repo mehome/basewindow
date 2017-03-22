@@ -16,6 +16,9 @@ CSyncVideoByFrameRate::CSyncVideoByFrameRate(LARGE_INTEGER frameInterval)
 
 int CSyncVideoByFrameRate::IsSwitchToNextFrame(void* now)
 {
+	if (m_bPausePlay)
+		return DontShowThisFrameNow;
+
 	LARGE_INTEGER d;
 	int res(DontShowThisFrameNow);
 
@@ -59,6 +62,9 @@ CSyncVideoByAudioTime::CSyncVideoByAudioTime(double fr, double gap):
 
 int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 {
+	if (m_bPausePlay)
+		return DontShowThisFrameNow;
+
 	double d;
 	std::pair<double, double>* pInfo = static_cast<std::pair<double, double>*>(now);
 

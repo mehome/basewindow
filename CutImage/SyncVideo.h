@@ -9,8 +9,12 @@ public:
 		DoShowThisFrameNow,
 		SkiThisFrame_ShowNext
 	};
+	ISyncVideo() { m_bPausePlay = false; }
 	virtual ~ISyncVideo() {}
 	virtual int IsSwitchToNextFrame(void*) = 0;
+	void PausePlay() { m_bPausePlay = !m_bPausePlay; }
+protected:
+	bool m_bPausePlay;
 };
 
 class CSyncVideoByFrameRate : public ISyncVideo
