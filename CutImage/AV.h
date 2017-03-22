@@ -98,7 +98,7 @@ public:
 
 	int64_t GetDurationAll();
 	double GetFrameRate();
-	bool EndOfFile() { return m_bEndOf; }
+	bool EndOfFile() { return m_bEndOf && m_VideoPacket.empty() && m_AudioPacket.empty(); }
 protected:
 	void ReverseCurrentImage();
 protected:

@@ -99,7 +99,7 @@ void CFileMappingIO::Reset()
 
 int CFileMappingIO::ReadIO(uint8_t* buf, int size)
 {
-	if ((ULONGLONG)(size + m_iCurrentPos) <= m_liFileSize.QuadPart)
+	if ((LONGLONG)(size + m_iCurrentPos) <= m_liFileSize.QuadPart)
 	{
 		memcpy(buf, m_pData + m_iCurrentPos, size);
 		m_iCurrentPos += size;

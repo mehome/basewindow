@@ -34,6 +34,7 @@ void CMovieShow::UpdateImage(RingBuffer*p, int w, int h)
 CMovieWindow::CMovieWindow()
 {
 	QueryPerformanceFrequency(&m_liFreq);
+	m_dRefreshGap = 1.0 / 50.0;
 }
 
 CMovieWindow::~CMovieWindow()
@@ -74,7 +75,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mp4");
+		OpenFile("e:\\1.flv");
 	}
 
 	if (m_pDir.get())
@@ -91,7 +92,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 int CMovieWindow::Run()
 {
 	QueryPerformanceCounter(&m_liLast);
-	m_liInterval.QuadPart = LONGLONG(20.0 / 1000 * m_liFreq.QuadPart);
+	m_liInterval.QuadPart = LONGLONG(m_dRefreshGap * m_liFreq.QuadPart);
 
 	MSG msg;
 	while (true)
@@ -159,7 +160,14 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			{
 				SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
 			}
-			m_pSync.reset(new CSyncVideoByAudioTime(1.0/m_decoder.GetFrameRate(), 20.0/1000));
+
+			if (m_decoder.HasVideo())
+			{
+				m_dRefreshGap = min(m_dRefreshGap, 1.0 / m_decoder.GetFrameRate() / 2);
+				if (m_dRefreshGap < 0.002)
+					m_dRefreshGap = 0.002;
+			}
+			m_pSync.reset(new CSyncVideoByAudioTime(1.0 / m_decoder.GetFrameRate(), m_dRefreshGap));
 		}
 		else
 		{

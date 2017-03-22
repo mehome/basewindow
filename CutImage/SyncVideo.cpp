@@ -10,8 +10,8 @@ CSyncVideoByFrameRate::CSyncVideoByFrameRate(LARGE_INTEGER frameInterval)
 	LARGE_INTEGER fre;
 	QueryPerformanceFrequency(&fre);
 
-	m_liMaxDisplay.QuadPart = 0.5*fre.QuadPart;
-	m_liMinDisplay.QuadPart = 0.01*fre.QuadPart;
+	m_liMaxDisplay.QuadPart = (LONGLONG)(0.5*fre.QuadPart);
+	m_liMinDisplay.QuadPart = (LONGLONG)(0.01*fre.QuadPart);
 }
 
 int CSyncVideoByFrameRate::IsSwitchToNextFrame(void* now)
@@ -70,7 +70,7 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 		if (d < abs(pInfo->first + m_dDisplayGap - pInfo->second))
 			return DoShowThisFrameNow;
 		else
-			DontShowThisFrameNow;
+			return DontShowThisFrameNow;
 	}
 	else
 	{

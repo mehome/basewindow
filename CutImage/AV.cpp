@@ -117,6 +117,17 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 
 void CSimpleDecoder::Clean()
 {
+	while (!m_VideoPacket.empty())
+	{
+		av_packet_unref(&m_VideoPacket.front());
+		m_VideoPacket.pop();
+	}
+	while (!m_AudioPacket.empty())
+	{
+		av_packet_unref(&m_AudioPacket.front());
+		m_AudioPacket.pop();
+	}
+
 	if (m_aVideoOutBuf[0])
 	{
 		av_freep(&m_aVideoOutBuf[0]);

@@ -28,6 +28,7 @@ protected:
 	LARGE_INTEGER m_liLast;
 	LARGE_INTEGER m_liNow;
 	LARGE_INTEGER m_liInterval;
+	double m_dRefreshGap;
 	std::unique_ptr<CDirector> m_pDir;
 	std::unique_ptr<RingBuffer> m_pSoundBuf;
 	std::unique_ptr<RingBuffer> m_pCurrImage;
