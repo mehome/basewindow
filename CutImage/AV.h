@@ -87,6 +87,8 @@ public:
 	bool LoadFile(std::string fileName);
 	void Clean();
 	void SetCustomIOContext(IIOContext* pIO);
+	virtual bool SeekTime(int64_t pos);
+	double AudioBaseTime() { return m_dCurrentAudioPts; }
 
 	int ReadPacket(AVPacket* pPacket);
 	bool ConfigureAudioOut(AudioParams* srcAudioParams = NULL);
@@ -122,6 +124,7 @@ protected:
 	uint8_t* m_pAudioOutBuf;
 	int m_iAudioOutLen;
 	int m_iAudioOutRemaind;
+	double m_dCurrentAudioPts;
 
 	VideoParams m_outVideoParams;
 	VideoParams m_srcVideoParams;
@@ -130,7 +133,7 @@ protected:
 	int    m_aVideoOutLines[4];
 	bool m_bCurrentImageNotCopy;
 	uint8_t* m_pLineForReverse;
-	double m_dCurrentPts;
+	double m_dCurrentImagePts;
 	double m_dVideotb;
 
 	std::queue<AVPacket> m_AudioPacket;
@@ -144,6 +147,7 @@ public:
 	int Run();
 	bool Init();
 	void Destroy();
+	bool SeekTime(int64_t pos);
 	int GetAudioData(RingBuffer* pBuf, int want);
 	int GetImageData(RingBuffer* pBuf, FrameInfo& info);
 protected:

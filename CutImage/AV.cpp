@@ -26,6 +26,7 @@ CSimpleDecoder::CSimpleDecoder():
 	m_pAudioOutBuf(NULL),
 	m_iAudioOutLen(0),
 	m_iAudioOutRemaind(0),
+	m_dCurrentAudioPts(-1),
 	m_pVSws(NULL),
 	m_bCurrentImageNotCopy(false),
 	m_pLineForReverse(NULL)
@@ -189,6 +190,25 @@ void CSimpleDecoder::SetCustomIOContext(IIOContext* pIO)
 		m_pCustomIOContext = NULL;
 	}
 	m_pCustomIOContext = pIO;
+}
+
+bool CSimpleDecoder::SeekTime(int64_t pos)
+{
+	while (!m_VideoPacket.empty())
+	{
+		av_packet_unref(&m_VideoPacket.front());
+		m_VideoPacket.pop();
+	}
+	while (!m_AudioPacket.empty())
+	{
+		av_packet_unref(&m_AudioPacket.front());
+		m_AudioPacket.pop();
+	}
+	m_bCurrentImageNotCopy = false;
+	m_iAudioOutRemaind = 0;
+	m_dCurrentAudioPts = -1.0;
+
+	return 0 <= avformat_seek_file(m_pFormatContext, -1, 0, pos*AV_TIME_BASE, GetDurationAll()*AV_TIME_BASE, 0);
 }
 
 int CSimpleDecoder::ReadPacket(AVPacket* pPacket)
@@ -396,6 +416,14 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 		res = avcodec_receive_frame(m_pACodecContext, m_pAFrame);
 		if (res == 0)
 		{
+			if (m_dCurrentAudioPts < 0)
+			{
+				if (m_pAFrame->pts != AV_NOPTS_VALUE)
+				{
+					m_dCurrentAudioPts = m_pAFrame->pts * av_q2d(m_pACodecContext->time_base);
+				}
+			}
+
 			bWaitOtherSetp = false;
 			thisFrameChannelLayout =
 				(m_pAFrame->channel_layout && av_frame_get_channels(m_pAFrame) == av_get_channel_layout_nb_channels(m_pAFrame->channel_layout)) ?
@@ -515,7 +543,7 @@ ReadPacket:
 	if (0 == res)
 	{
 		pts = av_frame_get_best_effort_timestamp(m_pVFrame);
-		m_dCurrentPts = pts == AV_NOPTS_VALUE ? NAN : pts*m_dVideotb;
+		m_dCurrentImagePts = pts == AV_NOPTS_VALUE ? NAN : pts*m_dVideotb;
 		if (m_pVFrame->format != m_srcVideoParams.fmt ||
 			m_pVFrame->width != m_srcVideoParams.width ||
 			m_pVFrame->height != m_srcVideoParams.heigh ||
@@ -535,7 +563,7 @@ ReadPacket:
 		info.dataSize = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
 		info.width = m_outVideoParams.width;
 		info.height = res;
-		info.pts = m_dCurrentPts;
+		info.pts = m_dCurrentImagePts;
 		if (pBuf && info.dataSize <= pBuf->WriteableBufferLen())
 		{
 			pBuf->WriteData((char*)m_aVideoOutBuf[0], info.dataSize);
@@ -656,7 +684,27 @@ void CDecodeLoop::Destroy()
 	}
 	Clean();
 	m_iInterrupt = 0;
-} 
+}
+
+bool CDecodeLoop::SeekTime(int64_t pos)
+{
+	CLockGuard<CSimpleLock> guard1(&m_videoLock);
+	CLockGuard<CSimpleLock> guard(&m_audioLock);
+
+	m_pSoundBuf->Reset();
+	m_pImageBuf->Reset();
+	m_iCachedImageCount = 0;
+	if (CSimpleDecoder::SeekTime(pos))
+	{
+		DecodeVideo(m_pImageBuf.get(), this->m_frameDump);
+		int len;
+		return DecodeAudio(this->m_pSoundBuf.get(), len);
+	}
+	else
+	{
+		return false;
+	}
+}
 
 int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 {

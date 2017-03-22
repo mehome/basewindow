@@ -64,6 +64,11 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	{
 		Pause();
 	}
+	else if (message == WM_RBUTTONDOWN)
+	{
+		m_decoder.SeekTime(100);
+		m_sound.Seek();
+	}
 	else if (message == WM_CREATE)
 	{
 		RECT r1, r2;
@@ -214,6 +219,10 @@ void CMovieWindow::Pause()
 	}
 }
 
+void CMovieWindow::Seek(uint64_t pos)
+{
+}
+
 __forceinline void CMovieWindow::MainLoop()
 {
 	int n;
@@ -239,7 +248,7 @@ __forceinline void CMovieWindow::MainLoop()
 		{
 			if (m_decoder.HasAudio())
 			{
-				m_pairForSyncAV.first = m_sound.PlayedTime();
+				m_pairForSyncAV.first = m_decoder.AudioBaseTime() + m_sound.PlayedTime();
 				m_pairForSyncAV.second = m_ImageInfo.pts;
 				n = m_pSync->IsSwitchToNextFrame(&m_pairForSyncAV);
 			}

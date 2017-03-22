@@ -271,6 +271,8 @@ void CSound::Seek()
 	iWritePos_ = 0;
 	ulBufferLength_ = 0;
 	ulBufferPos_ = 0;
+	dwUnPlayed_ = 0;
+	uliTotalDataLen_ = 0;
 }
 
 bool CSound::SamplePosition(int &samplePos)
