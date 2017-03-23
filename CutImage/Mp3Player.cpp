@@ -29,6 +29,7 @@ CSound::CSound()
 	dwLockLen_=0;
 	uliTotalDataLen_ = 0;
 	dwUnPlayed_ = 0;
+	dAudioBaseTime_ = 0;
 }
 
 CSound::~CSound()
@@ -131,6 +132,7 @@ bool CSound::Clear()
 	ulBufferPos_=0;
 	iWritePos_ = 0;
 	uliTotalDataLen_ = 0;
+	dAudioBaseTime_ = 0;
 
 	return true;
 }
@@ -268,6 +270,7 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 
 void CSound::Seek()
 {
+	ClearBuffer(0);
 	iWritePos_ = 0;
 	ulBufferLength_ = 0;
 	ulBufferPos_ = 0;
@@ -302,7 +305,7 @@ double CSound::PlayedTime()
 	{
 		return 0;
 	}
-	return 1.0*(uliTotalDataLen_ - unplayed) / waveFormat_.nAvgBytesPerSec;
+	return 1.0*(uliTotalDataLen_ - unplayed) / waveFormat_.nAvgBytesPerSec + dAudioBaseTime_;
 }
 
 DWORD CSound::UnPlayedDataLen()

@@ -70,7 +70,7 @@ CFileMappingIO::CFileMappingIO(const std::string& file):
 		m_hFileMapping = CreateFileMapping(m_hFile, NULL, PAGE_READONLY, m_liFileSize.HighPart, m_liFileSize.LowPart, NULL);
 		if (m_hFileMapping)
 		{
-			m_pData = (uint8_t*)MapViewOfFile(m_hFileMapping, FILE_MAP_READ, 0, 0, m_liFileSize.QuadPart);
+			m_pData = (uint8_t*)MapViewOfFile(m_hFileMapping, FILE_MAP_READ, 0, 0, (SIZE_T)(m_liFileSize.QuadPart));
 		}
 	}
 	assert(m_pData != NULL);

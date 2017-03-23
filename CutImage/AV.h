@@ -87,7 +87,7 @@ public:
 	bool LoadFile(std::string fileName);
 	void Clean();
 	void SetCustomIOContext(IIOContext* pIO);
-	virtual bool SeekTime(int64_t pos);
+	virtual bool SeekTime(double target_pos, double currPos);
 	double AudioBaseTime() { return m_dCurrentAudioPts; }
 
 	int ReadPacket(AVPacket* pPacket);
@@ -147,7 +147,7 @@ public:
 	int Run();
 	bool Init();
 	void Destroy();
-	bool SeekTime(int64_t pos);
+	bool SeekTime(double target_pos, double currPos);
 	int GetAudioData(RingBuffer* pBuf, int want);
 	int GetImageData(RingBuffer* pBuf, FrameInfo& info);
 protected:

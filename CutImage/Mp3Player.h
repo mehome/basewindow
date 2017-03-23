@@ -29,6 +29,7 @@ public:
 	bool SamplePosition(int &samplePos);
 	double PlayedTime();
 	DWORD UnPlayedDataLen();
+	void SetAudioBaseTime(double d) { dAudioBaseTime_ = d; }
 protected:
 	// type=0代表清空整个缓冲区
 	void ClearBuffer(int type);
@@ -57,6 +58,7 @@ protected:
 	DWORD dwLockLen_;
 	ULONGLONG uliTotalDataLen_;
 	DWORD dwUnPlayed_;
+	double dAudioBaseTime_;
 };
 
 class CWM

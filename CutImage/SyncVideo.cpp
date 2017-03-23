@@ -73,6 +73,10 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 
 	if (d > 0)
 	{
+		if(d>5)
+		{
+			return SkiThisFrame_ShowNext;
+		}
 		if (d < abs(pInfo->first + m_dDisplayGap - pInfo->second))
 			return DoShowThisFrameNow;
 		else

@@ -66,8 +66,11 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	}
 	else if (message == WM_RBUTTONDOWN)
 	{
-		m_decoder.SeekTime(100);
+		m_decoder.SeekTime(100.0, m_sound.PlayedTime());
 		m_sound.Seek();
+		m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
+		m_pCurrImage->Reset();
+		m_pSoundBuf->Reset();
 	}
 	else if (message == WM_CREATE)
 	{
@@ -85,7 +88,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mp4");
+		OpenFile("e:\\1.mkv");
 	}
 
 	if (m_pDir.get())
@@ -135,9 +138,9 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 	KillTimer(GetHWND(), (UINT_PTR)this);
 	m_iPlayStatue = 0;
 
-	auto pIo = new CFileMappingIO(fileName);
-	pIo->CreateBuffer(40960);
-	m_decoder.SetCustomIOContext(pIo);
+	//auto pIo = new CFileMappingIO(fileName);
+	//pIo->CreateBuffer(40960);
+	//m_decoder.SetCustomIOContext(pIo);
 	if (m_decoder.LoadFile(fileName))
 	{
 		m_decoder.ConfigureAudioOut();
@@ -183,7 +186,7 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 		else
 		{
 			LARGE_INTEGER fi;
-			fi.QuadPart = 1.0 / m_decoder.GetFrameRate()*m_liFreq.QuadPart;
+			fi.QuadPart = (LONGLONG)(1.0 / m_decoder.GetFrameRate()*m_liFreq.QuadPart);
 			m_pSync.reset(new CSyncVideoByFrameRate(fi));
 		}
 		m_decoder.Init();
@@ -248,7 +251,7 @@ __forceinline void CMovieWindow::MainLoop()
 		{
 			if (m_decoder.HasAudio())
 			{
-				m_pairForSyncAV.first = m_decoder.AudioBaseTime() + m_sound.PlayedTime();
+				m_pairForSyncAV.first = m_sound.PlayedTime();
 				m_pairForSyncAV.second = m_ImageInfo.pts;
 				n = m_pSync->IsSwitchToNextFrame(&m_pairForSyncAV);
 			}
