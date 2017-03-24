@@ -69,10 +69,10 @@ struct VideoParams
 
 struct FrameInfo
 {
+	double pts;
 	int width;
 	int height;
 	int dataSize;
-	double pts;
 };
 
 class CSimpleDecoder

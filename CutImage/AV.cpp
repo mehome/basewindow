@@ -3,6 +3,7 @@
 #include <iostream>
 #include <windows.h>
 #include "AV.h"
+#include "Log.h"
 
 int InterruptCB(void* para)
 {
@@ -223,7 +224,6 @@ bool CSimpleDecoder::SeekTime(double target_pos, double currPos)
 		minpts = (int64_t)(currPos*AV_TIME_BASE + 2);
 		maxpts = INT64_MAX;
 	}
-
 	return 0 <= avformat_seek_file(m_pFormatContext, -1, minpts, ts, maxpts, 0);
 }
 
@@ -691,7 +691,7 @@ bool CDecodeLoop::Init()
 	if (HasVideo())
 	{
 		int imageSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, m_pVCodecContext->width, m_pVCodecContext->height, 4);
-		m_pImageBuf.reset(new RingBuffer((20 + imageSize) * 4));
+		m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 4));
 	}
 	m_iCachedImageCount = 0;
 	return CMessageLoop::Init();
@@ -719,8 +719,34 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 	m_iCachedImageCount = 0;
 	if (CSimpleDecoder::SeekTime(pos, currPos))
 	{
-		CacheImageData();
-		CacheAudioData();
+		int n;
+		if (!DecodeAudio(m_pSoundBuf.get(), n))
+		{
+			return false;
+		}
+		double d = m_dCurrentAudioPts - pos;
+		d = abs(d);
+		TRACE1("seek offset %lf*#*#*#*#*#*#\n", d);
+
+		n = 0;
+		while (1)
+		{
+			if (!DecodeVideo(NULL, m_frameDump))
+			{
+				return false;
+			}
+			if (abs(m_frameDump.pts - m_dCurrentAudioPts) > 5)
+			{
+				m_bCurrentImageNotCopy = false;
+			}
+			else
+			{
+				CacheImageData();
+				break;
+			}
+			if (++n > 15)
+				return false;
+		}
 		return true;
 	}
 	return false;

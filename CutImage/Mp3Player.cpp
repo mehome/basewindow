@@ -303,7 +303,7 @@ double CSound::PlayedTime()
 	auto unplayed = UnPlayedDataLen();
 	if (uliTotalDataLen_ == 0 || uliTotalDataLen_ < unplayed)
 	{
-		return 0;
+		return dAudioBaseTime_;
 	}
 	return 1.0*(uliTotalDataLen_ - unplayed) / waveFormat_.nAvgBytesPerSec + dAudioBaseTime_;
 }

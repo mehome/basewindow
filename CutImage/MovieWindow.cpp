@@ -1,4 +1,5 @@
 #include "MovieWindow.h"
+#include <windowsx.h>
 
 bool CMovieShow::Init()
 {
@@ -66,11 +67,13 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	}
 	else if (message == WM_RBUTTONDOWN)
 	{
-		m_decoder.SeekTime(100.0, m_sound.PlayedTime());
+		int x = GET_X_LPARAM(lParam);
+		m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x/m_ImageInfo.width, m_sound.PlayedTime());
 		m_sound.Seek();
 		m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
 		m_pCurrImage->Reset();
 		m_pSoundBuf->Reset();
+		WriteAudioData();
 	}
 	else if (message == WM_CREATE)
 	{
@@ -88,7 +91,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mkv");
+		OpenFile("e:\\1.flv");
 	}
 
 	if (m_pDir.get())
@@ -178,8 +181,8 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			if (m_decoder.HasVideo())
 			{
 				m_dRefreshGap = min(m_dRefreshGap, 1.0 / m_decoder.GetFrameRate() / 2);
-				if (m_dRefreshGap < 0.002)
-					m_dRefreshGap = 0.002;
+				if (m_dRefreshGap < 0.01)
+					m_dRefreshGap = 0.01;
 			}
 			m_pSync.reset(new CSyncVideoByAudioTime(1.0 / m_decoder.GetFrameRate(), m_dRefreshGap));
 		}
@@ -222,10 +225,6 @@ void CMovieWindow::Pause()
 	}
 }
 
-void CMovieWindow::Seek(uint64_t pos)
-{
-}
-
 __forceinline void CMovieWindow::MainLoop()
 {
 	int n;
@@ -263,11 +262,11 @@ __forceinline void CMovieWindow::MainLoop()
 			switch (n)
 			{
 			case ISyncVideo::DoShowThisFrameNow:
-					m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
-					m_pShow->DrawScene();
-					break;
+				m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
+				m_pShow->DrawScene();
+				break;
 			case ISyncVideo::DontShowThisFrameNow:
-					break;
+				break;
 			case ISyncVideo::SkiThisFrame_ShowNext:
 				m_pCurrImage->Reset();
 				goto Again;

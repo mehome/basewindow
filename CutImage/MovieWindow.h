@@ -21,7 +21,6 @@ public:
 	int Run();
 	bool OpenFile(const std::string& fileName);
 	void Pause();
-	void Seek(uint64_t pos);
 protected:
 	inline void MainLoop();
 	bool WriteAudioData();
