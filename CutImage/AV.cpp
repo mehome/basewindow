@@ -717,6 +717,9 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 	m_pSoundBuf->Reset();
 	m_pImageBuf->Reset();
 	m_iCachedImageCount = 0;
+
+	double offset = pos - currPos;
+	double d;
 	if (CSimpleDecoder::SeekTime(pos, currPos))
 	{
 		int n;
@@ -724,9 +727,7 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 		{
 			return false;
 		}
-		double d = m_dCurrentAudioPts - pos;
-		d = abs(d);
-		TRACE1("seek offset %lf*#*#*#*#*#*#\n", d);
+		TRACE1("seek offset %lf*#*#*#*#*#*#\n", m_dCurrentAudioPts - pos);
 
 		n = 0;
 		while (1)
@@ -735,17 +736,53 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 			{
 				return false;
 			}
-			if (abs(m_frameDump.pts - m_dCurrentAudioPts) > 5)
+
+			d = m_frameDump.pts - m_dCurrentAudioPts;
+			TRACE1("+++++a v offset is %lf\n", d);
+
+			// seek forward
+			if (offset >= 0)
 			{
-				m_bCurrentImageNotCopy = false;
+				if (d < -5.0 )
+				{
+					m_bCurrentImageNotCopy = false;
+				}
+				else
+				{
+					CacheImageData();
+					break;
+				}
 			}
+			// seek backward
 			else
 			{
-				CacheImageData();
-				break;
+				if (d > 5.0)
+				{
+					m_bCurrentImageNotCopy = false;
+				}
+				else
+				{
+					CacheImageData();
+					break;
+				}
 			}
+
 			if (++n > 15)
+			{
+				m_bEndOf = true;
+				while (!m_VideoPacket.empty())
+				{
+					av_packet_unref(&m_VideoPacket.front());
+					m_VideoPacket.pop();
+				}
+				while (!m_AudioPacket.empty())
+				{
+					av_packet_unref(&m_AudioPacket.front());
+					m_AudioPacket.pop();
+				}
+				assert(0);
 				return false;
+			}
 		}
 		return true;
 	}

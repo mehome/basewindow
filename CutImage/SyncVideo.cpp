@@ -1,5 +1,7 @@
 #include "SyncVideo.h"
+#include <cassert>
 #include <map>
+#include "Log.h"
 
 CSyncVideoByFrameRate::CSyncVideoByFrameRate(LARGE_INTEGER frameInterval)
 {
@@ -73,8 +75,9 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 
 	if (d > 0)
 	{
-		if(d>5)
+		if (d > 1)
 		{
+			assert(0);
 			return SkiThisFrame_ShowNext;
 		}
 		if (d < abs(pInfo->first + m_dDisplayGap - pInfo->second))
@@ -86,6 +89,7 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 	{
 		if (d < -0.5)
 		{
+			TRACE1("video late %lf\n", d);
 			return SkiThisFrame_ShowNext;
 		}
 		return DoShowThisFrameNow;

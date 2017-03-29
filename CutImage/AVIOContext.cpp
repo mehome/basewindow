@@ -1,5 +1,6 @@
 #include "AVIOContext.h"
 #include <cassert>
+#include <limits>
 
 extern "C"
 {
@@ -55,7 +56,9 @@ CFileMappingIO::CFileMappingIO(const std::string& file):
 	m_hFile(NULL),
 	m_hFileMapping(NULL),
 	m_iCurrentPos(0),
-	m_pData(NULL)
+	m_pData(NULL),
+	m_iMapLen(0),
+	m_iMapReadIndex(0)
 {
 	m_hFile = CreateFileA(file.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (m_hFile != INVALID_HANDLE_VALUE)
@@ -70,10 +73,10 @@ CFileMappingIO::CFileMappingIO(const std::string& file):
 		m_hFileMapping = CreateFileMapping(m_hFile, NULL, PAGE_READONLY, m_liFileSize.HighPart, m_liFileSize.LowPart, NULL);
 		if (m_hFileMapping)
 		{
-			m_pData = (uint8_t*)MapViewOfFile(m_hFileMapping, FILE_MAP_READ, 0, 0, (SIZE_T)(m_liFileSize.QuadPart));
+			bool bMapFileRes = MapFile(0);
+			assert(bMapFileRes);
 		}
 	}
-	assert(m_pData != NULL);
 }
 
 CFileMappingIO::~CFileMappingIO()
@@ -99,19 +102,24 @@ void CFileMappingIO::Reset()
 
 int CFileMappingIO::ReadIO(uint8_t* buf, int size)
 {
-	if ((LONGLONG)(size + m_iCurrentPos) <= m_liFileSize.QuadPart)
+	if (!m_pData)
+		return 0;
+	if ((int64_t)(size + m_iMapReadIndex) <= m_iMapLen)
 	{
-		memcpy(buf, m_pData + m_iCurrentPos, size);
+		memcpy(buf, m_pData + m_iMapReadIndex, size);
 		m_iCurrentPos += size;
+		m_iMapReadIndex += size;
 		return size;
 	}
 	else
 	{
-		size_t s = (size_t)(m_liFileSize.QuadPart - m_iCurrentPos);
-		memcpy(buf, m_pData + m_iCurrentPos, s);
-		m_iCurrentPos = (uint64_t)m_liFileSize.QuadPart;
+		auto s = m_iMapLen - m_iMapReadIndex;
+		memcpy(buf, m_pData + m_iMapReadIndex, (size_t)s);
+		m_iCurrentPos += s;
+		MapFile(m_iCurrentPos);
 		return s;
 	}
+
 }
 
 int64_t CFileMappingIO::SeekIO(int64_t offset, int whence)
@@ -124,27 +132,76 @@ int64_t CFileMappingIO::SeekIO(int64_t offset, int whence)
 		break;
 	case 1:
 		if (m_iCurrentPos + offset <= m_liFileSize.QuadPart)
-		{
 			m_iCurrentPos += offset;
-		}
 		else
-		{
 			return -1;
-		}
 		break;
 	case 2:
 		if (m_liFileSize.QuadPart + offset >= 0)
-		{
 			m_iCurrentPos = m_liFileSize.QuadPart + offset;
-		}
 		else
-		{
 			return -1;
-		}
 		break;
 	case 0x10000:
 		return (int64_t)m_liFileSize.QuadPart;
 	}
-
+	if (!MapFile(m_iCurrentPos))
+		return -1;
 	return m_iCurrentPos;
+}
+
+bool CFileMappingIO::MapFile(int64_t offset)
+{
+	LARGE_INTEGER li;
+	DWORD offset_high;
+
+	if (m_pData)
+	{
+		if (!UnmapViewOfFile(m_pData))
+			return false;
+		m_pData = NULL;
+	}
+	if (offset == m_liFileSize.QuadPart)
+	{
+		return false;
+	}
+	m_iMapReadIndex = 0;
+
+	SYSTEM_INFO si = { 0 };
+	GetSystemInfo(&si);
+	auto yu = offset%si.dwAllocationGranularity;
+	if (yu)
+	{
+		if (offset >= yu)
+		{
+			offset -= yu;
+			m_iMapReadIndex = yu;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	li.QuadPart = offset;
+	offset_high = (DWORD)li.HighPart;
+	m_iMapLen = m_liFileSize.QuadPart - offset;
+	auto temp = (std::numeric_limits<SIZE_T>::max)();
+	if (m_iMapLen > (int64_t)temp)
+	{
+		m_iMapLen = (int64_t)temp;
+	}
+	while (!m_pData)
+	{
+		m_pData = (uint8_t*)MapViewOfFile(m_hFileMapping, FILE_MAP_READ, offset_high, li.LowPart, (SIZE_T)m_iMapLen);
+		if (!m_pData)
+		{
+			auto error = GetLastError();
+			if (error != 8)
+				return  false;
+			m_iMapLen /= 2;
+		}
+	}
+	
+	return true;
 }

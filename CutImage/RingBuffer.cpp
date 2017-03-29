@@ -3,9 +3,6 @@
 #include <iostream>
 #include <Windows.h>
 
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-
 RingBuffer::RingBuffer(int len, char* pOutsidebuf, int iUseableLen, int iUseableOff)
 	:m_iLen(len),
 	m_iUsableLen(0),

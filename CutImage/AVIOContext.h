@@ -36,10 +36,13 @@ public:
 	void Reset();
 	int ReadIO(uint8_t* buf, int size);
 	int64_t SeekIO(int64_t offset, int whence);
+	bool MapFile(int64_t offset);
 protected:
 	HANDLE m_hFile;
 	HANDLE m_hFileMapping;
 	int64_t m_iCurrentPos;
 	uint8_t* m_pData;
 	LARGE_INTEGER m_liFileSize;
+	int64_t m_iMapLen;
+	int64_t m_iMapReadIndex;
 };

@@ -68,12 +68,20 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	else if (message == WM_RBUTTONDOWN)
 	{
 		int x = GET_X_LPARAM(lParam);
-		m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x/m_ImageInfo.width, m_sound.PlayedTime());
+		KillTimer(GetHWND(), (UINT_PTR)this);
 		m_sound.Seek();
-		m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
-		m_pCurrImage->Reset();
-		m_pSoundBuf->Reset();
-		WriteAudioData();
+		if (m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime()))
+		{
+			m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
+			m_pCurrImage->Reset();
+			m_pSoundBuf->Reset();
+			if (WriteAudioData())
+			{
+				SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
+				m_liLast.QuadPart = 0;
+				MainLoop();
+			}
+		}
 	}
 	else if (message == WM_CREATE)
 	{
@@ -91,7 +99,8 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.flv");
+		//OpenFile("e:\\1.mkv");
+		OpenFile("D:\\BaiduNetdiskDownload\\cn_windows_10_enterprise_x86_dvd_6846962.iso");
 	}
 
 	if (m_pDir.get())
@@ -141,9 +150,9 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 	KillTimer(GetHWND(), (UINT_PTR)this);
 	m_iPlayStatue = 0;
 
-	//auto pIo = new CFileMappingIO(fileName);
-	//pIo->CreateBuffer(40960);
-	//m_decoder.SetCustomIOContext(pIo);
+	auto pIo = new CFileMappingIO(fileName);
+	pIo->CreateBuffer(40960);
+	m_decoder.SetCustomIOContext(pIo);
 	if (m_decoder.LoadFile(fileName))
 	{
 		m_decoder.ConfigureAudioOut();
