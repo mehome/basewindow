@@ -1,6 +1,5 @@
 #include "AVIOContext.h"
 #include <cassert>
-#include <limits>
 
 extern "C"
 {
@@ -70,6 +69,10 @@ CFileMappingIO::CFileMappingIO(const std::string& file):
 		{
 			m_liFileSize.HighPart = static_cast<LONG>(h);
 		}
+		if (m_liFileSize.QuadPart == 0)
+		{
+			return;
+		}
 		m_hFileMapping = CreateFileMapping(m_hFile, NULL, PAGE_READONLY, m_liFileSize.HighPart, m_liFileSize.LowPart, NULL);
 		if (m_hFileMapping)
 		{
@@ -104,7 +107,7 @@ int CFileMappingIO::ReadIO(uint8_t* buf, int size)
 {
 	if (!m_pData)
 		return 0;
-	if ((int64_t)(size + m_iMapReadIndex) <= m_iMapLen)
+	if ((int64_t)(size + m_iMapReadIndex) < m_iMapLen)
 	{
 		memcpy(buf, m_pData + m_iMapReadIndex, size);
 		m_iCurrentPos += size;
@@ -167,37 +170,31 @@ bool CFileMappingIO::MapFile(int64_t offset)
 	}
 	m_iMapReadIndex = 0;
 
-	SYSTEM_INFO si = { 0 };
-	GetSystemInfo(&si);
+	static SYSTEM_INFO si = { 0 };
+	if (si.dwAllocationGranularity == 0)GetSystemInfo(&si);
 	auto yu = offset%si.dwAllocationGranularity;
 	if (yu)
 	{
-		if (offset >= yu)
+		offset -= yu;
+		if (offset < 0)
 		{
-			offset -= yu;
-			m_iMapReadIndex = yu;
+			yu += offset;
+			offset = 0;
 		}
-		else
-		{
-			return false;
-		}
+		m_iMapReadIndex = yu;
 	}
 
 	li.QuadPart = offset;
 	offset_high = (DWORD)li.HighPart;
 	m_iMapLen = m_liFileSize.QuadPart - offset;
-	auto temp = (std::numeric_limits<SIZE_T>::max)();
-	if (m_iMapLen > (int64_t)temp)
-	{
-		m_iMapLen = (int64_t)temp;
-	}
+	m_iMapLen = min(si.dwAllocationGranularity * 100, m_iMapLen);
 	while (!m_pData)
 	{
 		m_pData = (uint8_t*)MapViewOfFile(m_hFileMapping, FILE_MAP_READ, offset_high, li.LowPart, (SIZE_T)m_iMapLen);
 		if (!m_pData)
 		{
 			auto error = GetLastError();
-			if (error != 8)
+			if (error != 8 && error != 87)
 				return  false;
 			m_iMapLen /= 2;
 		}

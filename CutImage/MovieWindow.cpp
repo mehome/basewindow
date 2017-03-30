@@ -99,8 +99,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		//OpenFile("e:\\1.mkv");
-		OpenFile("D:\\BaiduNetdiskDownload\\cn_windows_10_enterprise_x86_dvd_6846962.iso");
+		OpenFile("e:\\1.mp4");
 	}
 
 	if (m_pDir.get())
