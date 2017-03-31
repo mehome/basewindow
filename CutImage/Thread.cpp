@@ -206,9 +206,10 @@ bool CMessageLoop::Init()
 	
 	if(m_bRunning)
 		return false;
-
-	m_hThread=(HANDLE)_beginthreadex(NULL, 0, ThreadFunc, this, 0, &m_threadId);
+	m_hThread=(HANDLE)_beginthreadex(NULL, 0, ThreadFunc, this, CREATE_SUSPENDED, &m_threadId);
 	m_bRunning=true;
+	SetThreadPriority(m_hThread, THREAD_PRIORITY_HIGHEST);
+	ResumeThread(m_hThread);
 	return true;
 }
 
