@@ -38,6 +38,7 @@ protected:
 protected:
 	bool bPlaying_;
 	bool bPause_;
+	DSBUFFERDESC dsbd_;
 	LPDIRECTSOUND8 lpDS_;
 	LPDIRECTSOUNDBUFFER8 lpDSBSecond_;
 	LPDIRECTSOUNDBUFFER lpDSBPrimary_;
@@ -147,7 +148,6 @@ protected:
 	int m_iAudioLenDS;
 	CSound m_sound;
 	CWM m_decoder;
-	CSimpleDecoder sd;
 	CFastFourierTransform m_fft;
 
 	CMp3Show* m_pShow;

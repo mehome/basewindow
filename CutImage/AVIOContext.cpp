@@ -69,16 +69,18 @@ CFileMappingIO::CFileMappingIO(const std::string& file):
 		{
 			m_liFileSize.HighPart = static_cast<LONG>(h);
 		}
-		if (m_liFileSize.QuadPart == 0)
+		if (m_liFileSize.QuadPart != 0)
 		{
-			return;
+			m_hFileMapping = CreateFileMapping(m_hFile, NULL, PAGE_READONLY, m_liFileSize.HighPart, m_liFileSize.LowPart, NULL);
+			if (m_hFileMapping)
+			{
+				MapFile(0);
+			}
 		}
-		m_hFileMapping = CreateFileMapping(m_hFile, NULL, PAGE_READONLY, m_liFileSize.HighPart, m_liFileSize.LowPart, NULL);
-		if (m_hFileMapping)
-		{
-			bool bMapFileRes = MapFile(0);
-			assert(bMapFileRes);
-		}
+	}
+	if (!m_pData)
+	{
+		throw std::exception("cannot map file");
 	}
 }
 

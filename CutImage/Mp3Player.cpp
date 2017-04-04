@@ -44,7 +44,7 @@ CSound::~CSound()
 bool CSound::Initialize(WAVEFORMAT wf,WORD wBitsPerSample,DWORD dwBufferLen,HWND hWnd)
 {
 	HRESULT hr;
-	DSBUFFERDESC dsbd;
+	DSBUFFERDESC& dsbd = dsbd_;
 
 	Clear();
 	hr=DirectSoundCreate8(NULL, &lpDS_, NULL);
@@ -207,7 +207,8 @@ int CSound::Write(RingBuffer* pBuf, DWORD &dwWriteLen, DWORD& dwWritePos)
 		}
 
 		dwLockOffset_ = dwWrite;
-		dwLockLen_ = min(pBuf->ReadableBufferLen(), dwBufferLength_);
+		dwLockLen_ = dwBufferLength_ - (dwWrite > dwPlay ? dwWrite - dwPlay : dwPlay - dwWrite);
+		dwLockLen_ = min(pBuf->ReadableBufferLen(), dwLockLen_);
 	}
 	else
 	{
@@ -270,6 +271,16 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 
 void CSound::Seek()
 {
+	LPDIRECTSOUNDBUFFER pTemp;
+	HRESULT hr;
+
+	hr = lpDSBSecond_->Release();
+	hr = lpDS_->CreateSoundBuffer(&dsbd_, &pTemp, NULL);
+	if (SUCCEEDED(hr))
+	{
+		hr = pTemp->QueryInterface(IID_IDirectSoundBuffer8, (void**)&lpDSBSecond_);
+		hr = pTemp->Release();
+	}
 	ClearBuffer(0);
 	iWritePos_ = 0;
 	ulBufferLength_ = 0;
@@ -975,22 +986,11 @@ void CMp3Show::DrawNode(DrawKit* pKit)
 
 bool CMp3PlayerWindow::InitMp3Player()
 {
-	//std::string mp3Name("e:\\1.wma");
-	//if (!m_decoder.Initialize(mp3Name, true))
-	//	return false;
-	//CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
-	//auto info = m_decoder.SoundInfo();
-
-	sd.LoadFile("C:\\Users\\Think\\Desktop\\我的音乐\\The Day You Went Away.mp4");
-	sd.ConfigureAudioOut();
-	sd.ConfigureVideoOut();
-	PCMWAVEFORMAT info;
-	info.wBitsPerSample = 16;
-	info.wf.nBlockAlign = 4;
-	info.wf.nChannels = 2;
-	info.wf.nSamplesPerSec = 44100;
-	info.wf.wFormatTag = WAVE_FORMAT_PCM;
-	info.wf.nAvgBytesPerSec = 44100 * 4;
+	std::string mp3Name("C:\\Users\\Think\\Desktop\\我的音乐\\hide and seek.mp3");
+	if (!m_decoder.Initialize(mp3Name, true))
+		return false;
+	CMessageLoop::RunTaskOnce(new CTask1<CMp3PlayerWindow, std::string, void>(this, &CMp3PlayerWindow::GetAlbum, mp3Name));
+	auto info = m_decoder.SoundInfo();
 
 	m_iAudioLen = info.wf.nAvgBytesPerSec*1; /// 1 second buffer
 	m_iAudioLast = 0;
@@ -1010,8 +1010,7 @@ bool CMp3PlayerWindow::WriteAudioData()
 
 	if (m_iAudioLast < m_iAudioLen / 2)
 	{
-		//len = m_decoder.OutputData(pSoundData + m_iAudioLast, m_iAudioLen - m_iAudioLast);
-		sd.DecodeAudio((uint8_t*)pSoundData + m_iAudioLast, m_iAudioLen - m_iAudioLast, len);
+		len = m_decoder.OutputData(pSoundData + m_iAudioLast, m_iAudioLen - m_iAudioLast);
 		m_iAudioLast += len;
 	}
 	if (m_iAudioLast < 1)

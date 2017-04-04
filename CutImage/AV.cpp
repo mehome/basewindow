@@ -97,6 +97,11 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		}
 	}
 
+	if (m_iAudioIndex == -1 && m_iVideoIndex == -1)
+	{
+		return false;
+	}
+
 	if (m_iVideoIndex != -1)
 	{
 		m_pVCodecContext = avcodec_alloc_context3(NULL);
@@ -714,8 +719,8 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 	CLockGuard<CSimpleLock> guard1(&m_videoLock);
 	CLockGuard<CSimpleLock> guard(&m_audioLock);
 
-	m_pSoundBuf->Reset();
-	m_pImageBuf->Reset();
+	if (m_pSoundBuf)m_pSoundBuf->Reset();
+	if (m_pImageBuf)m_pImageBuf->Reset();
 	m_iCachedImageCount = 0;
 
 	double offset = pos - currPos;
@@ -723,11 +728,14 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 	if (CSimpleDecoder::SeekTime(pos, currPos))
 	{
 		int n;
-		if (!DecodeAudio(m_pSoundBuf.get(), n))
+		if (HasAudio())
 		{
-			return false;
+			if (!DecodeAudio(m_pSoundBuf.get(), n))
+			{
+				return false;
+			}
+			TRACE1("seek offset %lf*#*#*#*#*#*#\n", m_dCurrentAudioPts - pos);
 		}
-		TRACE1("seek offset %lf*#*#*#*#*#*#\n", m_dCurrentAudioPts - pos);
 
 		n = 0;
 		while (1)
@@ -735,6 +743,10 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 			if (!DecodeVideo(NULL, m_frameDump))
 			{
 				return false;
+			}
+			if (!HasAudio())
+			{
+				m_dCurrentAudioPts = m_frameDump.pts;
 			}
 
 			d = m_frameDump.pts - m_dCurrentAudioPts;

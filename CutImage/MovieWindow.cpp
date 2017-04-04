@@ -51,11 +51,13 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 {
 	if (message == WM_TIMER)
 	{
+		bProcessed = true;
 		if (!WriteAudioData() && m_sound.UnPlayedDataLen() < m_sound.SoundFormat().nAvgBytesPerSec*0.4)
 		{
 			m_sound.Stop();
 			KillTimer(hWnd, (UINT_PTR)this);
 		}
+		return 0;
 	}
 	else if (message == WM_SIZING || message == WM_MOVING)
 	{
@@ -68,16 +70,30 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	else if (message == WM_RBUTTONDOWN)
 	{
 		int x = GET_X_LPARAM(lParam);
-		KillTimer(GetHWND(), (UINT_PTR)this);
-		m_sound.Seek();
-		if (m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime()))
+		if (m_decoder.HasAudio())
 		{
-			m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
-			m_pCurrImage->Reset();
-			m_pSoundBuf->Reset();
-			if (WriteAudioData())
+			KillTimer(GetHWND(), (UINT_PTR)this);
+			m_sound.Stop();
+			m_sound.Seek();
+			if (m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime()))
 			{
-				SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
+				m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
+				m_pCurrImage->Reset();
+				m_pSoundBuf->Reset();
+				m_sound.Start();
+				if (WriteAudioData())
+				{
+					SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
+					m_liLast.QuadPart = 0;
+					MainLoop();
+				}
+			}
+		}
+		else
+		{
+			if (m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_ImageInfo.pts))
+			{
+				m_pCurrImage->Reset();
 				m_liLast.QuadPart = 0;
 				MainLoop();
 			}
@@ -99,7 +115,11 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mp4");
+		OpenFile("e:\\Stay.2005.生死停留.双语字幕.HR-HDTV.AC3.1024X576.x264-人人影视制作.mkv");
+	}
+	else if (message == WM_CLOSE)
+	{
+		m_sound.Stop();
 	}
 
 	if (m_pDir.get())
@@ -165,7 +185,7 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
 		}
 
-		if(m_decoder.HasAudio())
+		if (m_decoder.HasAudio())
 		{
 			PCMWAVEFORMAT info;
 			info.wBitsPerSample = 16;
@@ -201,8 +221,8 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			m_pSync.reset(new CSyncVideoByFrameRate(fi));
 		}
 		m_decoder.Init();
+		m_iPlayStatue = 1;
 	}
-	m_iPlayStatue = 1;
 
 	return true;
 }
