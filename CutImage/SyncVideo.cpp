@@ -27,7 +27,7 @@ int CSyncVideoByFrameRate::IsSwitchToNextFrame(void* now)
 	d.QuadPart = ((LARGE_INTEGER*)now)->QuadPart - m_liLast.QuadPart;
 	if (d.QuadPart < m_liMinDisplay.QuadPart)
 	{
-		return 0;
+		return res;
 	}
 
 	if (d.QuadPart > m_liMaxDisplay.QuadPart)
@@ -78,7 +78,7 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 		if (d > 1)
 		{
 			assert(0);
-			return SkiThisFrame_ShowNext;
+			return ShowThisFrame_ShowNext;
 		}
 		if (d < abs(pInfo->first + m_dDisplayGap - pInfo->second))
 			return DoShowThisFrameNow;
@@ -90,7 +90,7 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 		if (d < -0.5)
 		{
 			TRACE1("video late %lf\n", d);
-			return SkiThisFrame_ShowNext;
+			return ShowThisFrame_ShowNext;
 		}
 		return DoShowThisFrameNow;
 	}

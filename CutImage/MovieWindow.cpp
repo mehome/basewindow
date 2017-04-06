@@ -115,7 +115,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\Stay.2005.生死停留.双语字幕.HR-HDTV.AC3.1024X576.x264-人人影视制作.mkv");
+		OpenFile("e:\\1.mkv");
 	}
 	else if (message == WM_CLOSE)
 	{
@@ -295,8 +295,9 @@ __forceinline void CMovieWindow::MainLoop()
 				break;
 			case ISyncVideo::DontShowThisFrameNow:
 				break;
-			case ISyncVideo::SkiThisFrame_ShowNext:
-				m_pCurrImage->Reset();
+			case ISyncVideo::ShowThisFrame_ShowNext:
+				m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
+				m_pShow->DrawScene();
 				goto Again;
 			}
 		}

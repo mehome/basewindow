@@ -431,6 +431,10 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 			{
 				m_VideoPacket.push(packet);
 			}
+			else
+			{
+				av_packet_unref(&packet);
+			}
 		}
 
 		// step 2,½âÂë²¿·Ö
@@ -552,9 +556,13 @@ ReadPacket:
 				return false;
 		}
 	}
-	else
+	else if(packet.stream_index == m_iAudioIndex)
 	{
 		m_AudioPacket.push(packet);
+	}
+	else
+	{
+		av_packet_unref(&packet);
 	}
 
 	res = avcodec_receive_frame(m_pVCodecContext, m_pVFrame);
@@ -696,7 +704,15 @@ bool CDecodeLoop::Init()
 	if (HasVideo())
 	{
 		int imageSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, m_pVCodecContext->width, m_pVCodecContext->height, 4);
-		m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 4));
+		try
+		{
+			m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 5));
+		}
+		catch (std::exception& e)
+		{
+			TRACE("create image buffer: %s.(decode loop)", e.what());
+			m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 3));
+		}
 	}
 	m_iCachedImageCount = 0;
 	return CMessageLoop::Init();
@@ -750,7 +766,7 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 			}
 
 			d = m_frameDump.pts - m_dCurrentAudioPts;
-			TRACE1("+++++a v offset is %lf\n", d);
+			TRACE1("+++++ video - audio offset is %lf\n", d);
 
 			// seek forward
 			if (offset >= 0)
@@ -822,6 +838,7 @@ int CDecodeLoop::GetImageData(RingBuffer* pBuf, FrameInfo& info)
 	info.height = info.height = 0;
 	if (m_iCachedImageCount <1)
 	{
+		TRACE("no cached imaged\n");
 		return 0;
 	}
 	m_pImageBuf->SaveIndexState();
@@ -856,7 +873,7 @@ __forceinline void CDecodeLoop::CacheAudioData()
 
 __forceinline void CDecodeLoop::CacheImageData()
 {
-	if (m_iCachedImageCount > 2)
+	if (m_iCachedImageCount >= 5)
 		return;
 	if (!DecodeVideo(NULL, m_frameDump))
 	{

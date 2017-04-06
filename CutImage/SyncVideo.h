@@ -7,7 +7,7 @@ public:
 	enum {
 		DontShowThisFrameNow,
 		DoShowThisFrameNow,
-		SkiThisFrame_ShowNext
+		ShowThisFrame_ShowNext
 	};
 	ISyncVideo() { m_bPausePlay = false; }
 	virtual ~ISyncVideo() {}

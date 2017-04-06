@@ -173,7 +173,11 @@ bool CFileMappingIO::MapFile(int64_t offset)
 	m_iMapReadIndex = 0;
 
 	static SYSTEM_INFO si = { 0 };
-	if (si.dwAllocationGranularity == 0)GetSystemInfo(&si);
+	if (si.dwAllocationGranularity == 0)
+	{
+		GetSystemInfo(&si);
+		si.dwAllocationGranularity *= 100;
+	}
 	auto yu = offset%si.dwAllocationGranularity;
 	if (yu)
 	{
@@ -189,7 +193,7 @@ bool CFileMappingIO::MapFile(int64_t offset)
 	li.QuadPart = offset;
 	offset_high = (DWORD)li.HighPart;
 	m_iMapLen = m_liFileSize.QuadPart - offset;
-	m_iMapLen = min(si.dwAllocationGranularity * 100, m_iMapLen);
+	m_iMapLen = min(si.dwAllocationGranularity, m_iMapLen);
 	while (!m_pData)
 	{
 		m_pData = (uint8_t*)MapViewOfFile(m_hFileMapping, FILE_MAP_READ, offset_high, li.LowPart, (SIZE_T)m_iMapLen);

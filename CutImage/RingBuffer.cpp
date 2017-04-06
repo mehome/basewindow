@@ -40,7 +40,7 @@ RingBuffer::RingBuffer(int len, char* pOutsidebuf, int iUseableLen, int iUseable
 	else
 	{
 		m_pBuf = (char*)VirtualAlloc(NULL, (SIZE_T)len, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-		assert(m_pBuf != NULL);
+		if(!m_pBuf) throw std::exception("VirtualAlloc failed");
 	}
 }
 
