@@ -295,9 +295,8 @@ __forceinline void CMovieWindow::MainLoop()
 				break;
 			case ISyncVideo::DontShowThisFrameNow:
 				break;
-			case ISyncVideo::ShowThisFrame_ShowNext:
-				m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
-				m_pShow->DrawScene();
+			case ISyncVideo::SkipThisFrame_ShowNext:
+				m_pCurrImage->Reset();
 				goto Again;
 			}
 		}

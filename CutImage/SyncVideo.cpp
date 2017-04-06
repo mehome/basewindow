@@ -58,7 +58,9 @@ End:
 
 CSyncVideoByAudioTime::CSyncVideoByAudioTime(double fr, double gap):
 	m_dFrameRate(fr),
-	m_dDisplayGap(gap)
+	m_dDisplayGap(gap),
+	m_iCountAdvance(0),
+	m_iCountFallBehind(0)
 {
 }
 
@@ -77,9 +79,16 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 	{
 		if (d > 1)
 		{
-			assert(0);
-			return ShowThisFrame_ShowNext;
+			++m_iCountAdvance;
+			if (m_iCountAdvance > 5)
+			{
+				m_iCountAdvance = 0;
+				return SkipThisFrame_ShowNext;
+			}
+			return DontShowThisFrameNow;
 		}
+		
+		m_iCountAdvance = 0;
 		if (d < abs(pInfo->first + m_dDisplayGap - pInfo->second))
 			return DoShowThisFrameNow;
 		else
@@ -87,11 +96,18 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 	}
 	else
 	{
-		if (d < -0.5)
+		if (d < -1.0)
 		{
-			TRACE1("video late %lf\n", d);
-			return ShowThisFrame_ShowNext;
+			++m_iCountFallBehind;
+			if (m_iCountFallBehind > 5)
+			{
+				m_iCountFallBehind = 0;
+				return SkipThisFrame_ShowNext;
+			}
+			return DoShowThisFrameNow;
 		}
+
+		m_iCountFallBehind = 0;
 		return DoShowThisFrameNow;
 	}
 }

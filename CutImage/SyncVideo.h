@@ -7,7 +7,7 @@ public:
 	enum {
 		DontShowThisFrameNow,
 		DoShowThisFrameNow,
-		ShowThisFrame_ShowNext
+		SkipThisFrame_ShowNext
 	};
 	ISyncVideo() { m_bPausePlay = false; }
 	virtual ~ISyncVideo() {}
@@ -38,4 +38,7 @@ public:
 protected:
 	double m_dFrameRate;
 	double m_dDisplayGap;
+	// video to audio
+	int m_iCountAdvance;
+	int m_iCountFallBehind;
 };
