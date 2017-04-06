@@ -1,6 +1,7 @@
 #pragma once
+#include "common.h"
 
-class CTask
+class NodeDeclear CTask
 {
 public:
 	virtual void Do() = 0;

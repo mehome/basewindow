@@ -1,32 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="BaseWindow.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="CutImage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="HttpBase.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Log.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Node.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="View.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="WeatherScene.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Thread.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Task.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Mp3Player.cpp">
@@ -52,31 +34,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BaseWindow.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="CutImage.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="HttpBase.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Log.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Node.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="View.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="WeatherScene.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Thread.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Task.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Mp3Player.h">

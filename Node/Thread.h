@@ -6,10 +6,10 @@
 
 #define WM_Custom_Task WM_USER+1234
 
-void SetThreadName(unsigned int threadId, const char* pName);
-const std::wstring& AppPath();
+void NodeDeclear SetThreadName(unsigned int threadId, const char* pName);
+const NodeDeclear std::wstring& AppPath();
 
-class CSimpleLock
+class NodeDeclear CSimpleLock
 {
 public:
 	CSimpleLock() { InitializeCriticalSection(&m_cs); }
@@ -38,7 +38,7 @@ protected:
 	T* m_pObj;
 };
 
-class CApplication
+class NodeDeclear CApplication
 {
 public:
 	CApplication();
@@ -53,7 +53,7 @@ protected:
 	unsigned int m_threadId;
 };
 
-class CMessageLoop : public CApplication
+class NodeDeclear CMessageLoop : public CApplication
 {
 public:
 	static void RunTaskOnce(CTask* p);

@@ -82,7 +82,6 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 			++m_iCountAdvance;
 			if (m_iCountAdvance > 5)
 			{
-				m_iCountAdvance = 0;
 				return SkipThisFrame_ShowNext;
 			}
 			return DontShowThisFrameNow;
@@ -101,7 +100,6 @@ int CSyncVideoByAudioTime::IsSwitchToNextFrame(void* now)
 			++m_iCountFallBehind;
 			if (m_iCountFallBehind > 5)
 			{
-				m_iCountFallBehind = 0;
 				return SkipThisFrame_ShowNext;
 			}
 			return DoShowThisFrameNow;
