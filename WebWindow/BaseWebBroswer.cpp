@@ -113,6 +113,7 @@ HRESULT CBaseWebBrowser::EmbedBroswerObject(HWND hwnd)
 			pWB2->put_Top(0);
 			pWB2->put_Width(rect.right);
 			pWB2->put_Height(rect.bottom);
+			pWB2->put_Silent(VARIANT_TRUE);
 
 			//¼àÌýÊÂ¼þ
 			if(!m_pWBEvent2)
@@ -166,6 +167,7 @@ HRESULT CBaseWebBrowser::UnEmbedBroswerObject()
 			res=pDoc->QueryInterface(IID_IHTMLDocument2,(void**)&pHTMLDoc2);
 			res=pHTMLDoc2->QueryInterface(IID_ICustomDoc,(void**)&pCustomDoc);
 			pCustomDoc->SetUIHandler(NULL);
+			pWB2->Quit();
 
 			pCustomDoc->Release();
 			pHTMLDoc2->Release();

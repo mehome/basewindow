@@ -52,12 +52,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\ffmpeg_sdk\include;..\Node;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Node;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\debug;.\ffmpeg_sdk\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Node.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -82,27 +82,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AV.cpp" />
-    <ClCompile Include="AVIOContext.cpp" />
-    <ClCompile Include="CustomStream.cpp" />
     <ClCompile Include="CutImage.cpp" />
     <ClCompile Include="HttpBase.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MovieWindow.cpp" />
-    <ClCompile Include="Mp3Player.cpp" />
-    <ClCompile Include="RingBuffer.cpp" />
-    <ClCompile Include="SyncVideo.cpp" />
     <ClCompile Include="WeatherScene.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AV.h" />
-    <ClInclude Include="AVIOContext.h" />
-    <ClInclude Include="CustomStream.h" />
     <ClInclude Include="CutImage.h" />
-    <ClInclude Include="MovieWindow.h" />
-    <ClInclude Include="Mp3Player.h" />
-    <ClInclude Include="RingBuffer.h" />
-    <ClInclude Include="SyncVideo.h" />
     <ClInclude Include="HttpBase.h" />
     <ClInclude Include="WeatherScene.h" />
   </ItemGroup>

@@ -16,9 +16,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	//p->RunWindow();
 
 	//CWebBrowserWindow win(L"C:\\Users\\Administrator.SKY-20150328LBV\\Desktop\\test.html");
-	CWebBrowserWindow win(L"http://news.baidu.com/");
+	CWebBrowserWindow win(L"http://47.93.82.163/hp");
+	//CWebBrowserWindow win(L"e:\\test.html");
+
 	win.InitWindow(hInstance);
-	win.ReSize(500,600,true);
+	win.ReSize(1280,720,true);
 	win.Show();
 	app.Run();
 

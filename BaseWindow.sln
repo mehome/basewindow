@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CutImage", "CutImage\CutIma
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Node", "Node\Node.vcxproj", "{BFD9D160-4CCC-4C15-B1EF-638002582405}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimplePlayer", "SimplePlayer\SimplePlayer.vcxproj", "{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -37,6 +39,14 @@ Global
 		{BFD9D160-4CCC-4C15-B1EF-638002582405}.Release|Win32.Build.0 = Release|Win32
 		{BFD9D160-4CCC-4C15-B1EF-638002582405}.Release|x64.ActiveCfg = Release|x64
 		{BFD9D160-4CCC-4C15-B1EF-638002582405}.Release|x64.Build.0 = Release|x64
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Debug|Win32.Build.0 = Debug|Win32
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Debug|x64.ActiveCfg = Debug|x64
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Debug|x64.Build.0 = Debug|x64
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Release|Win32.ActiveCfg = Release|Win32
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Release|Win32.Build.0 = Release|Win32
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Release|x64.ActiveCfg = Release|x64
+		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -11,27 +11,6 @@
     <ClCompile Include="WeatherScene.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Mp3Player.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="CustomStream.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="AV.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="RingBuffer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="MovieWindow.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="SyncVideo.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="AVIOContext.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CutImage.h">
@@ -41,27 +20,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="WeatherScene.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Mp3Player.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CustomStream.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="AV.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="RingBuffer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MovieWindow.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="SyncVideo.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="AVIOContext.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
