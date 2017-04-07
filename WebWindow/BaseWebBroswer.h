@@ -6,7 +6,7 @@
 #include <Mshtmhst.h>
 #include <ExDisp.h>
 #include <ExDispid.h>
-#include "BaseWindow.h"
+#include <BaseWindow.h>
 
 class CBaseWebBrowser : public IOleClientSite,
 	public IOleInPlaceFrame,

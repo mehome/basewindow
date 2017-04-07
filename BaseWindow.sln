@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Node", "Node\Node.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimplePlayer", "SimplePlayer\SimplePlayer.vcxproj", "{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Node2D", "Node2D\Node2D.vcxproj", "{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -47,6 +49,14 @@ Global
 		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Release|Win32.Build.0 = Release|Win32
 		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Release|x64.ActiveCfg = Release|x64
 		{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}.Release|x64.Build.0 = Release|x64
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Debug|Win32.Build.0 = Debug|Win32
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Debug|x64.ActiveCfg = Debug|x64
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Debug|x64.Build.0 = Debug|x64
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Release|Win32.ActiveCfg = Release|Win32
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Release|Win32.Build.0 = Release|Win32
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Release|x64.ActiveCfg = Release|x64
+		{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

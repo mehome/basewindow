@@ -710,7 +710,7 @@ bool CDecodeLoop::Init()
 		}
 		catch (std::exception& e)
 		{
-			TRACE("create image buffer: %s.(decode loop)", e.what());
+			TRACE1("create image buffer: %s.(decode loop)", e.what());
 			m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 3));
 		}
 	}

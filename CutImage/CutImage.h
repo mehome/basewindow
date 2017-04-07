@@ -1,6 +1,6 @@
 #pragma once
-#include "Node.h"
-#include "BaseWindow.h"
+#include <Node.h>
+#include <BaseWindow.h>
 
 class CircularLayer : public CImageLayer
 {
