@@ -1,4 +1,5 @@
 #include "BaseWebBroswer.h"
+#pragma comment(lib, "version.lib")
 
 class CWBStorage:public IStorage
 {
@@ -113,7 +114,7 @@ HRESULT CBaseWebBrowser::EmbedBroswerObject(HWND hwnd)
 			pWB2->put_Top(0);
 			pWB2->put_Width(rect.right);
 			pWB2->put_Height(rect.bottom);
-			pWB2->put_Silent(VARIANT_TRUE);
+			//pWB2->put_Silent(VARIANT_TRUE);
 
 			//¼àÌýÊÂ¼þ
 			if(!m_pWBEvent2)
@@ -740,7 +741,7 @@ STDMETHODIMP CCustomUIHandler::ShowContextMenu(DWORD dwID, POINT *ppt,IUnknown *
 STDMETHODIMP CCustomUIHandler::GetHostInfo(DOCHOSTUIINFO *pInfo)
 {
 	pInfo->dwDoubleClick = sizeof(DOCHOSTUIINFO);
-	pInfo->dwFlags = DOCHOSTUIFLAG_NO3DBORDER | DOCHOSTUIFLAG_SCROLL_NO;
+	pInfo->dwFlags = DOCHOSTUIFLAG_NO3DBORDER | /*DOCHOSTUIFLAG_SCROLL_NO*/DOCHOSTUIFLAG_FLAT_SCROLLBAR;
 	pInfo->dwDoubleClick = DOCHOSTUIDBLCLK_DEFAULT;
 
 	return S_OK;
@@ -971,7 +972,7 @@ LRESULT CWebBrowserWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LP
 		m_pWebBrowser->AddRef();
 		m_pWebBrowser->EmbedBroswerObject(hWnd);
 		m_pWebBrowser->DisplayHtmlPage(m_szURL);
-		SetTimer(hWnd,1,300,NULL);
+		//SetTimer(hWnd,1,300,NULL);
 		break;
 	case WM_DESTROY:
 		m_pWebBrowser->UnEmbedBroswerObject();
@@ -987,4 +988,79 @@ void CWebBrowserWindow::OpenURL(const std::wstring& url)
 	{
 		m_pWebBrowser->DisplayHtmlPage(url);
 	}
+}
+
+int CWebBrowserWindow::CheckRegister_FeatureBrowserEmulation()
+{
+	std::unique_ptr<wchar_t> buf(new wchar_t[2048]);
+	GetModuleFileNameW(NULL, buf.get(), 2048);
+	std::wstring appName = std::wstring(wcsrchr(buf.get(), L'\\') + 1); // get app name
+
+
+	DWORD verHandle(0), verSize(0), version(0), versionEnum;
+	verSize = GetFileVersionInfoSize(L"mshtml.dll", &verHandle);
+	if (!verSize)
+	{
+		return 0;
+	}
+	if (verSize > 2048)
+	{
+		buf.reset(new wchar_t[verSize]);
+	}
+	if (GetFileVersionInfo(L"mshtml.dll", verHandle, verSize, buf.get()))
+	{
+		UINT   size = 0;
+		LPBYTE lpBuffer = NULL;
+		if (VerQueryValue(buf.get(), L"\\", (VOID FAR* FAR*)&lpBuffer, &size))
+		{
+			if (size)
+			{
+				VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
+				if (verInfo->dwSignature == 0xfeef04bd)
+				{
+					version = (verInfo->dwFileVersionMS >> 16) & 0xffff; // get ie major version
+					//(verInfo->dwFileVersionMS >> 16) & 0xffff,
+					//(verInfo->dwFileVersionMS >> 0) & 0xffff,
+					//(verInfo->dwFileVersionLS >> 16) & 0xffff,
+					//(verInfo->dwFileVersionLS >> 0) & 0xffff
+					if (version == 11)
+						versionEnum = 11001;
+					else if (version == 10)
+						versionEnum = 10001;
+					else if (version == 9)
+						versionEnum = 9999;
+					else if (version == 8)
+						versionEnum = 8888;
+					else 
+						versionEnum = 7000;
+				}
+			}
+		}
+	}
+
+	if (version == 0)
+	{
+		return 0;
+	}
+	HKEY hKey;
+	LSTATUS res;
+	res = RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Internet Explorer\\Main\\FeatureControl\\FEATURE_BROWSER_EMULATION", 0, KEY_QUERY_VALUE| KEY_SET_VALUE, &hKey);
+	if (res != ERROR_SUCCESS)
+	{
+		return 0;
+	}
+	verSize = 2048;
+	res = RegQueryValueEx(hKey, appName.c_str(), NULL, &verHandle/*get type*/, (LPBYTE)buf.get(), &verSize);
+	if (res != ERROR_SUCCESS && res != 2)
+	{
+		RegCloseKey(hKey);
+		return 0;
+	}
+	if (verHandle != REG_DWORD || *((DWORD*)buf.get()) < versionEnum)
+	{
+		res = RegSetValueEx(hKey, appName.c_str(), 0, REG_DWORD, (BYTE*)&versionEnum, 4);
+	}
+	RegCloseKey(hKey);
+
+	return res == ERROR_SUCCESS;
 }

@@ -3,6 +3,8 @@
 #include "Thread.h"
 #include "BaseWindow.h"
 #include "BaseWebBroswer.h"
+
+
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
@@ -14,6 +16,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	//p->InitWindow(hInstance);
 	//p->ReSize(600, 400);
 	//p->RunWindow();
+	CWebBrowserWindow::CheckRegister_FeatureBrowserEmulation();
 
 	//CWebBrowserWindow win(L"C:\\Users\\Administrator.SKY-20150328LBV\\Desktop\\test.html");
 	CWebBrowserWindow win(L"http://47.93.82.163/hp");

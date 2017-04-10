@@ -7,6 +7,7 @@
 #include <ExDisp.h>
 #include <ExDispid.h>
 #include <BaseWindow.h>
+#include <memory>
 
 class CBaseWebBrowser : public IOleClientSite,
 	public IOleInPlaceFrame,
@@ -159,6 +160,7 @@ public:
 	~CWebBrowserWindow();
 	LRESULT CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed);
 	void OpenURL(const std::wstring& url);
+	static int CheckRegister_FeatureBrowserEmulation();
 protected:
 	CBaseWebBrowser* m_pWebBrowser;
 	std::wstring m_szURL;
