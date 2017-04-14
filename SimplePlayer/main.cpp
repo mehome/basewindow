@@ -9,6 +9,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	int nCmdShow)
 {
 	CApplication app;
+	if (SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS))
+	{
+		TRACE("set process priority high.ok");
+	}
 
 	av_register_all();
 	CMovieWindow movieWin;

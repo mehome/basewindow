@@ -46,15 +46,18 @@ RingBuffer::RingBuffer(int len, char* pOutsidebuf, int iUseableLen, int iUseable
 
 RingBuffer::~RingBuffer()
 {
-	if (m_bUseOutsideBuf)
-		return;
-	if (m_pBuf)
-	{
-		VirtualFree(m_pBuf, 0, MEM_RELEASE);
-	}
 	if (m_pSavedIndex)
 	{
 		delete[]m_pSavedIndex;
+	}
+
+	if (m_bUseOutsideBuf)
+	{
+		return;
+	}
+	if (m_pBuf)
+	{
+		VirtualFree(m_pBuf, 0, MEM_RELEASE);
 	}
 }
 
@@ -206,16 +209,26 @@ bool RingBuffer::Resize(int newsize)
 
 	this->SaveIndexState();
 
-	RingBuffer temp(newsize);
-	int u = ReadableBufferLen();
-	transfer = TransferData(&temp, u);
-	if (transfer == u)
+	try
 	{
-		operator=(std::move(temp));
-		return true;
+		RingBuffer temp(newsize);
+		int u = ReadableBufferLen();
+		transfer = TransferData(&temp, u);
+		if (transfer == u)
+		{
+			operator=(std::move(temp));
+			return true;
+		}
+		else
+		{
+			this->RestoreIndexState();
+			return false;
+		}
 	}
-
-	this->RestoreIndexState();
+	catch (...)
+	{
+		this->RestoreIndexState();
+	}
 	return false;
 }
 

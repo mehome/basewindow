@@ -75,7 +75,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			KillTimer(GetHWND(), (UINT_PTR)this);
 			m_sound.Stop();
 			m_sound.Seek();
-			if (m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime()))
+			if (m_decoder.SeekTime(m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime()))
 			{
 				m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
 				m_pCurrImage->Reset();
@@ -115,7 +115,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mkv");
+		OpenFile("e:\\1.flv");
 	}
 	else if (message == WM_CLOSE)
 	{

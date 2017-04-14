@@ -102,12 +102,17 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		return false;
 	}
 
+	int lowres;
 	if (m_iVideoIndex != -1)
 	{
 		m_pVCodecContext = avcodec_alloc_context3(NULL);
 		avcodec_parameters_to_context(m_pVCodecContext, m_pFormatContext->streams[m_iVideoIndex]->codecpar);
 		av_codec_set_pkt_timebase(m_pVCodecContext, m_pFormatContext->streams[m_iVideoIndex]->time_base);
 		m_pVCodec = avcodec_find_decoder(m_pVCodecContext->codec_id);
+		lowres = 0;
+		if (lowres > av_codec_get_max_lowres(m_pVCodec))
+			lowres = av_codec_get_max_lowres(m_pVCodec);
+		av_codec_set_lowres(m_pVCodecContext, lowres);
 		avcodec_open2(m_pVCodecContext, m_pVCodec, NULL);
 		m_dVideotb = av_q2d(m_pFormatContext->streams[m_iVideoIndex]->time_base);
 	}
@@ -117,10 +122,13 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		avcodec_parameters_to_context(m_pACodecContext, m_pFormatContext->streams[m_iAudioIndex]->codecpar);
 		av_codec_set_pkt_timebase(m_pACodecContext, m_pFormatContext->streams[m_iAudioIndex]->time_base);
 		m_pACodec = avcodec_find_decoder(m_pACodecContext->codec_id);
+		lowres = 0;
+		if (lowres > av_codec_get_max_lowres(m_pACodec))
+			lowres = av_codec_get_max_lowres(m_pACodec);
+		av_codec_set_lowres(m_pACodecContext, lowres);
 		avcodec_open2(m_pACodecContext, m_pACodec, NULL);
 	}
 	m_bEndOf = false;
-
 	return true;
 }
 
@@ -229,7 +237,16 @@ bool CSimpleDecoder::SeekTime(double target_pos, double currPos)
 		minpts = (int64_t)(currPos*AV_TIME_BASE + 2);
 		maxpts = INT64_MAX;
 	}
-	return 0 <= avformat_seek_file(m_pFormatContext, -1, minpts, ts, maxpts, 0);
+	auto res = avformat_seek_file(m_pFormatContext, -1, minpts, ts, maxpts, 0);
+	if (0 <= res)
+	{
+		avcodec_flush_buffers(m_pVCodecContext);
+		avcodec_flush_buffers(m_pVCodecContext);
+		//av_frame_unref(m_pAFrame);
+		//av_frame_unref(m_pVFrame);
+		return true;
+	}
+	return false;
 }
 
 int CSimpleDecoder::ReadPacket(AVPacket* pPacket)
@@ -739,8 +756,6 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 	if (m_pImageBuf)m_pImageBuf->Reset();
 	m_iCachedImageCount = 0;
 
-	double offset = pos - currPos;
-	double d;
 	if (CSimpleDecoder::SeekTime(pos, currPos))
 	{
 		int n;
@@ -750,67 +765,16 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 			{
 				return false;
 			}
-			TRACE1("seek offset %lf*#*#*#*#*#*#\n", m_dCurrentAudioPts - pos);
+			TRACE1("seek offset %lfaaaa\n", m_dCurrentAudioPts - pos);
 		}
-
-		n = 0;
-		while (1)
+		if (HasVideo())
 		{
 			if (!DecodeVideo(NULL, m_frameDump))
 			{
 				return false;
 			}
-			if (!HasAudio())
-			{
-				m_dCurrentAudioPts = m_frameDump.pts;
-			}
-
-			d = m_frameDump.pts - m_dCurrentAudioPts;
-			TRACE1("+++++ video - audio offset is %lf\n", d);
-
-			// seek forward
-			if (offset >= 0)
-			{
-				if (d < -5.0 )
-				{
-					m_bCurrentImageNotCopy = false;
-				}
-				else
-				{
-					CacheImageData();
-					break;
-				}
-			}
-			// seek backward
-			else
-			{
-				if (d > 5.0)
-				{
-					m_bCurrentImageNotCopy = false;
-				}
-				else
-				{
-					CacheImageData();
-					break;
-				}
-			}
-
-			if (++n > 15)
-			{
-				m_bEndOf = true;
-				while (!m_VideoPacket.empty())
-				{
-					av_packet_unref(&m_VideoPacket.front());
-					m_VideoPacket.pop();
-				}
-				while (!m_AudioPacket.empty())
-				{
-					av_packet_unref(&m_AudioPacket.front());
-					m_AudioPacket.pop();
-				}
-				assert(0);
-				return false;
-			}
+			TRACE1("seek offset %lfvvvv\n", m_frameDump.pts - pos);
+			CacheImageData();
 		}
 		return true;
 	}

@@ -168,22 +168,21 @@ HRESULT CBaseWebBrowser::UnEmbedBroswerObject()
 			res=pDoc->QueryInterface(IID_IHTMLDocument2,(void**)&pHTMLDoc2);
 			res=pHTMLDoc2->QueryInterface(IID_ICustomDoc,(void**)&pCustomDoc);
 			pCustomDoc->SetUIHandler(NULL);
-			pWB2->Quit();
-
 			pCustomDoc->Release();
 			pHTMLDoc2->Release();
 			pDoc->Release();
+			pWB2->Quit();
 			pWB2->Release();
 		}
 	}
 
-	if(m_pWBEvent2)
+	if (m_pWBEvent2)
 	{
 		dynamic_cast<CWebEventSink*>(m_pWBEvent2)->StopAdvise();
 		m_pWBEvent2->Release();
 	}
 
-	if(m_pOleObject)
+	if (m_pOleObject)
 	{
 		m_pOleObject->Close(OLECLOSE_NOSAVE);
 		m_pOleObject->Release();
@@ -1031,8 +1030,9 @@ int CWebBrowserWindow::CheckRegister_FeatureBrowserEmulation()
 						versionEnum = 9999;
 					else if (version == 8)
 						versionEnum = 8888;
-					else 
-						versionEnum = 7000;
+					else
+						version = 0;
+					// 只有IE8及以上才有FEATURE_BROWSER_EMULATION
 				}
 			}
 		}
@@ -1047,7 +1047,17 @@ int CWebBrowserWindow::CheckRegister_FeatureBrowserEmulation()
 	res = RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Internet Explorer\\Main\\FeatureControl\\FEATURE_BROWSER_EMULATION", 0, KEY_QUERY_VALUE| KEY_SET_VALUE, &hKey);
 	if (res != ERROR_SUCCESS)
 	{
-		return 0;
+		if (res == 2)
+		{
+			res = RegCreateKeyEx(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Internet Explorer\\Main\\FeatureControl\\FEATURE_BROWSER_EMULATION",
+				0, NULL, 0, KEY_WRITE | KEY_QUERY_VALUE, NULL, &hKey, 0);
+			if (res != ERROR_SUCCESS)
+				return 0;
+		}
+		else
+		{
+			return 0;
+		}
 	}
 	verSize = 2048;
 	res = RegQueryValueEx(hKey, appName.c_str(), NULL, &verHandle/*get type*/, (LPBYTE)buf.get(), &verSize);
