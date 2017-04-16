@@ -571,8 +571,8 @@ LRESULT CCutImageWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 {
 	if(message == WM_CREATE)
 	{
-		//InitCutImage();
-		InitWeather();
+		InitCutImage();
+		//InitWeather();
 	}
 
 	if(m_pDir.get())
@@ -611,10 +611,15 @@ void CCutImageWindow::InitCutImage()
 	//m_pDir.reset(new CDirector(pView));
 	//m_pDir->RunScene(new CCutImageScene());
 
-	CGDIView* pView=new CGDIView();  
+	//CGDIView* pView=new CGDIView();  
+	//pView->Init(GetHWND());
+	//m_pDir.reset(new CDirector(pView));
+	//m_pDir->RunScene(new CTestScene());
+
+	Node2DView* pView = new Node2DView();
 	pView->Init(GetHWND());
 	m_pDir.reset(new CDirector(pView));
-	m_pDir->RunScene(new CTestScene());
+	m_pDir->RunScene(new CTestScene2D());
 }
 
 void CCutImageWindow::InitWeather()
@@ -738,5 +743,16 @@ void CTestScene::DrawNode(DrawKit* pKit)
 		DrawText(hMemDC, s.c_str(), s.length(), &r, DT_WORDBREAK);
 	}
 
+
+}
+
+bool CTestScene2D::Init()
+{
+	EnableCustomNCHitTest(false);
+	return true;
+}
+
+void CTestScene2D::DrawNode(DrawKit* pKit)
+{
 
 }

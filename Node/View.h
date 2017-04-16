@@ -73,8 +73,7 @@ protected:
 	unsigned char* pBmpData_;
 	BITMAPINFOHEADER bitmapHeader_;
 	bool m_bRefresh_;
-
-	Gdiplus::Graphics* m_pGraphics;
+	//Gdiplus::Graphics* m_pGraphics;
 };
 
 class NodeDeclear CGDIViewAlpha :public CGDIView

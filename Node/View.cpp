@@ -12,11 +12,9 @@ GdiplusInit::GdiplusInit()
 {
 	Gdiplus::GdiplusStartupInput input;
 	Gdiplus::GdiplusStartup(&m_token, &input, NULL);
-	timeBeginPeriod(1);
 }
 GdiplusInit::~GdiplusInit()
 {
-	timeEndPeriod(1);
 	Gdiplus::GdiplusShutdown(m_token);
 }
 
@@ -36,8 +34,7 @@ CGDIView::CGDIView() :m_Wnd(NULL),
 	m_DC(NULL),
 	m_MemDC(NULL),
 	m_MemBitmap(NULL),
-	m_bRefresh_(false),
-	m_pGraphics(NULL)
+	m_bRefresh_(false)
 {
 }
 
@@ -48,7 +45,8 @@ CGDIView::~CGDIView()
 bool CGDIView::Init(HWND hWnd)
 {
 	assert(IsWindow(hWnd));
-	GdiplusInit::Instance();
+	//GdiplusInit::Instance();
+	timeBeginPeriod(1);
 
 	GetClientRect(hWnd, &m_rectWnd);
 	GetClientRect(GetDesktopWindow(), &m_rectScreen);
@@ -85,18 +83,18 @@ bool CGDIView::Init(HWND hWnd)
 	SetStretchBltMode(m_MemDC, STRETCH_HALFTONE);
 	SetBrushOrgEx(m_MemDC, 0, 0, NULL);
 	SetGraphicsMode(m_MemDC, GM_ADVANCED);
-	m_pGraphics = Gdiplus::Graphics::FromHDC(m_MemDC);
+	//m_pGraphics = Gdiplus::Graphics::FromHDC(m_MemDC);
 
 	return true;
 }
 
 void CGDIView::Clear()
 {
-	if (m_pGraphics)
-	{
-		delete m_pGraphics;
-		m_pGraphics = NULL;
-	}
+	//if (m_pGraphics)
+	//{
+	//	delete m_pGraphics;
+	//	m_pGraphics = NULL;
+	//}
 	if (m_MemBitmap)
 	{
 		DeleteObject(m_MemBitmap);
@@ -114,6 +112,7 @@ void CGDIView::Clear()
 	}
 
 	m_Wnd = NULL;
+	timeEndPeriod(1);
 }
 
 void CGDIView::ClearBuffer()

@@ -1,6 +1,7 @@
 #pragma once
 #include <Node.h>
 #include <BaseWindow.h>
+#include "Node2DView.h"
 
 class CircularLayer : public CImageLayer
 {
@@ -78,6 +79,13 @@ protected:
 };
 
 class CTestScene : public CScene
+{
+public:
+	bool Init();
+	void DrawNode(DrawKit* pKit);
+};
+
+class CTestScene2D : public CScene
 {
 public:
 	bool Init();

@@ -12,6 +12,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimplePlayer", "SimplePlayer\SimplePlayer.vcxproj", "{D3153CA0-C8F2-4AAD-A93D-4F2CE83FB355}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Node2D", "Node2D\Node2D.vcxproj", "{A5EDFC82-E27F-41E1-A5D1-3C77306DC8D7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BFD9D160-4CCC-4C15-B1EF-638002582405} = {BFD9D160-4CCC-4C15-B1EF-638002582405}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

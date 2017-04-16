@@ -115,7 +115,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.flv");
+		OpenFile("e:\\Inception.2010.盗梦空间.双语字幕.HR-HDTV.AC3.1024X576.X264-人人影视制作.mkv");
 	}
 	else if (message == WM_CLOSE)
 	{
