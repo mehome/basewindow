@@ -3,7 +3,7 @@
 #include <iostream>
 #include <windows.h>
 #include "AV.h"
-#include "Log.h"
+#include <Node\Log.h>
 
 int InterruptCB(void* para)
 {

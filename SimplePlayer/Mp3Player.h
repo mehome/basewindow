@@ -1,9 +1,9 @@
 #pragma once
-#include "BaseWindow.h"
-#include "Node.h"
+#include <Node\BaseWindow.h>
+#include <Node\Node.h>
+#include <Node\Thread.h>
+#include <Node\RingBuffer.h>
 #include "AV.h"
-#include "Thread.h"
-#include "RingBuffer.h"
 
 #include <InitGuid.h>
 #include <dsound.h>

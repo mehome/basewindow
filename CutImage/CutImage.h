@@ -1,7 +1,7 @@
 #pragma once
-#include <Node.h>
-#include <BaseWindow.h>
-#include "Node2DView.h"
+#include <Node\Node.h>
+#include <Node\BaseWindow.h>
+#include <Node2D\Node2DView.h>
 
 class CircularLayer : public CImageLayer
 {

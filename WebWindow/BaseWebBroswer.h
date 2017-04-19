@@ -6,7 +6,7 @@
 #include <Mshtmhst.h>
 #include <ExDisp.h>
 #include <ExDispid.h>
-#include <BaseWindow.h>
+#include <Node\BaseWindow.h>
 #include <memory>
 
 class CBaseWebBrowser : public IOleClientSite,

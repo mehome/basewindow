@@ -1,7 +1,6 @@
 #include <Windows.h>
 #include <tchar.h>
-#include "Thread.h"
-#include "BaseWindow.h"
+#include <Node\Thread.h>
 #include "BaseWebBroswer.h"
 
 

@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <string>
 #include "HttpBase.h"
-#include "Log.h"
+#include <Node\Log.h>
 
 HttpGetBase::HttpGetBase(const std::string& url) : url_(url),
 	handleNet_(NULL),

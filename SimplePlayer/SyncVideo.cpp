@@ -1,7 +1,7 @@
 #include "SyncVideo.h"
 #include <cassert>
 #include <map>
-#include "Log.h"
+#include <Node\Log.h>
 
 CSyncVideoByFrameRate::CSyncVideoByFrameRate(LARGE_INTEGER frameInterval)
 {

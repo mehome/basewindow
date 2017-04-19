@@ -21,7 +21,7 @@ extern "C"
 #include <memory>
 #include <string>
 #include <queue>
-#include "RingBuffer.h"
+#include <Node\RingBuffer.h>
 #include "AVIOContext.h"
 
 struct AudioParams
@@ -140,7 +140,7 @@ protected:
 	std::queue<AVPacket> m_VideoPacket;
 };
 
-#include "Thread.h"
+#include <Node\Thread.h>
 class CDecodeLoop : public CSimpleDecoder, public CMessageLoop
 {
 public:

@@ -1,8 +1,8 @@
 #include <Windows.h>
 #include <tchar.h>
 #include "CutImage.h"
-#include "Thread.h"
-#include "Task.h"
+#include <Node\Thread.h>
+#include <Node\Task.h>
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE,
