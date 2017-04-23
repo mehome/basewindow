@@ -45,7 +45,7 @@ CGDIView::~CGDIView()
 bool CGDIView::Init(HWND hWnd)
 {
 	assert(IsWindow(hWnd));
-	//GdiplusInit::Instance();
+	GdiplusInit::Instance();
 	timeBeginPeriod(1);
 
 	GetClientRect(hWnd, &m_rectWnd);

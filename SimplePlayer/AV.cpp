@@ -241,7 +241,7 @@ bool CSimpleDecoder::SeekTime(double target_pos, double currPos)
 	if (0 <= res)
 	{
 		avcodec_flush_buffers(m_pVCodecContext);
-		avcodec_flush_buffers(m_pVCodecContext);
+		avcodec_flush_buffers(m_pACodecContext);
 		//av_frame_unref(m_pAFrame);
 		//av_frame_unref(m_pVFrame);
 		return true;
@@ -569,8 +569,15 @@ ReadPacket:
 			{
 				m_VideoPacket.push(packet);
 			}
+			else if(res == AVERROR_INVALIDDATA)
+			{
+				av_packet_unref(&packet);
+			}
 			else
+			{
+				// AVERROR(EOF) etc
 				return false;
+			}
 		}
 	}
 	else if(packet.stream_index == m_iAudioIndex)

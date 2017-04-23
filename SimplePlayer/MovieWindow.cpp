@@ -74,9 +74,9 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		{
 			KillTimer(GetHWND(), (UINT_PTR)this);
 			m_sound.Stop();
-			m_sound.Seek();
 			if (m_decoder.SeekTime(m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime()))
 			{
+				m_sound.Seek();
 				m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
 				m_pCurrImage->Reset();
 				m_pSoundBuf->Reset();
@@ -115,7 +115,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mp4");
+		OpenFile("e:\\Prometheus.2012.普罗米修斯.国英双语.HR-HDTV.AC3.1024X576-人人影视制作.mkv");
 	}
 	else if (message == WM_CLOSE)
 	{

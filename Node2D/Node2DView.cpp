@@ -21,8 +21,22 @@ bool Node2DView::Init(HWND hWnd)
 	{
 		return false;
 	}
+
 	m_Wnd = hWnd;
 	GetClientRect(hWnd, &m_rectWnd);
+	D2D1_SIZE_U size = D2D1::SizeU(
+		m_rectWnd.right - m_rectWnd.left,
+		m_rectWnd.bottom - m_rectWnd.top
+	);
+	hr = m_pD2DFactory->CreateHwndRenderTarget(
+		D2D1::RenderTargetProperties(),
+		D2D1::HwndRenderTargetProperties(m_Wnd, size),
+		&m_pRenderTarget
+	);
+	if (FAILED(hr))
+	{
+		return false;
+	}
 
 	hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory),
 		reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
