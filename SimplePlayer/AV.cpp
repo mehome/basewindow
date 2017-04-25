@@ -265,10 +265,19 @@ int CSimpleDecoder::ReadPacket(AVPacket* pPacket)
 	return res;
 }
 
-bool CSimpleDecoder::ConfigureAudioOut(AudioParams* pSrcAudioParams)
+bool CSimpleDecoder::ConfigureAudioOut(AudioParams* destAudioParams, AudioParams* pSrcAudioParams)
 {
 	if (m_iAudioIndex == -1)
 		return false;
+
+	if (!destAudioParams)
+	{
+		m_outAudioParams = AudioParams();
+	}
+	else
+	{
+		m_outAudioParams = *destAudioParams;
+	}
 
 	if(!pSrcAudioParams)
 	{
@@ -473,7 +482,7 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 				m_pAFrame->format != m_srcAudioParams.sample_fmt || 
 				!m_pASwr)
 			{
-				if (!ConfigureAudioOut(&AudioParams(m_pAFrame->sample_rate, av_frame_get_channels(m_pAFrame), thisFrameChannelLayout, (AVSampleFormat)m_pAFrame->format)))
+				if (!ConfigureAudioOut(&m_outAudioParams, &AudioParams(m_pAFrame->sample_rate, av_frame_get_channels(m_pAFrame), thisFrameChannelLayout, (AVSampleFormat)m_pAFrame->format)))
 				{
 					return false;
 				}
@@ -667,6 +676,15 @@ double CSimpleDecoder::GetFrameRate()
 	return 0;
 }
 
+int CSimpleDecoder::GetSampleRate()
+{
+	if (m_iAudioIndex != -1)
+	{
+		return m_pACodecContext->sample_rate;
+	}
+	return 0;
+}
+
 void CSimpleDecoder::ReverseCurrentImage()
 {
 	int n = m_pVFrame->height / 2;
@@ -723,7 +741,7 @@ bool CDecodeLoop::Init()
 {
 	if (HasAudio())
 	{
-		m_pSoundBuf.reset(new RingBuffer(44100 * 4 * 3));
+		m_pSoundBuf.reset(new RingBuffer(this->m_outAudioParams.sample_rate * 4 * 3));
 	}
 	if (HasVideo())
 	{
@@ -771,6 +789,11 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 			if (!DecodeAudio(m_pSoundBuf.get(), n))
 			{
 				return false;
+			}
+
+			if (m_dCurrentAudioPts < 0)
+			{
+				m_dCurrentAudioPts = pos;
 			}
 			TRACE1("seek offset %lfaaaa\n", m_dCurrentAudioPts - pos);
 		}

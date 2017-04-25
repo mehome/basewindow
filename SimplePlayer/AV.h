@@ -91,7 +91,7 @@ public:
 	double AudioBaseTime() { return m_dCurrentAudioPts; }
 
 	int ReadPacket(AVPacket* pPacket);
-	bool ConfigureAudioOut(AudioParams* srcAudioParams = NULL);
+	bool ConfigureAudioOut(AudioParams* destAudioParams = NULL, AudioParams* srcAudioParams = NULL);
 	bool ConfigureVideoOut(VideoParams* destVideoParams = NULL, VideoParams* srcVideoParams = NULL);
 	bool DecodeAudio(RingBuffer*pBuf, int& got);
 	bool DecodeAudio(uint8_t *rcv_buf, int buf_want_len, int& got_len);
@@ -100,6 +100,7 @@ public:
 
 	int64_t GetDurationAll();
 	double GetFrameRate();
+	int GetSampleRate();
 	bool EndOfFile() { return m_bEndOf && m_VideoPacket.empty() && m_AudioPacket.empty(); }
 protected:
 	void ReverseCurrentImage();

@@ -69,6 +69,14 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	}
 	else if (message == WM_RBUTTONDOWN)
 	{
+		bool bPause(false);
+		if (m_iPlayStatue == 2)
+		{
+			// 处于暂停中
+			Pause();
+			bPause = true;
+		}
+
 		int x = GET_X_LPARAM(lParam);
 		if (m_decoder.HasAudio())
 		{
@@ -98,6 +106,12 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 				MainLoop();
 			}
 		}
+
+		if (bPause)
+		{
+			// 继续暂停
+			Pause();
+		}
 	}
 	else if (message == WM_CREATE)
 	{
@@ -115,7 +129,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\Prometheus.2012.普罗米修斯.国英双语.HR-HDTV.AC3.1024X576-人人影视制作.mkv");
+		OpenFile("e:\\1.mkv");
 	}
 	else if (message == WM_CLOSE)
 	{
@@ -174,7 +188,9 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 	m_decoder.SetCustomIOContext(pIo);
 	if (m_decoder.LoadFile(fileName))
 	{
-		m_decoder.ConfigureAudioOut();
+		AudioParams outAudioParam;
+		outAudioParam.sample_rate = m_decoder.GetSampleRate();
+		m_decoder.ConfigureAudioOut(&outAudioParam);
 		m_decoder.ConfigureVideoOut();
 
 		if (m_decoder.HasVideo())
@@ -191,11 +207,14 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			info.wBitsPerSample = 16;
 			info.wf.nBlockAlign = 4;
 			info.wf.nChannels = 2;
-			info.wf.nSamplesPerSec = 44100;
+			info.wf.nSamplesPerSec = outAudioParam.sample_rate;
 			info.wf.wFormatTag = WAVE_FORMAT_PCM;
-			info.wf.nAvgBytesPerSec = 44100 * 4;
+			info.wf.nAvgBytesPerSec = outAudioParam.sample_rate * 4;
 			m_pSoundBuf.reset(new RingBuffer(info.wf.nAvgBytesPerSec));
-			m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec * 3, GetHWND());
+			if (!m_sound.Initialize(info.wf, info.wBitsPerSample, info.wf.nAvgBytesPerSec * 3, GetHWND()))
+			{
+				return false;
+			}
 			m_sound.Start();
 
 			int n;
