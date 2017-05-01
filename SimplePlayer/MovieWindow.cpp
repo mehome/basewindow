@@ -129,7 +129,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMovieShow();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\1.mkv");
+		OpenFile("e:\\Prometheus.2012.普罗米修斯.国英双语.HR-HDTV.AC3.1024X576-人人影视制作.mkv");
 	}
 	else if (message == WM_CLOSE)
 	{
@@ -239,7 +239,14 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			fi.QuadPart = (LONGLONG)(1.0 / m_decoder.GetFrameRate()*m_liFreq.QuadPart);
 			m_pSync.reset(new CSyncVideoByFrameRate(fi));
 		}
-		m_decoder.Init();
+
+		if (!m_decoder.Init())
+		{
+			m_sound.Stop();
+			m_sound.Clear();
+			m_decoder.Clean();
+			return false;
+		}
 		m_iPlayStatue = 1;
 	}
 

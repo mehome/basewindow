@@ -92,7 +92,7 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 			m_iVideoIndex = n;
 			break;
 		case AVMEDIA_TYPE_AUDIO:
-			m_iAudioIndex = n;
+			if(m_iAudioIndex == -1)m_iAudioIndex = n;
 			break;
 		}
 	}
@@ -748,12 +748,12 @@ bool CDecodeLoop::Init()
 		int imageSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, m_pVCodecContext->width, m_pVCodecContext->height, 4);
 		try
 		{
-			m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 5));
+			m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 3));
 		}
 		catch (std::exception& e)
 		{
 			TRACE1("create image buffer: %s.(decode loop)", e.what());
-			m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 3));
+			return false;
 		}
 	}
 	m_iCachedImageCount = 0;
@@ -867,7 +867,7 @@ __forceinline void CDecodeLoop::CacheAudioData()
 
 __forceinline void CDecodeLoop::CacheImageData()
 {
-	if (m_iCachedImageCount >= 5)
+	if (m_iCachedImageCount >= 3)
 		return;
 	if (!DecodeVideo(NULL, m_frameDump))
 	{
@@ -875,7 +875,7 @@ __forceinline void CDecodeLoop::CacheImageData()
 	}
 	if (m_frameDump.dataSize+sizeof(FrameInfo) > m_pImageBuf->WriteableBufferLen())
 	{
-		if (!m_pImageBuf->Resize(m_pImageBuf->TotalBufferLen() * 2))
+		if (!m_pImageBuf->Resize(m_pImageBuf->TotalBufferLen() + m_frameDump.dataSize + sizeof(FrameInfo)))
 			return;
 	}
 

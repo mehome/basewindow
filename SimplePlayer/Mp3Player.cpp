@@ -271,16 +271,16 @@ int CSound::Write(void *pData,DWORD dwLen,DWORD &dwWriteLen, DWORD& dwWritePos)
 
 void CSound::Seek()
 {
-	LPDIRECTSOUNDBUFFER pTemp;
-	HRESULT hr;
+	//LPDIRECTSOUNDBUFFER pTemp;
+	//HRESULT hr;
 
-	hr = lpDSBSecond_->Release();
-	hr = lpDS_->CreateSoundBuffer(&dsbd_, &pTemp, NULL);
-	if (SUCCEEDED(hr))
-	{
-		hr = pTemp->QueryInterface(IID_IDirectSoundBuffer8, (void**)&lpDSBSecond_);
-		hr = pTemp->Release();
-	}
+	//hr = lpDSBSecond_->Release();
+	//hr = lpDS_->CreateSoundBuffer(&dsbd_, &pTemp, NULL);
+	//if (SUCCEEDED(hr))
+	//{
+	//	hr = pTemp->QueryInterface(IID_IDirectSoundBuffer8, (void**)&lpDSBSecond_);
+	//	hr = pTemp->Release();
+	//}
 	ClearBuffer(0);
 	iWritePos_ = 0;
 	ulBufferLength_ = 0;
