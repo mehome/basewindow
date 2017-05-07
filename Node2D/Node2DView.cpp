@@ -2,10 +2,33 @@
 
 #define SafeRelease(p) if(p){p->Release(); p=NULL;}
 
+NodeDWrite::NodeDWrite():
+	m_pDWriteFactory(NULL)
+{
+	HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory),
+		reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
+	if (FAILED(hr))
+	{
+		TRACE1("failed DWriteCreateFactory %d", (int)hr);
+		throw std::exception("failed DWriteCreateFactory");
+	}
+}
+
+NodeDWrite::~NodeDWrite()
+{
+	SafeRelease(m_pDWriteFactory);
+}
+
+NodeDWrite& NodeDWrite::Instance()
+{
+	static NodeDWrite static_global_instance;
+	return static_global_instance;
+}
+
 Node2DView::Node2DView():
 	m_pD2DFactory(NULL),
 	m_pRenderTarget(NULL),
-	m_pDWriteFactory(NULL)
+	m_pDWrite(NULL)
 {
 }
 
@@ -38,20 +61,13 @@ bool Node2DView::Init(HWND hWnd)
 		return false;
 	}
 
-	hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory),
-		reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
+	m_pDWrite = &NodeDWrite::Instance();
 
 	return true;
 }
 
 void Node2DView::Clear()
 {
-	SafeRelease(m_pDWriteFactory);
 	SafeRelease(m_pRenderTarget);
 	SafeRelease(m_pD2DFactory);
 }
@@ -90,7 +106,7 @@ void Node2DView::ClearBuffer()
 	{
 		m_pRenderTarget->BeginDraw();
 		m_pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
-		m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Wheat));
+		m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 	}
 	else
 	{

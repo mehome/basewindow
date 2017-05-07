@@ -1,7 +1,7 @@
 #pragma once
 #include <Node\Node.h>
 #include <Node\BaseWindow.h>
-#include <Node2D\Node2DView.h>
+#include <Node2D/Node2D.h>
 
 class CircularLayer : public CImageLayer
 {
@@ -85,9 +85,8 @@ public:
 	void DrawNode(DrawKit* pKit);
 };
 
-class CTestScene2D : public CScene
+class CTestScene2D : public CScene2D
 {
 public:
 	bool Init();
-	void DrawNode(DrawKit* pKit);
 };

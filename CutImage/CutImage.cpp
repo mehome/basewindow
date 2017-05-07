@@ -749,10 +749,12 @@ void CTestScene::DrawNode(DrawKit* pKit)
 bool CTestScene2D::Init()
 {
 	EnableCustomNCHitTest(false);
-	return true;
-}
 
-void CTestScene2D::DrawNode(DrawKit* pKit)
-{
+	CNode2DTextLayer* pText = new CNode2DTextLayer(this);
+	pText->SetText(L"È·¶¨");
+	pText->SetTextColor(D2D1::ColorF::Black);
+	pText->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	pText->CreateTextFormat(L"Î¢ÈíÑÅºÚ", 18);
 
+	return CScene2D::Init();
 }

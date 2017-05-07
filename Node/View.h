@@ -28,6 +28,9 @@ struct win_handle_deleter
 		case 4:
 			VirtualFree(p, 0, MEM_RELEASE);
 			break;
+		case 5:
+			((IUnknown*)p)->Release();
+			break;
 		}
 	}
 };

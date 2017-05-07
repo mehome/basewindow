@@ -46,6 +46,7 @@ private:
 	CNode(const CNode& r);
 	CNode& operator=(const CNode& r);
 	CNode& operator=(CNode&& rr);
+	friend class CScene2D;
 public:
 	explicit CNode(CNode* pParent = NULL);
 	CNode(CNode&& rr);
