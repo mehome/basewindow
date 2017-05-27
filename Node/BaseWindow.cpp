@@ -28,6 +28,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+RECT CBaseWindow::GetAvaliableDestktopArea()
+{
+	RECT area = { 0 };
+	HWND hwnd = FindWindow(L"Shell_TrayWnd", L"");
+	RECT rect;
+	GetWindowRect(hwnd, &rect);
+	if (rect.top != 0)
+	{
+		// 任务栏在下方
+		area.left = 0;
+		area.right = GetSystemMetrics(SM_CXSCREEN);
+		area.top = 0;
+		area.bottom = GetSystemMetrics(SM_CYSCREEN) - (rect.bottom - rect.top);
+	}
+	else
+	{
+		if (rect.left != 0)
+		{
+			// 右方
+			area.top = 0;
+			area.bottom = GetSystemMetrics(SM_CYSCREEN);
+			area.left = 0;
+			area.right = GetSystemMetrics(SM_CXSCREEN) - (rect.right - rect.left);
+		}
+		else if (rect.bottom != GetSystemMetrics(SM_CYSCREEN))
+		{
+			// 上方
+			area.left = 0;
+			area.right = GetSystemMetrics(SM_CXSCREEN);
+			area.top = rect.bottom - rect.top;
+			area.bottom = GetSystemMetrics(SM_CYSCREEN);
+		}
+		else
+		{
+			//左方
+			area.top = 0;
+			area.bottom = GetSystemMetrics(SM_CYSCREEN);
+			area.left = rect.right - rect.left;
+			area.right = GetSystemMetrics(SM_CXSCREEN);
+		}
+	}
+
+	return area;
+}
+
+
 CBaseWindow::CBaseWindow(void):m_hWnd(NULL)
 {
 }
@@ -68,8 +114,9 @@ void CBaseWindow::ReSize(int w,int h, bool bCenterWindow)
 		}
 		else
 		{
-			posx=(GetSystemMetrics(SM_CXSCREEN) - w) /2;
-			posy=(GetSystemMetrics(SM_CYSCREEN) - h) /2;
+			RECT area = GetAvaliableDestktopArea();
+			posx=area.left + ((area.right-area.left) - w) /2;
+			posy=area.top + ((area.bottom-area.top) - h) /2;
 		}
 	}
 	else

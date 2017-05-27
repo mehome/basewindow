@@ -7,6 +7,7 @@ class NodeDeclear CBaseWindow
 {
 	friend LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 public:
+	RECT GetAvaliableDestktopArea();
 	CBaseWindow();
 	~CBaseWindow();
 

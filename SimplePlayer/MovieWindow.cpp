@@ -115,11 +115,11 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	}
 	else if (message == WM_CREATE)
 	{
-		RECT r1, r2;
+		RECT r1, r2, area = GetAvaliableDestktopArea();
 		GetWindowRect(hWnd, &r1);
 		GetClientRect(hWnd, &r2);
-		ReSize(1280 + (r1.right - r1.left) - (r2.right - r2.left),
-			720 + (r1.bottom - r1.top) - (r2.bottom - r2.top),
+		ReSize(min(area.right - area.left, 1280 + (r1.right - r1.left) - (r2.right - r2.left)),
+			min(area.bottom - area.top, 720 + (r1.bottom - r1.top) - (r2.bottom - r2.top)),
 			true);
 		SetWindowText(GetHWND(), TEXT("Movie"));
 

@@ -27,7 +27,7 @@ public:
 	void SetAlignment(DWRITE_TEXT_ALIGNMENT);
 	void SetTextColor(D2D1::ColorF);
 	const std::wstring GetText() { return m_strText; }
-	void SetText(const std::wstring& text) { m_strText = text; }
+	virtual void SetText(const std::wstring& text);
 
 protected:
 	IDWriteTextFormat* m_pTextFormat;
@@ -35,3 +35,15 @@ protected:
 	std::wstring m_strText;
 };
 
+class Node2DDeclear CNode2DTextLayerLayout : public CNode2DTextLayer
+{
+public:
+	explicit CNode2DTextLayerLayout(CNode* parent);
+	~CNode2DTextLayerLayout();
+	bool CreateTextLayout();
+	void SetText(const std::wstring& text);
+	void DrawNode(DrawKit* pDrawKit);
+
+protected:
+	IDWriteTextLayout* m_pTextLayout;
+};

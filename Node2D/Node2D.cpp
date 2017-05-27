@@ -70,7 +70,7 @@ void CNode2DTextLayer::CreateTextFormat(const std::wstring strFontName, float fo
 	hr = NodeDWrite::Instance().GetDWrireFactory()->CreateTextFormat(
 		strFontName.c_str(),
 		NULL,
-		DWRITE_FONT_WEIGHT_LIGHT,
+		DWRITE_FONT_WEIGHT_NORMAL,
 		DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL,
 		fontSize,
@@ -106,4 +106,53 @@ void CNode2DTextLayer::SetTextColor(D2D1::ColorF c)
 	{
 		throw std::exception("failed CreateSolidColorBrush");
 	}
+}
+
+void CNode2DTextLayer::SetText(const std::wstring& text)
+{
+	m_strText = text;
+}
+
+CNode2DTextLayerLayout::CNode2DTextLayerLayout(CNode* parent):
+	CNode2DTextLayer(parent),
+	m_pTextLayout(0)
+{
+}
+
+CNode2DTextLayerLayout::~CNode2DTextLayerLayout()
+{
+	SafeRelease(m_pTextLayout);
+}
+
+bool CNode2DTextLayerLayout::CreateTextLayout()
+{
+	if (!m_pTextFormat || m_strText.empty())
+	{
+		return false;
+	}
+	SafeRelease(m_pTextLayout);
+	auto hr = NodeDWrite::Instance().GetDWrireFactory()->CreateTextLayout(m_strText.c_str(),
+		m_strText.length(), m_pTextFormat, 100, 100, &m_pTextLayout);
+
+	DWRITE_TEXT_METRICS me;
+	m_pTextLayout->GetMetrics(&me);
+	m_pTextLayout->SetMaxHeight(me.height);
+	m_pTextLayout->SetMaxWidth(me.width);
+
+	return SUCCEEDED(hr);
+}
+
+void CNode2DTextLayerLayout::SetText(const std::wstring& text)
+{
+	m_strText = text;
+	CreateTextLayout();
+}
+
+void CNode2DTextLayerLayout::DrawNode(DrawKit* pDrawKit)
+{
+	auto pView = TransNode2DView(pDrawKit->pView);
+	D2D1_POINT_2F pos;
+	pos.x = 0;
+	pos.y = 0;
+	pView->GetRenderTarget()->DrawTextLayout(pos, m_pTextLayout, m_pTextColor);
 }

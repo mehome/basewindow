@@ -21,7 +21,7 @@ extern "C"
 #include <memory>
 #include <string>
 #include <queue>
-#include <Node\RingBuffer.h>
+#include <Node/RingBuffer.h>
 #include "AVIOContext.h"
 
 struct AudioParams
@@ -141,7 +141,7 @@ protected:
 	std::queue<AVPacket> m_VideoPacket;
 };
 
-#include <Node\Thread.h>
+#include <Node/Thread.h>
 class CDecodeLoop : public CSimpleDecoder, public CMessageLoop
 {
 public:
@@ -149,6 +149,7 @@ public:
 	bool Init();
 	void Destroy();
 	bool SeekTime(double target_pos, double currPos);
+
 	int GetAudioData(RingBuffer* pBuf, int want);
 	int GetImageData(RingBuffer* pBuf, FrameInfo& info);
 protected:
