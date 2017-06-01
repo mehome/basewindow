@@ -101,6 +101,7 @@ public:
 	int64_t GetDurationAll();
 	double GetFrameRate();
 	int GetSampleRate();
+	std::pair<int, int>GetFrameSize();
 	bool EndOfFile() { return m_bEndOf && m_VideoPacket.empty() && m_AudioPacket.empty(); }
 protected:
 	void ReverseCurrentImage();

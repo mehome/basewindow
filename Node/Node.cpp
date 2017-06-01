@@ -1514,7 +1514,7 @@ bool CImageLayer::CreateImageLayerByFile(const std::wstring& sFileName)
 	return this->CreateImageLayerByBitmap(pBitmap.get());
 }
 
-bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize)
+bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int bitcount, bool bUseImageSizeAsNodeSize, bool bTopDown)
 {
 	assert(pData != NULL && h > 0 && w > 0 && bitcount >= 24);
 
@@ -1539,7 +1539,7 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 	memset(&m_Info, 0, sizeof(m_Info));
 	m_Info.biSize = sizeof(BITMAPINFOHEADER);
 	m_Info.biPlanes = 1;
-	m_Info.biHeight = h;
+	m_Info.biHeight = bTopDown ? -h : h;
 	m_Info.biWidth = w;
 	m_Info.biBitCount = bitcount;
 	m_Info.biCompression = BI_RGB;
@@ -1573,7 +1573,7 @@ bool CImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int
 	{
 		SetSize(w, h);
 	}
-
+	m_Info.biHeight = h;
 	return true;
 }
 
@@ -1581,16 +1581,32 @@ bool CImageLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsi
 {
 	unsigned char data[16 * 16 * 4];
 	unsigned char* p;
-	for (int i = 0; i < 16 * 16; ++i)
-	{
-		p = data + i * 4;
-		*p = b;
-		*(p + 1) = g;
-		*(p + 2) = r;
-		*(p + 3) = a;
-	}
 
-	return CreateImageLayerByData(data, 16, 16, 32);
+	if (a != 255)
+	{
+		for (int i = 0; i < 16 * 16; ++i)
+		{
+			p = data + i * 4;
+			*p = b;
+			*(p + 1) = g;
+			*(p + 2) = r;
+			*(p + 3) = a;
+		}
+
+		return CreateImageLayerByData(data, 16, 16, 32);
+	}
+	else
+	{
+		for (int i = 0; i < 16 * 16; ++i)
+		{
+			p = data + i * 3;
+			*p = b;
+			*(p + 1) = g;
+			*(p + 2) = r;
+		}
+
+		return CreateImageLayerByData(data, 16, 16, 24);
+	}
 }
 
 bool CImageLayer::ScaleImageInside(int w, int h)

@@ -8,8 +8,14 @@ public:
 	bool Init();
 	void DrawNode(DrawKit* pDrawKit);
 	void UpdateImage(RingBuffer*p, int w, int h);
+	//void CalculateRect();
+	void SetFrameSize(std::pair<int, int> size)
+	{
+		m_pairFrameSize = size;
+	}
 protected:
 	CImageLayer* m_pImage;
+	std::pair<int, int> m_pairFrameSize;
 };
 
 class CMovieWindow : public CBaseWindow, public CApplication

@@ -242,8 +242,6 @@ bool CSimpleDecoder::SeekTime(double target_pos, double currPos)
 	{
 		avcodec_flush_buffers(m_pVCodecContext);
 		avcodec_flush_buffers(m_pACodecContext);
-		//av_frame_unref(m_pAFrame);
-		//av_frame_unref(m_pVFrame);
 		return true;
 	}
 	return false;
@@ -362,7 +360,7 @@ bool CSimpleDecoder::ConfigureVideoOut(VideoParams* destVideoParams, VideoParams
 		m_outVideoParams.width,
 		m_outVideoParams.heigh,
 		m_outVideoParams.fmt,
-		SWS_POINT, NULL, NULL, NULL);
+		SWS_BICUBIC, NULL, NULL, NULL);
 	if (!m_pVSws)
 		return false;
 
@@ -375,14 +373,14 @@ bool CSimpleDecoder::ConfigureVideoOut(VideoParams* destVideoParams, VideoParams
 		return false;
 	}
 
-	if (m_pLineForReverse)
-	{
-		av_freep(&m_pLineForReverse);
-	}
-	if (m_outVideoParams.fmt == AV_PIX_FMT_BGR24)
-	{
-		m_pLineForReverse = (uint8_t*)av_malloc(m_aVideoOutLines[0]);
-	}
+	//if (m_pLineForReverse)
+	//{
+	//	av_freep(&m_pLineForReverse);
+	//}
+	//if (m_outVideoParams.fmt == AV_PIX_FMT_BGR24)
+	//{
+	//	m_pLineForReverse = (uint8_t*)av_malloc(m_aVideoOutLines[0]);
+	//}
 	return true;
 }
 
@@ -614,10 +612,10 @@ ReadPacket:
 
 		res = sws_scale(m_pVSws,m_pVFrame->data, m_pVFrame->linesize, 0, m_pVFrame->height, m_aVideoOutBuf, m_aVideoOutLines);
 		assert(res == m_outVideoParams.heigh);
-		if (m_pLineForReverse)
-		{
-			ReverseCurrentImage();
-		}
+		//if (m_pLineForReverse)
+		//{
+		//	ReverseCurrentImage();
+		//}
 	Copy:
 		info.dataSize = av_image_get_buffer_size(m_outVideoParams.fmt, m_outVideoParams.width, res, 4);
 		info.width = m_outVideoParams.width;
@@ -674,6 +672,15 @@ double CSimpleDecoder::GetFrameRate()
 	}
 
 	return 0;
+}
+
+std::pair<int, int> CSimpleDecoder::GetFrameSize()
+{
+	if (m_iVideoIndex != -1)
+	{
+		return std::make_pair(m_pVCodecContext->width, m_pVCodecContext->height);
+	}
+	return std::make_pair(0, 0);
 }
 
 int CSimpleDecoder::GetSampleRate()

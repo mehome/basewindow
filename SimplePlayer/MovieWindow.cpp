@@ -8,7 +8,6 @@ bool CMovieShow::Init()
 	m_pImage = new CImageLayer();
 	m_pImage->SetSizePolicy(SizePolicyExpanding);
 	m_pImage->CreateImageLayerByColor(0, 0, 0);
-	m_pImage->SetVisible(false);
 	AddChild(m_pImage);
 	return CScene::Init();
 }
@@ -23,7 +22,7 @@ void CMovieShow::UpdateImage(RingBuffer*p, int w, int h)
 {
 	if (m_pImage->GetImageInfo().biWidth != w || m_pImage->GetImageInfo().biHeight != h)
 	{
-		m_pImage->CreateImageLayerByData((unsigned char*)p->Data(), w, h, 24);
+		m_pImage->CreateImageLayerByData((unsigned char*)p->Data(), w, h, 24, false, true);
 	}
 	else
 	{
@@ -31,6 +30,26 @@ void CMovieShow::UpdateImage(RingBuffer*p, int w, int h)
 	}
 	p->Reset();
 }
+
+//void CMovieShow::CalculateRect()
+//{
+//	if (IsNeedUpdateRect())
+//	{
+//		CScene::CalculateRect();
+//
+//		auto size = GetSize();
+//		float sx = size.first / m_pairFrameSize.first;
+//		float sy = size.second / m_pairFrameSize.second;
+//		sx = min(sx, sy);
+//
+//		sy = m_pairFrameSize.second * sx;
+//		sx = m_pairFrameSize.first * sx;
+//		m_pImage->SetSize(sx, sy);
+//		m_pImage->SetPos(size.first / 2, size.second / 2);
+//		auto r = m_pImage->GetRect();
+//		m_pImage->ScaleImageInside(r.right - r.left, r.bottom - r.top);
+//	}
+//}
 
 CMovieWindow::CMovieWindow()
 {
@@ -198,6 +217,7 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			m_decoder.DecodeVideo(NULL, m_ImageInfo);
 			m_pCurrImage.reset(new RingBuffer(m_ImageInfo.dataSize));
 			m_decoder.DecodeVideo(m_pCurrImage.get(), m_ImageInfo);
+			m_pShow->SetFrameSize(m_decoder.GetFrameSize());
 			m_pShow->UpdateImage(m_pCurrImage.get(), m_ImageInfo.width, m_ImageInfo.height);
 		}
 
@@ -248,9 +268,10 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 			return false;
 		}
 		m_iPlayStatue = 1;
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 void CMovieWindow::Pause()
