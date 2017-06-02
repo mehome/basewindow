@@ -1477,18 +1477,18 @@ bool CImageLayer::CreateImageLayerByBitmap(Gdiplus::Bitmap* pBitmap)
 	if (data.Stride > 0)
 	{
 		// data.Scan0指向图像左上角,颠倒过来
-		std::unique_ptr<unsigned char[]> pLine(new unsigned char[data.Stride]);
-		unsigned char *p1, *p2;
-		for (unsigned int i = 0; i < data.Height / 2; ++i)
-		{
-			p1 = (unsigned char*)data.Scan0 + data.Stride*i;
-			p2 = (unsigned char*)data.Scan0 + data.Stride*(data.Height - 1 - i);
-			memcpy(pLine.get(), p1, data.Stride);
-			memcpy(p1, p2, data.Stride);
-			memcpy(p2, pLine.get(), data.Stride);
-		}
+		//std::unique_ptr<unsigned char[]> pLine(new unsigned char[data.Stride]);
+		//unsigned char *p1, *p2;
+		//for (unsigned int i = 0; i < data.Height / 2; ++i)
+		//{
+		//	p1 = (unsigned char*)data.Scan0 + data.Stride*i;
+		//	p2 = (unsigned char*)data.Scan0 + data.Stride*(data.Height - 1 - i);
+		//	memcpy(pLine.get(), p1, data.Stride);
+		//	memcpy(p1, p2, data.Stride);
+		//	memcpy(p2, pLine.get(), data.Stride);
+		//}
 	}
-	bRes = CreateImageLayerByData((unsigned char*)data.Scan0, pBitmap->GetWidth(), pBitmap->GetHeight(), size);
+	bRes = CreateImageLayerByData((unsigned char*)data.Scan0, pBitmap->GetWidth(), pBitmap->GetHeight(), size, true, true);
 	pBitmap->UnlockBits(&data);
 
 	return bRes;

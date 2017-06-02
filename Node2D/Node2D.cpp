@@ -55,11 +55,12 @@ CNode2DTextLayer::~CNode2DTextLayer()
 void CNode2DTextLayer::DrawNode(DrawKit* pDrawKit)
 {
 	auto pView = TransNode2DView(pDrawKit->pView);
+	auto rect = GetRect();
 
 	pView->GetRenderTarget()->DrawText(m_strText.c_str(),
 		m_strText.length(),
 		m_pTextFormat,
-		D2D1::RectF(0, 0, 100, 100),
+		D2D1::RectF(rect.left, rect.top, rect.right, rect.bottom),
 		m_pTextColor);
 }
 
@@ -85,9 +86,11 @@ void CNode2DTextLayer::CreateTextFormat(const std::wstring strFontName, float fo
 
 void CNode2DTextLayer::SetAlignment(DWRITE_TEXT_ALIGNMENT align)
 {
+	assert(m_pTextFormat);
 	if (m_pTextFormat)
 	{
 		m_pTextFormat->SetTextAlignment(align);
+		m_pTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 	}
 }
 
@@ -155,4 +158,86 @@ void CNode2DTextLayerLayout::DrawNode(DrawKit* pDrawKit)
 	pos.x = 0;
 	pos.y = 0;
 	pView->GetRenderTarget()->DrawTextLayout(pos, m_pTextLayout, m_pTextColor);
+}
+
+CNode2DImageLayer::CNode2DImageLayer(CNode* parent):
+	CNode2D(parent),
+	m_pBitmap(NULL)
+{
+}
+
+CNode2DImageLayer::~CNode2DImageLayer()
+{
+	SafeRelease(m_pBitmap);
+}
+
+void CNode2DImageLayer::DrawNode(DrawKit* pDrawKit)
+{
+	auto rect = GetRect();
+	auto pView = TransNode2DView(GetView());
+	pView->GetRenderTarget()->DrawBitmap(m_pBitmap,
+		D2D1::RectF(rect.left, rect.top, rect.right, rect.bottom),
+		1.0f,
+		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+		D2D1::RectF(0, 0, (float)m_sizeImage.width, (float)m_sizeImage.height));
+}
+
+bool CNode2DImageLayer::CreateImageLayerByData(unsigned char* pData, int w, int h, int bUseAlpha)
+{
+	assert(pData && w > 0 && h > 0);
+	SafeRelease(m_pBitmap);
+
+	HRESULT hr;
+	UINT32 pitch;
+	auto pView = TransNode2DView(GetView());
+	if (!pView)
+		return false;
+	pitch = w * 4;
+	if (pitch % 4 != 0)
+		pitch = pitch / 4 * 4 + 4;
+	hr = pView->GetRenderTarget()->CreateBitmap(D2D1::SizeU(w, h),
+		pData,
+		pitch,
+		D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, bUseAlpha ? D2D1_ALPHA_MODE_PREMULTIPLIED : D2D1_ALPHA_MODE_IGNORE)),
+		&m_pBitmap);
+
+	bool bRes = SUCCEEDED(hr);
+	assert(bRes);
+	if (bRes)
+	{
+		m_sizeImage = m_pBitmap->GetPixelSize();
+		auto size = m_pBitmap->GetSize();
+		float dx, dy;
+		m_pBitmap->GetDpi(&dx, &dy);
+		auto pix = m_pBitmap->GetPixelFormat();
+	}
+	return bRes;
+}
+
+bool CNode2DImageLayer::CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+{
+	unsigned char data[16 * 16 * 4];
+	unsigned char* p;
+
+	for (int i = 0; i < 16 * 16; ++i)
+	{
+		p = data + i * 4;
+		*p = b;
+		*(p + 1) = g;
+		*(p + 2) = r;
+		*(p + 3) = a;
+	}
+
+	return CreateImageLayerByData(data, 16, 16, a == 255 ? 0 : 1);
+}
+
+const D2D1_SIZE_U& CNode2DImageLayer::GetImageInfoSize()const
+{
+	return m_sizeImage;
+}
+
+void CNode2DImageLayer::UpdateImageData(void* p)
+{
+	HRESULT hr = m_pBitmap->CopyFromMemory(&D2D1::RectU(0, 0, m_sizeImage.width, m_sizeImage.height), p, m_sizeImage.width * 4);
+	assert(SUCCEEDED(hr));
 }

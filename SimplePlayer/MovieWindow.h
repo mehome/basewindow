@@ -1,6 +1,7 @@
 #pragma once
 #include "Mp3Player.h"
 #include "SyncVideo.h"
+#include <Node2D/Node2D.h>
 
 class CMovieShow : public CScene
 {
@@ -15,6 +16,22 @@ public:
 	}
 protected:
 	CImageLayer* m_pImage;
+	std::pair<int, int> m_pairFrameSize;
+};
+
+class CMoveShow2D : public CScene2D
+{
+public:
+	bool Init();
+	void DrawNode(DrawKit* pDrawKit);
+	void CalculateRect();
+	void UpdateImage(RingBuffer*p, int w, int h);
+	void SetFrameSize(std::pair<int, int> size)
+	{
+		m_pairFrameSize = size;
+	}
+protected:
+	CNode2DImageLayer* m_pImage;
 	std::pair<int, int> m_pairFrameSize;
 };
 
@@ -42,7 +59,8 @@ protected:
 	FrameInfo m_ImageInfo;
 	CDecodeLoop m_decoder;
 	CSound m_sound;
-	CMovieShow* m_pShow;
+	//CMovieShow* m_pShow;
+	CMoveShow2D* m_pShow;
 	std::unique_ptr<ISyncVideo> m_pSync;
 	std::pair<double, double> m_pairForSyncAV;
 	int m_iPlayStatue;

@@ -47,3 +47,18 @@ public:
 protected:
 	IDWriteTextLayout* m_pTextLayout;
 };
+
+class Node2DDeclear  CNode2DImageLayer : public CNode2D
+{
+public:
+	explicit CNode2DImageLayer(CNode* parent);
+	~CNode2DImageLayer();
+	void DrawNode(DrawKit* pDrawKit);
+	bool CreateImageLayerByData(unsigned char* pData, int w, int h, int bUseAlpha);
+	bool CreateImageLayerByColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255);
+	const D2D1_SIZE_U& GetImageInfoSize()const;
+	void UpdateImageData(void* p);
+protected:
+	ID2D1Bitmap* m_pBitmap;
+	D2D1_SIZE_U m_sizeImage;
+};

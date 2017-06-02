@@ -502,7 +502,7 @@ std::unique_ptr<unsigned char[]> CCutImageScene::GetCutData(int& cw, int& ch, in
 	RECT rect_show = pI->GetRect();
 
 	int x = rect_head.left - rect_show.left;
-	int y = rect_show.bottom - rect_head.bottom;
+	int y = rect_head.top - rect_show.top;
 	int w = rect_head.right - rect_head.left;
 	int h = rect_head.bottom - rect_head.top;
 
@@ -562,9 +562,9 @@ void CCutImageScene::UpdatePreviewImageNode()
 		return;
 
 	auto pPreview = (CImageLayer*)GetChildByTag(TagPreviewBig);
-	pPreview->CreateImageLayerByData(pData.get(), w, h, bpp, false);
+	pPreview->CreateImageLayerByData(pData.get(), w, h, bpp, false, true);
 	pPreview = (CImageLayer*)GetChildByTag(TagPreviewSmall);
-	pPreview->CreateImageLayerByData(pData.get(), w, h, bpp, false);
+	pPreview->CreateImageLayerByData(pData.get(), w, h, bpp, false, true);
 }
 
 LRESULT CCutImageWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& bProcessed)
@@ -751,10 +751,17 @@ bool CTestScene2D::Init()
 	EnableCustomNCHitTest(false);
 
 	CNode2DTextLayer* pText = new CNode2DTextLayer(this);
+	pText->CreateTextFormat(L"Î¢ÈíÑÅºÚ", 18);
 	pText->SetText(L"È·¶¨");
 	pText->SetTextColor(D2D1::ColorF::Black);
 	pText->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-	pText->CreateTextFormat(L"Î¢ÈíÑÅºÚ", 18);
+	pText->SetSize(100, 100);
+	pText->SetPos(GetSize().first / 2, GetSize().second / 2);
+
+	CNode2DImageLayer* pImage = new CNode2DImageLayer(this);
+	pImage->CreateImageLayerByColor(0, 122, 204, 225);
+	pImage->SetSize(100, 100);
+	pImage->SetPos(50, 50);
 
 	return CScene2D::Init();
 }

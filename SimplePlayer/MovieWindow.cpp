@@ -51,6 +51,53 @@ void CMovieShow::UpdateImage(RingBuffer*p, int w, int h)
 //	}
 //}
 
+bool CMoveShow2D::Init()
+{
+	auto& size = GetSize();
+	m_pImage = new CNode2DImageLayer(this);
+	m_pImage->CreateImageLayerByColor(0, 0, 0);
+	m_pImage->SetSize(size.first, size.second);
+	m_pImage->SetPos(size.first/2, size.second/2);
+	return CScene2D::Init();
+}
+
+void CMoveShow2D::DrawNode(DrawKit* pDrawKit)
+{
+	this->m_pImage->DrawNode(pDrawKit);
+}
+
+void CMoveShow2D::CalculateRect()
+{
+	if (IsNeedUpdateRect())
+	{
+		CScene::CalculateRect();
+
+		auto size = GetSize();
+		float sx = size.first / m_pairFrameSize.first;
+		float sy = size.second / m_pairFrameSize.second;
+		sx = min(sx, sy);
+
+		sy = m_pairFrameSize.second * sx;
+		sx = m_pairFrameSize.first * sx;
+		m_pImage->SetSize(sx, sy);
+		m_pImage->SetPos(size.first / 2, size.second / 2);
+	}
+}
+
+void CMoveShow2D::UpdateImage(RingBuffer*p, int w, int h)
+{
+	auto& size = m_pImage->GetImageInfoSize();
+	if (size.width != w || size.height != h)
+	{
+		m_pImage->CreateImageLayerByData((unsigned char*)p->Data(), w, h, 0);
+	}
+	else
+	{
+		m_pImage->UpdateImageData(p->Data());
+	}
+	p->Reset();
+}
+
 CMovieWindow::CMovieWindow()
 {
 	QueryPerformanceFrequency(&m_liFreq);
@@ -142,10 +189,12 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			true);
 		SetWindowText(GetHWND(), TEXT("Movie"));
 
-		CGDIView* pView = new CGDIView();
+		//CGDIView* pView = new CGDIView();
+		Node2DView* pView = new Node2DView();
 		pView->Init(GetHWND());
 		m_pDir.reset(new CDirector(pView));
-		m_pShow = new CMovieShow();
+		//m_pShow = new CMovieShow();
+		m_pShow = new CMoveShow2D();
 		m_pDir->RunScene(m_pShow);
 
 		OpenFile("e:\\Prometheus.2012.普罗米修斯.国英双语.HR-HDTV.AC3.1024X576-人人影视制作.mkv");
@@ -210,7 +259,11 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 		AudioParams outAudioParam;
 		outAudioParam.sample_rate = m_decoder.GetSampleRate();
 		m_decoder.ConfigureAudioOut(&outAudioParam);
-		m_decoder.ConfigureVideoOut();
+		VideoParams outVideoParam;
+		outVideoParam.width = m_decoder.GetFrameSize().first;
+		outVideoParam.heigh = m_decoder.GetFrameSize().second;
+		outVideoParam.fmt = AV_PIX_FMT_BGRA;
+		m_decoder.ConfigureVideoOut(&outVideoParam);
 
 		if (m_decoder.HasVideo())
 		{
