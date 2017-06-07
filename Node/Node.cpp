@@ -1473,7 +1473,7 @@ bool CImageLayer::CreateImageLayerByBitmap(Gdiplus::Bitmap* pBitmap)
 		format = PixelFormat24bppRGB;
 		size = 24;
 	}
-	pBitmap->LockBits(&rect, Gdiplus::ImageLockModeRead | Gdiplus::ImageLockModeWrite, format, &data);
+	pBitmap->LockBits(&rect, Gdiplus::ImageLockModeRead /*| Gdiplus::ImageLockModeWrite*/, format, &data);
 	if (data.Stride > 0)
 	{
 		// data.Scan0指向图像左上角,颠倒过来
@@ -1488,7 +1488,7 @@ bool CImageLayer::CreateImageLayerByBitmap(Gdiplus::Bitmap* pBitmap)
 		//	memcpy(p2, pLine.get(), data.Stride);
 		//}
 	}
-	bRes = CreateImageLayerByData((unsigned char*)data.Scan0, pBitmap->GetWidth(), pBitmap->GetHeight(), size, true, true);
+	bRes = CreateImageLayerByData((unsigned char*)data.Scan0, pBitmap->GetWidth(), pBitmap->GetHeight(), size, true, data.Stride > 0);
 	pBitmap->UnlockBits(&data);
 
 	return bRes;

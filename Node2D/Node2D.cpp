@@ -10,6 +10,7 @@ inline Node2DView* TransNode2DView(CGDIView* pView)
 CNode2D::CNode2D(CNode* parent):
 	CNode(parent)
 {
+	assert(parent);
 }
 
 CNode2D::~CNode2D()
@@ -28,6 +29,7 @@ void CScene2D::DrawNode(DrawKit* pDrawKit)
 	}
 
 	CNode2D* pNode;
+
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = (CNode2D*)*iter;
@@ -240,4 +242,42 @@ void CNode2DImageLayer::UpdateImageData(void* p)
 {
 	HRESULT hr = m_pBitmap->CopyFromMemory(&D2D1::RectU(0, 0, m_sizeImage.width, m_sizeImage.height), p, m_sizeImage.width * 4);
 	assert(SUCCEEDED(hr));
+}
+
+
+bool CTestScene2D::Init()
+{
+	EnableCustomNCHitTest(false);
+
+	CNode2DTextLayer* pText = new CNode2DTextLayer(this);
+	pText->CreateTextFormat(L"Î¢ÈíÑÅºÚ", 18);
+	pText->SetText(L"È·¶¨");
+	pText->SetTextColor(D2D1::ColorF::Black);
+	pText->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	pText->SetSize(100, 100);
+	pText->SetPos(GetSize().first / 2, GetSize().second / 2);
+
+	CNode2DImageLayer* pImage = new CNode2DImageLayer(this);
+	pImage->CreateImageLayerByColor(0, 122, 204, 225);
+	pImage->SetSize(100, 100);
+	pImage->SetPos(25, 25);
+
+	return CScene2D::Init();
+}
+
+void CTestScene2D::DrawNode(DrawKit* pDrawKit)
+{
+	auto pView = (Node2DView*)(pDrawKit->pView);
+	auto t = D2D1::Matrix3x2F::Translation(25, 25);
+	auto r = D2D1::Matrix3x2F::Rotation(45.0f, D2D1::Point2F(0, 0));
+	auto s = D2D1::Matrix3x2F::Scale(0.5f, 2.0f, D2D1::Point2F(0, 40));
+	pView->GetRenderTarget()->SetTransform(t*r);
+	pView->GetRenderTarget()->GetTransform(&r);
+	pView->GetRenderTarget()->SetTransform(r*t);
+	return CScene2D::DrawNode(pDrawKit);
+
+	//ID2D1SolidColorBrush * pBrush;
+	//pView->GetRenderTarget()->CreateSolidColorBrush(D2D1::ColorF(RGB(255, 128, 64)), &pBrush);
+	//pView->GetRenderTarget()->DrawLine(D2D1::Point2F(0, 0), D2D1::Point2F(105, 105), pBrush);
+	//pBrush->Release();
 }

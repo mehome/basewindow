@@ -745,23 +745,3 @@ void CTestScene::DrawNode(DrawKit* pKit)
 
 
 }
-
-bool CTestScene2D::Init()
-{
-	EnableCustomNCHitTest(false);
-
-	CNode2DTextLayer* pText = new CNode2DTextLayer(this);
-	pText->CreateTextFormat(L"Î¢ÈíÑÅºÚ", 18);
-	pText->SetText(L"È·¶¨");
-	pText->SetTextColor(D2D1::ColorF::Black);
-	pText->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-	pText->SetSize(100, 100);
-	pText->SetPos(GetSize().first / 2, GetSize().second / 2);
-
-	CNode2DImageLayer* pImage = new CNode2DImageLayer(this);
-	pImage->CreateImageLayerByColor(0, 122, 204, 225);
-	pImage->SetSize(100, 100);
-	pImage->SetPos(50, 50);
-
-	return CScene2D::Init();
-}

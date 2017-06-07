@@ -62,3 +62,10 @@ protected:
 	ID2D1Bitmap* m_pBitmap;
 	D2D1_SIZE_U m_sizeImage;
 };
+
+class Node2DDeclear CTestScene2D : public CScene2D
+{
+public:
+	bool Init();
+	void DrawNode(DrawKit* pDrawKit);
+};

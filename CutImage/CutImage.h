@@ -84,9 +84,3 @@ public:
 	bool Init();
 	void DrawNode(DrawKit* pKit);
 };
-
-class CTestScene2D : public CScene2D
-{
-public:
-	bool Init();
-};
