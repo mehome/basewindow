@@ -63,14 +63,14 @@ bool CMoveShow2D::Init()
 
 void CMoveShow2D::DrawNode(DrawKit* pDrawKit)
 {
-	this->m_pImage->DrawNode(pDrawKit);
+	CScene2D::DrawNode(pDrawKit);
 }
 
 void CMoveShow2D::CalculateRect()
 {
 	if (IsNeedUpdateRect())
 	{
-		CScene::CalculateRect();
+		CScene2D::CalculateRect();
 
 		auto size = GetSize();
 		float sx = size.first / m_pairFrameSize.first;
@@ -197,7 +197,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMoveShow2D();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\Prometheus.2012.普罗米修斯.国英双语.HR-HDTV.AC3.1024X576-人人影视制作.mkv");
+		OpenFile("f:\\Lucy.2014.超体.双语字幕.HR-HDTV.AC3.1024X576.x264.mkv");
 	}
 	else if (message == WM_CLOSE)
 	{

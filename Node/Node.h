@@ -46,7 +46,6 @@ private:
 	CNode(const CNode& r);
 	CNode& operator=(const CNode& r);
 	CNode& operator=(CNode&& rr);
-	friend class CScene2D;
 public:
 	explicit CNode(CNode* pParent = NULL);
 	CNode(CNode&& rr);
@@ -136,7 +135,7 @@ public:
 protected:
 	const NodeChild& Child()const { return m_Children; }
 	virtual void CalculateRect();
-private:
+protected:
 	bool m_bNeedInit;
 	bool m_bNeedUpdateRect;
 	bool m_bNeedSortChild;

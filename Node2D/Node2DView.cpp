@@ -101,16 +101,13 @@ void Node2DView::ClearBuffer()
 			D2D1::HwndRenderTargetProperties(m_Wnd, size),
 			&m_pRenderTarget
 		);
+		assert(m_pRenderTarget);
 	}
 	if (SUCCEEDED(hr) && !(m_pRenderTarget->CheckWindowState() & D2D1_WINDOW_STATE_OCCLUDED))
 	{
 		m_pRenderTarget->BeginDraw();
 		m_pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 		m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
-	}
-	else
-	{
-		SafeRelease(m_pRenderTarget);
 	}
 }
 

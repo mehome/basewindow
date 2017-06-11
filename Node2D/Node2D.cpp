@@ -21,6 +21,43 @@ void CNode2D::DrawNode(DrawKit* pDrawKit)
 {
 }
 
+void CNode2D::CalculateRect()
+{
+	if (m_bNeedUpdateRect)
+	{
+		m_bNeedUpdateRect = false;
+
+		m_rectF.X = -m_pairAnchor.first*m_pairSize.first;
+		m_rectF.Y = -m_pairAnchor.second*m_pairSize.second;
+		m_rectF.Width = m_pairSize.first;
+		m_rectF.Height = m_pairSize.second;
+
+		m_rectD2D1.left = m_rectF.X;
+		m_rectD2D1.top = m_rectF.Y;
+		m_rectD2D1.right = m_rectF.X + m_rectF.Width;
+		m_rectD2D1.bottom = m_rectF.Y + m_rectF.Height;
+		if (m_pParent)
+		{
+			RECT r = m_pParent->GetRect();
+			float fx = r.left + m_pairPos.first;
+			float fy = r.top + m_pairPos.second;
+			fx += m_rectF.X;
+			fy += m_rectF.Y;
+
+			m_rect.left = static_cast<int>(fx + 0.5f);
+			m_rect.top = static_cast<int>(fy + 0.5f);
+			m_rect.right = static_cast<int>(fx + m_pairSize.first + 0.5f);
+			m_rect.bottom = static_cast<int>(fy + m_pairSize.second + 0.5f);
+		}
+	}
+}
+
+const D2D_RECT_F& CNode2D::GetRectD2D1()
+{
+	CalculateRect();
+	return m_rectD2D1;
+}
+
 void CScene2D::DrawNode(DrawKit* pDrawKit)
 {
 	if (m_bNeedSortChild)
@@ -29,12 +66,21 @@ void CScene2D::DrawNode(DrawKit* pDrawKit)
 	}
 
 	CNode2D* pNode;
+	D2D1::Matrix3x2F matTrans, matScale, matRotate;
+	auto pTar = ((Node2DView*)(pDrawKit->pView))->GetRenderTarget();
 
 	for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
 	{
 		pNode = (CNode2D*)*iter;
 		if (pNode->IsVisible())
 		{
+			auto& pos = pNode->GetPos();
+			auto& scale = pNode->GetScale();
+			auto rotate = pNode->GetRotate();
+			matTrans = D2D1::Matrix3x2F::Translation(pos.first, pos.second);
+			matScale = D2D1::Matrix3x2F::Scale(scale.first, scale.second);
+			matRotate = D2D1::Matrix3x2F::Rotation(rotate);
+			pTar->SetTransform(matTrans*matScale*matRotate);
 			pDrawKit->pParent = this;
 			pNode->DrawNode(pDrawKit);
 		}
@@ -57,12 +103,11 @@ CNode2DTextLayer::~CNode2DTextLayer()
 void CNode2DTextLayer::DrawNode(DrawKit* pDrawKit)
 {
 	auto pView = TransNode2DView(pDrawKit->pView);
-	auto rect = GetRect();
 
 	pView->GetRenderTarget()->DrawText(m_strText.c_str(),
 		m_strText.length(),
 		m_pTextFormat,
-		D2D1::RectF(rect.left, rect.top, rect.right, rect.bottom),
+		GetRectD2D1(),
 		m_pTextColor);
 }
 
@@ -98,11 +143,7 @@ void CNode2DTextLayer::SetAlignment(DWRITE_TEXT_ALIGNMENT align)
 
 void CNode2DTextLayer::SetTextColor(D2D1::ColorF c)
 {
-	if (!GetView())
-	{
-		TRACE("cannt get render view");
-		return;
-	}
+	assert(GetView() != NULL);
 
 	SafeRelease(m_pTextColor);
 	auto pView = TransNode2DView(GetView());
@@ -175,10 +216,9 @@ CNode2DImageLayer::~CNode2DImageLayer()
 
 void CNode2DImageLayer::DrawNode(DrawKit* pDrawKit)
 {
-	auto rect = GetRect();
 	auto pView = TransNode2DView(GetView());
 	pView->GetRenderTarget()->DrawBitmap(m_pBitmap,
-		D2D1::RectF(rect.left, rect.top, rect.right, rect.bottom),
+		GetRectD2D1(),
 		1.0f,
 		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
 		D2D1::RectF(0, 0, (float)m_sizeImage.width, (float)m_sizeImage.height));
@@ -260,20 +300,20 @@ bool CTestScene2D::Init()
 	CNode2DImageLayer* pImage = new CNode2DImageLayer(this);
 	pImage->CreateImageLayerByColor(0, 122, 204, 225);
 	pImage->SetSize(100, 100);
-	pImage->SetPos(25, 25);
+	pImage->SetPos(50, 50);
 
 	return CScene2D::Init();
 }
 
 void CTestScene2D::DrawNode(DrawKit* pDrawKit)
 {
-	auto pView = (Node2DView*)(pDrawKit->pView);
-	auto t = D2D1::Matrix3x2F::Translation(25, 25);
-	auto r = D2D1::Matrix3x2F::Rotation(45.0f, D2D1::Point2F(0, 0));
-	auto s = D2D1::Matrix3x2F::Scale(0.5f, 2.0f, D2D1::Point2F(0, 40));
-	pView->GetRenderTarget()->SetTransform(t*r);
-	pView->GetRenderTarget()->GetTransform(&r);
-	pView->GetRenderTarget()->SetTransform(r*t);
+//	auto pView = (Node2DView*)(pDrawKit->pView);
+//	auto t = D2D1::Matrix3x2F::Translation(25, 25);
+//	auto r = D2D1::Matrix3x2F::Rotation(45.0f, D2D1::Point2F(0, 0));
+//	auto s = D2D1::Matrix3x2F::Scale(0.5f, 2.0f, D2D1::Point2F(0, 40));
+//	pView->GetRenderTarget()->SetTransform(t*r);
+//	pView->GetRenderTarget()->GetTransform(&r);
+	//pView->GetRenderTarget()->SetTransform(r*t);
 	return CScene2D::DrawNode(pDrawKit);
 
 	//ID2D1SolidColorBrush * pBrush;

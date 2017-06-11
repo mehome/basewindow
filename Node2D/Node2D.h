@@ -8,6 +8,10 @@ public:
 	explicit CNode2D(CNode* parent);
 	~CNode2D();
 	void DrawNode(DrawKit* pDrawKit);
+	void CalculateRect();
+	const D2D_RECT_F& GetRectD2D1();
+protected:
+	D2D_RECT_F m_rectD2D1;
 };
 
 class Node2DDeclear CScene2D : public CScene
