@@ -137,12 +137,12 @@ void CSimpleDecoder::Clean()
 	while (!m_VideoPacket.empty())
 	{
 		av_packet_unref(&m_VideoPacket.front());
-		m_VideoPacket.pop();
+		m_VideoPacket.pop_front();
 	}
 	while (!m_AudioPacket.empty())
 	{
 		av_packet_unref(&m_AudioPacket.front());
-		m_AudioPacket.pop();
+		m_AudioPacket.pop_front();
 	}
 
 	if (m_aVideoOutBuf[0])
@@ -213,12 +213,12 @@ bool CSimpleDecoder::SeekTime(double target_pos, double currPos)
 	while (!m_VideoPacket.empty())
 	{
 		av_packet_unref(&m_VideoPacket.front());
-		m_VideoPacket.pop();
+		m_VideoPacket.pop_front();
 	}
 	while (!m_AudioPacket.empty())
 	{
 		av_packet_unref(&m_AudioPacket.front());
-		m_AudioPacket.pop();
+		m_AudioPacket.pop_front();
 	}
 	m_bCurrentImageNotCopy = false;
 	m_iAudioOutRemaind = 0;
@@ -419,7 +419,7 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 			else
 			{
 				packet = m_AudioPacket.front();
-				m_AudioPacket.pop();
+				m_AudioPacket.pop_front();
 			}
 
 			if (packet.stream_index == m_iAudioIndex)
@@ -436,7 +436,7 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 				{
 					if (res == AVERROR(EAGAIN))
 					{
-						m_AudioPacket.push(packet);
+						m_AudioPacket.push_front(packet);
 						if (bWaitOtherSetp)
 						{
 							return false;
@@ -453,7 +453,7 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 			}
 			else if (packet.stream_index == m_iVideoIndex)
 			{
-				m_VideoPacket.push(packet);
+				m_VideoPacket.push_back(packet);
 			}
 			else
 			{
@@ -561,7 +561,7 @@ ReadPacket:
 	else
 	{
 		packet = m_VideoPacket.front();
-		m_VideoPacket.pop();
+		m_VideoPacket.pop_front();
 	}
 	if (packet.stream_index == m_iVideoIndex)
 	{
@@ -574,7 +574,7 @@ ReadPacket:
 		{
 			if (res == AVERROR(EAGAIN))
 			{
-				m_VideoPacket.push(packet);
+				m_VideoPacket.push_front(packet);
 			}
 			else if(res == AVERROR_INVALIDDATA)
 			{
@@ -589,7 +589,7 @@ ReadPacket:
 	}
 	else if(packet.stream_index == m_iAudioIndex)
 	{
-		m_AudioPacket.push(packet);
+		m_AudioPacket.push_back(packet);
 	}
 	else
 	{

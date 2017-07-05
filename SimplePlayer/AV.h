@@ -138,8 +138,8 @@ protected:
 	double m_dCurrentImagePts;
 	double m_dVideotb;
 
-	std::queue<AVPacket> m_AudioPacket;
-	std::queue<AVPacket> m_VideoPacket;
+	std::deque<AVPacket> m_AudioPacket;
+	std::deque<AVPacket> m_VideoPacket;
 };
 
 #include <Node/Thread.h>
