@@ -818,6 +818,16 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 	return false;
 }
 
+bool CDecodeLoop::EndOfAudio()
+{
+	return m_bEndOf && m_AudioPacket.empty() && m_pSoundBuf->IsEmpty();
+}
+
+bool CDecodeLoop::EndOfVideo()
+{
+	return m_bEndOf && m_VideoPacket.empty() && m_pImageBuf->IsEmpty();
+}
+
 int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 {
 	assert(pBuf && want > 0);
@@ -836,7 +846,7 @@ int CDecodeLoop::GetImageData(RingBuffer* pBuf, FrameInfo& info)
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
 
-	info.height = info.height = 0;
+	info.width = info.height = 0;
 	if (m_iCachedImageCount <1)
 	{
 		TRACE("no cached imaged\n");

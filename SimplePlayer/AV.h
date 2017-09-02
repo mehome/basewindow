@@ -150,6 +150,8 @@ public:
 	bool Init();
 	void Destroy();
 	bool SeekTime(double target_pos, double currPos);
+	bool EndOfAudio();
+	bool EndOfVideo();
 
 	int GetAudioData(RingBuffer* pBuf, int want);
 	int GetImageData(RingBuffer* pBuf, FrameInfo& info);
