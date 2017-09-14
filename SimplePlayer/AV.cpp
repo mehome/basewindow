@@ -83,21 +83,23 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		return false;
 	}
 
-	for (n = 0; n < m_pFormatContext->nb_streams; ++n)
-	{
-		pStream = m_pFormatContext->streams[n];
-		switch (pStream->codecpar->codec_type)
-		{
-		case AVMEDIA_TYPE_VIDEO:
-			m_iVideoIndex = n;
-			break;
-		case AVMEDIA_TYPE_AUDIO:
-			if(m_iAudioIndex == -1)m_iAudioIndex = n;
-			break;
-		}
-	}
+	//for (n = 0; n < m_pFormatContext->nb_streams; ++n)
+	//{
+	//	pStream = m_pFormatContext->streams[n];
+	//	switch (pStream->codecpar->codec_type)
+	//	{
+	//	case AVMEDIA_TYPE_VIDEO:
+	//		m_iVideoIndex = n;
+	//		break;
+	//	case AVMEDIA_TYPE_AUDIO:
+	//		if(m_iAudioIndex == -1)m_iAudioIndex = n;
+	//		break;
+	//	}
+	//}
+	m_iAudioIndex = av_find_best_stream(m_pFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+	m_iVideoIndex = av_find_best_stream(m_pFormatContext, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
 
-	if (m_iAudioIndex == -1 && m_iVideoIndex == -1)
+	if (m_iAudioIndex == AVERROR_DECODER_NOT_FOUND && m_iVideoIndex == AVERROR_DECODER_NOT_FOUND)
 	{
 		return false;
 	}
@@ -846,7 +848,6 @@ int CDecodeLoop::GetImageData(RingBuffer* pBuf, FrameInfo& info)
 {
 	CLockGuard<CSimpleLock> guard(&m_videoLock);
 
-	info.width = info.height = 0;
 	if (m_iCachedImageCount <1)
 	{
 		TRACE("no cached imaged\n");

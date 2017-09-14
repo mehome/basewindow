@@ -197,7 +197,7 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMoveShow2D();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("f:\\Lucy.2014.超体.双语字幕.HR-HDTV.AC3.1024X576.x264.mkv");
+		OpenFile("e:\\video\\BBCW_SavingOurSeabirds_1自然世界 拯救我们的海鸟.flv");
 	}
 	else if (message == WM_CLOSE)
 	{
@@ -252,7 +252,7 @@ bool CMovieWindow::OpenFile(const std::string& fileName)
 	m_iPlayStatue = 0;
 
 	auto pIo = new CFileMappingIO(fileName);
-	pIo->CreateBuffer(40960);
+	pIo->CreateBuffer(65536);
 	m_decoder.SetCustomIOContext(pIo);
 	if (m_decoder.LoadFile(fileName))
 	{
