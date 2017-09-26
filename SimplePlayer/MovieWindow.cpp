@@ -135,12 +135,15 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	}
 	else if (message == WM_RBUTTONDOWN)
 	{
-		bool bPause(false);
-		if (m_iPlayStatue == 2)
+		bool bPause(true);
+		if (m_iPlayStatue == 0)
 		{
-			// 处于暂停中
-			Pause();
-			bPause = true;
+			return 0;
+		}
+		else if (m_iPlayStatue == 1)
+		{
+			m_pSync->PausePlay(true);
+			bPause = false;
 		}
 
 		int x = GET_X_LPARAM(lParam);
@@ -148,35 +151,62 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		{
 			KillTimer(GetHWND(), (UINT_PTR)this);
 			m_sound.Stop();
-			if (m_decoder.SeekTime(m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime()))
-			{
-				m_sound.Seek();
-				m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
-				m_pCurrImage->Reset();
-				m_pSoundBuf->Reset();
-				m_sound.Start();
-				if (WriteAudioData())
-				{
-					SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
-					m_liLast.QuadPart = 0;
-					MainLoop();
-				}
-			}
+
+			m_decoder.SetSeekCallback([bPause, this]() {
+				PostMessage(GetHWND(), WM_USER + 10, (WPARAM)bPause, 0);
+				TRACE1("seek callback %d\n", rand()%5000);
+			});
+
+			m_decoder.SeekTime(m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_sound.PlayedTime());
 		}
 		else
 		{
-			if (m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_ImageInfo.pts))
+			m_decoder.SetSeekCallback([bPause, this]() {
+				PostMessage(GetHWND(), WM_USER + 10, (WPARAM)bPause, 0);
+			});
+
+			m_decoder.SeekTime(1.0*m_decoder.GetDurationAll()*x / m_ImageInfo.width, m_ImageInfo.pts);
+		}
+	}
+	else if (message == WM_USER + 10)
+	{
+		bool bPause = (bool)wParam;
+		if (m_decoder.HasAudio())
+		{
+			m_sound.Seek();
+			m_sound.SetAudioBaseTime(m_decoder.AudioBaseTime());
+			m_pCurrImage->Reset();
+			m_pSoundBuf->Reset();
+			m_sound.Start();
+			m_iPlayStatue = 1;
+			m_pSync->PausePlay(false);
+
+			if (WriteAudioData())
 			{
-				m_pCurrImage->Reset();
+				SetTimer(GetHWND(), (UINT_PTR)this, 400, NULL);
 				m_liLast.QuadPart = 0;
 				MainLoop();
 			}
-		}
 
-		if (bPause)
+
+			if (bPause)
+			{
+				Pause();
+			}
+
+		}
+		else
 		{
-			// 继续暂停
-			Pause();
+			m_iPlayStatue = 1;
+			m_pSync->PausePlay(false);
+			m_pCurrImage->Reset();
+			m_liLast.QuadPart = 0;
+			MainLoop();
+
+			if (bPause)
+			{
+				Pause();
+			}
 		}
 	}
 	else if (message == WM_CREATE)
@@ -337,7 +367,7 @@ void CMovieWindow::Pause()
 		{
 			m_sound.Stop(true);
 		}
-		m_pSync->PausePlay();
+		m_pSync->PausePlay(true);
 		m_iPlayStatue = 2;
 		//pause
 	}
@@ -347,7 +377,7 @@ void CMovieWindow::Pause()
 		{
 			m_sound.Start();
 		}
-		m_pSync->PausePlay();
+		m_pSync->PausePlay(false);
 		m_iPlayStatue = 1;
 		//resume
 	}

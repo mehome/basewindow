@@ -1,6 +1,7 @@
 #pragma once
 #include "Mp3Player.h"
 #include "SyncVideo.h"
+#include "AVDecodeMulti.h"
 #include <Node2D/Node2D.h>
 
 class CMovieShow : public CScene
@@ -57,7 +58,8 @@ protected:
 	std::unique_ptr<RingBuffer> m_pSoundBuf;
 	std::unique_ptr<RingBuffer> m_pCurrImage;
 	FrameInfo m_ImageInfo;
-	CDecodeLoop m_decoder;
+	//CDecodeLoop m_decoder;
+	AVDecodeMulti m_decoder;
 	CSound m_sound;
 	//CMovieShow* m_pShow;
 	CMoveShow2D* m_pShow;

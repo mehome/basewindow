@@ -164,7 +164,7 @@ int CSound::Start()
 
 void CSound::Stop(bool pause)
 {
-	if(lpDSBSecond_ && bPlaying_)
+	if(lpDSBSecond_)
 	{
 		lpDSBSecond_->Stop();
 		bPlaying_ = false;

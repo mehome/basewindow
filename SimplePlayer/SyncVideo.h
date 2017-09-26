@@ -12,7 +12,7 @@ public:
 	ISyncVideo() { m_bPausePlay = false; }
 	virtual ~ISyncVideo() {}
 	virtual int IsSwitchToNextFrame(void*) = 0;
-	void PausePlay() { m_bPausePlay = !m_bPausePlay; }
+	void PausePlay(bool b) { m_bPausePlay = b; }
 protected:
 	bool m_bPausePlay;
 };

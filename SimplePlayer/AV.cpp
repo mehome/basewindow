@@ -5,6 +5,56 @@
 #include "AV.h"
 #include <Node\Log.h>
 
+#pragma comment(lib,"avcodec.lib")
+#pragma comment(lib,"avformat.lib")
+#pragma comment(lib,"avutil.lib")
+#pragma comment(lib,"swscale.lib")
+#pragma comment(lib,"swresample.lib")
+
+PacketQueue::PacketQueue() :
+	m_iPacketDuration(0),
+	m_dPacketTimebase(0)
+{
+}
+
+void PacketQueue::ClearPacketQueue()
+{
+	while (!m_packets.empty())
+	{
+		av_packet_unref(&m_packets.front());
+		m_packets.pop_front();
+	}
+	m_iPacketDuration = 0;
+}
+
+void PacketQueue::AddPacketFront(AVPacket& p)
+{
+	m_packets.push_front(p);
+	m_iPacketDuration += p.duration;
+}
+
+void PacketQueue::AddPacketBack(AVPacket& p)
+{
+	m_packets.push_back(p);
+	m_iPacketDuration += p.duration;
+}
+
+void PacketQueue::PeekPacket(AVPacket& get)
+{
+	if (!m_packets.empty())
+	{
+		get = m_packets.front();
+		m_packets.pop_front();
+		m_iPacketDuration -= get.duration;
+		return;
+	}
+}
+
+void PacketQueue::SetPacketTimebase(AVRational tb)
+{
+	m_dPacketTimebase = av_q2d(tb);
+}
+
 int InterruptCB(void* para)
 {
 	CSimpleDecoder* pDecoder = (CSimpleDecoder*)para;
@@ -52,7 +102,7 @@ int CSimpleDecoder::Interrupt()
 bool CSimpleDecoder::LoadFile(std::string fileName)
 {
 	unsigned int n;
-	AVStream* pStream;
+	//AVStream* pStream;
 
 	if (m_iAudioIndex != -1 || m_iVideoIndex != -1)
 	{
@@ -117,6 +167,7 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		av_codec_set_lowres(m_pVCodecContext, lowres);
 		avcodec_open2(m_pVCodecContext, m_pVCodec, NULL);
 		m_dVideotb = av_q2d(m_pFormatContext->streams[m_iVideoIndex]->time_base);
+		m_videoPackets.SetPacketTimebase(m_pFormatContext->streams[m_iVideoIndex]->time_base);
 	}
 	if (m_iAudioIndex != -1)
 	{
@@ -129,6 +180,7 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 			lowres = av_codec_get_max_lowres(m_pACodec);
 		av_codec_set_lowres(m_pACodecContext, lowres);
 		avcodec_open2(m_pACodecContext, m_pACodec, NULL);
+		m_audioPackets.SetPacketTimebase(m_pFormatContext->streams[m_iAudioIndex]->time_base);
 	}
 	m_bEndOf = false;
 	return true;
@@ -136,16 +188,8 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 
 void CSimpleDecoder::Clean()
 {
-	while (!m_VideoPacket.empty())
-	{
-		av_packet_unref(&m_VideoPacket.front());
-		m_VideoPacket.pop_front();
-	}
-	while (!m_AudioPacket.empty())
-	{
-		av_packet_unref(&m_AudioPacket.front());
-		m_AudioPacket.pop_front();
-	}
+	m_videoPackets.ClearPacketQueue();
+	m_audioPackets.ClearPacketQueue();
 
 	if (m_aVideoOutBuf[0])
 	{
@@ -194,6 +238,7 @@ void CSimpleDecoder::Clean()
 	m_bEndOf = false;
 	m_iVideoIndex = -1;
 	m_iAudioIndex = -1;
+	m_dCurrentAudioPts = -0.0001;
 }
 
 void CSimpleDecoder::SetCustomIOContext(IIOContext* pIO)
@@ -212,16 +257,10 @@ void CSimpleDecoder::SetCustomIOContext(IIOContext* pIO)
 
 bool CSimpleDecoder::SeekTime(double target_pos, double currPos)
 {
-	while (!m_VideoPacket.empty())
-	{
-		av_packet_unref(&m_VideoPacket.front());
-		m_VideoPacket.pop_front();
-	}
-	while (!m_AudioPacket.empty())
-	{
-		av_packet_unref(&m_AudioPacket.front());
-		m_AudioPacket.pop_front();
-	}
+
+	m_videoPackets.ClearPacketQueue();
+	m_audioPackets.ClearPacketQueue();
+
 	m_bCurrentImageNotCopy = false;
 	m_iAudioOutRemaind = 0;
 	m_dCurrentAudioPts = -0.0001;
@@ -412,7 +451,7 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 		// step 1,¶ÁÈ¡Êý¾Ý
 		while (1)
 		{
-			if (m_AudioPacket.empty())
+			if (m_audioPackets.m_packets.empty())
 			{
 				res = ReadPacket(&packet);
 				if (res != 0)
@@ -420,8 +459,9 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 			}
 			else
 			{
-				packet = m_AudioPacket.front();
-				m_AudioPacket.pop_front();
+				//packet = m_AudioPacket.front();
+				//m_AudioPacket.pop_front();
+				m_audioPackets.PeekPacket(packet);
 			}
 
 			if (packet.stream_index == m_iAudioIndex)
@@ -438,7 +478,8 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 				{
 					if (res == AVERROR(EAGAIN))
 					{
-						m_AudioPacket.push_front(packet);
+						//m_AudioPacket.push_front(packet);
+						m_audioPackets.AddPacketFront(packet);
 						if (bWaitOtherSetp)
 						{
 							return false;
@@ -455,7 +496,8 @@ bool CSimpleDecoder::DecodeAudio(RingBuffer* pBuf, int& len)
 			}
 			else if (packet.stream_index == m_iVideoIndex)
 			{
-				m_VideoPacket.push_back(packet);
+				//m_VideoPacket.push_back(packet);
+				m_videoPackets.AddPacketBack(packet);
 			}
 			else
 			{
@@ -554,7 +596,7 @@ bool CSimpleDecoder::DecodeVideo(RingBuffer*pBuf, FrameInfo& info)
 		goto Copy;
 	}
 ReadPacket:
-	if (m_VideoPacket.empty())
+	if (m_videoPackets.m_packets.empty())
 	{
 		res = ReadPacket(&packet);
 		if (res != 0)
@@ -562,8 +604,9 @@ ReadPacket:
 	}
 	else
 	{
-		packet = m_VideoPacket.front();
-		m_VideoPacket.pop_front();
+		//packet = m_VideoPacket.front();
+		//m_VideoPacket.pop_front();
+		m_videoPackets.PeekPacket(packet);
 	}
 	if (packet.stream_index == m_iVideoIndex)
 	{
@@ -576,7 +619,8 @@ ReadPacket:
 		{
 			if (res == AVERROR(EAGAIN))
 			{
-				m_VideoPacket.push_front(packet);
+				//m_VideoPacket.push_front(packet);
+				m_videoPackets.AddPacketFront(packet);
 			}
 			else if(res == AVERROR_INVALIDDATA)
 			{
@@ -591,7 +635,8 @@ ReadPacket:
 	}
 	else if(packet.stream_index == m_iAudioIndex)
 	{
-		m_AudioPacket.push_back(packet);
+		//m_AudioPacket.push_back(packet);
+		m_audioPackets.AddPacketBack(packet);
 	}
 	else
 	{
@@ -627,6 +672,7 @@ ReadPacket:
 		{
 			pBuf->WriteData((char*)m_aVideoOutBuf[0], info.dataSize);
 			m_bCurrentImageNotCopy = false;
+			return true;
 		}
 		else
 		{
@@ -685,6 +731,11 @@ std::pair<int, int> CSimpleDecoder::GetFrameSize()
 	return std::make_pair(0, 0);
 }
 
+__forceinline bool CSimpleDecoder::EndOfFile()
+{
+	return m_bEndOf && m_videoPackets.m_packets.empty() && m_audioPackets.m_packets.empty();
+}
+
 int CSimpleDecoder::GetSampleRate()
 {
 	if (m_iAudioIndex != -1)
@@ -711,33 +762,37 @@ void CSimpleDecoder::ReverseCurrentImage()
 
 int CDecodeLoop::Run()
 {
-	MSG msg;
+	//MSG msg;
 
 	while (m_bRunning)
 	{
-		if (PeekMessage(&msg, (HWND)-1, 0, 0, PM_REMOVE))
-		{
-			if (msg.message == WM_QUIT)
-			{
-				m_bRunning = false;
-				break;
-			}
-			HandleQueueMessage(msg);
-		}
+		//if (PeekMessage(&msg, (HWND)-1, 0, 0, PM_REMOVE))
+		//{
+		//	if (msg.message == WM_QUIT)
+		//	{
+		//		m_bRunning = false;
+		//		break;
+		//	}
+		//	HandleQueueMessage(msg);
+		//}
 
 		if (!EndOfFile())
 		{
 			if (HasVideo())
 			{
-				m_videoLock.Lock();
+				//m_videoLock.Lock();
+				m_videoMutex.lock();
 				CacheImageData();
-				m_videoLock.UnLock();
+				//m_videoLock.UnLock();
+				m_videoMutex.unlock();
 			}
 			if (HasAudio())
 			{
-				m_audioLock.Lock();
+				//m_audioLock.Lock();
+				m_audioMutex.lock();
 				CacheAudioData();
-				m_audioLock.UnLock();
+				//m_audioLock.UnLock();
+				m_audioMutex.unlock();
 			}
 		}
 		Sleep(7);
@@ -748,24 +803,15 @@ int CDecodeLoop::Run()
 
 bool CDecodeLoop::Init()
 {
-	if (HasAudio())
+	try
 	{
-		m_pSoundBuf.reset(new RingBuffer(this->m_outAudioParams.sample_rate * 4 * 3));
+		InitAVDataBuffer(3, 3);
 	}
-	if (HasVideo())
+	catch (...)
 	{
-		int imageSize = av_image_get_buffer_size(AV_PIX_FMT_BGR24, m_pVCodecContext->width, m_pVCodecContext->height, 4);
-		try
-		{
-			m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * 3));
-		}
-		catch (std::exception& e)
-		{
-			TRACE1("create image buffer: %s.(decode loop)", e.what());
-			return false;
-		}
+		TRACE("failed to create buffer");
+		return false;
 	}
-	m_iCachedImageCount = 0;
 	return CMessageLoop::Init();
 }
 
@@ -783,8 +829,8 @@ void CDecodeLoop::Destroy()
 
 bool CDecodeLoop::SeekTime(double pos, double currPos)
 {
-	CLockGuard<CSimpleLock> guard1(&m_videoLock);
-	CLockGuard<CSimpleLock> guard(&m_audioLock);
+	std::unique_lock<std::mutex> guard1(m_videoMutex);
+	std::unique_lock<std::mutex> guard2(m_audioMutex);
 
 	if (m_pSoundBuf)m_pSoundBuf->Reset();
 	if (m_pImageBuf)m_pImageBuf->Reset();
@@ -815,6 +861,13 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 			TRACE1("seek offset %lfvvvv\n", m_frameDump.pts - pos);
 			CacheImageData();
 		}
+
+		if (m_funcSeekCallback)
+		{
+			//guard2.unlock();
+			//guard1.unlock();
+			m_funcSeekCallback();
+		}
 		return true;
 	}
 	return false;
@@ -822,18 +875,25 @@ bool CDecodeLoop::SeekTime(double pos, double currPos)
 
 bool CDecodeLoop::EndOfAudio()
 {
-	return m_bEndOf && m_AudioPacket.empty() && m_pSoundBuf->IsEmpty();
+	return m_bEndOf && m_audioPackets.m_packets.empty() && m_pSoundBuf->IsEmpty();
 }
 
 bool CDecodeLoop::EndOfVideo()
 {
-	return m_bEndOf && m_VideoPacket.empty() && m_pImageBuf->IsEmpty();
+	return m_bEndOf && m_videoPackets.m_packets.empty() && m_pImageBuf->IsEmpty();
+}
+
+void CDecodeLoop::SetSeekCallback(std::function<void()> func)
+{
+	m_funcSeekCallback = func;
 }
 
 int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 {
 	assert(pBuf && want > 0);
-	CLockGuard<CSimpleLock> guard(&m_audioLock);
+	//CLockGuard<CSimpleLock> guard(&m_audioLock);
+	std::lock_guard<std::mutex> guard2(m_audioMutex);
+
 	int done(00);
 
 	assert(m_pSoundBuf);
@@ -841,12 +901,15 @@ int CDecodeLoop::GetAudioData(RingBuffer* pBuf, int want)
 	{
 		done = m_pSoundBuf->TransferData(pBuf, want);
 	}
+	m_audioCV.notify_one();
 	return done;
 }
 
 int CDecodeLoop::GetImageData(RingBuffer* pBuf, FrameInfo& info)
 {
-	CLockGuard<CSimpleLock> guard(&m_videoLock);
+	//CLockGuard<CSimpleLock> guard(&m_videoLock);
+	std::lock_guard<std::mutex> guard1(m_videoMutex);
+
 
 	if (m_iCachedImageCount <1)
 	{
@@ -864,10 +927,26 @@ int CDecodeLoop::GetImageData(RingBuffer* pBuf, FrameInfo& info)
 		goto Error;
 	}
 	--m_iCachedImageCount;
+	m_videoCV.notify_one();
 	return info.dataSize;
 Error:
 	m_pImageBuf->RestoreIndexState();
 	return 0;
+}
+
+void CDecodeLoop::InitAVDataBuffer(int second_audio, int frame_video)
+{
+	if (HasAudio())
+	{
+		int sampleSize = av_samples_get_buffer_size(NULL, m_outAudioParams.channels, 1, m_outAudioParams.sample_fmt, 1);
+		m_pSoundBuf.reset(new RingBuffer(this->m_outAudioParams.sample_rate * sampleSize * second_audio));
+	}
+	if (HasVideo())
+	{
+		int imageSize = av_image_get_buffer_size(m_outVideoParams.fmt, m_pVCodecContext->width, m_pVCodecContext->height, 4);
+		m_pImageBuf.reset(new RingBuffer((sizeof(FrameInfo) + imageSize) * frame_video));
+	}
+	m_iCachedImageCount = 0;
 }
 
 __forceinline void CDecodeLoop::CacheAudioData()

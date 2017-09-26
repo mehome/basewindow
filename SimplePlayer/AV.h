@@ -11,16 +11,11 @@ extern "C"
 #include <libswresample\swresample.h>
 }
 
-#pragma comment(lib,"avcodec.lib")
-#pragma comment(lib,"avformat.lib")
-#pragma comment(lib,"avutil.lib")
-#pragma comment(lib,"swscale.lib")
-#pragma comment(lib,"swresample.lib")
-
-
 #include <memory>
 #include <string>
 #include <queue>
+#include <thread>
+#include <mutex>
 #include <Node/RingBuffer.h>
 #include "AVIOContext.h"
 
@@ -75,6 +70,27 @@ struct FrameInfo
 	int dataSize;
 };
 
+struct PacketQueue
+{
+	std::deque<AVPacket> m_packets;
+	int64_t m_iPacketDuration;
+	double m_dPacketTimebase;
+	std::mutex m_mutexPackets;
+	std::condition_variable m_cvPackets;
+
+	PacketQueue();
+	void ClearPacketQueue();
+	inline void AddPacketFront(AVPacket& p);
+	inline void AddPacketBack(AVPacket& p);
+	inline void PeekPacket(AVPacket& get);
+	inline void SetPacketTimebase(AVRational tb);
+	double GetPacketDurationTime()
+	{
+		return m_dPacketTimebase * m_iPacketDuration;
+	}
+
+};
+
 class CSimpleDecoder
 {
 public:
@@ -102,7 +118,7 @@ public:
 	double GetFrameRate();
 	int GetSampleRate();
 	std::pair<int, int>GetFrameSize();
-	bool EndOfFile() { return m_bEndOf && m_VideoPacket.empty() && m_AudioPacket.empty(); }
+	inline bool EndOfFile();
 protected:
 	void ReverseCurrentImage();
 protected:
@@ -138,8 +154,8 @@ protected:
 	double m_dCurrentImagePts;
 	double m_dVideotb;
 
-	std::deque<AVPacket> m_AudioPacket;
-	std::deque<AVPacket> m_VideoPacket;
+	PacketQueue m_audioPackets;
+	PacketQueue m_videoPackets;
 };
 
 #include <Node/Thread.h>
@@ -152,17 +168,22 @@ public:
 	bool SeekTime(double target_pos, double currPos);
 	bool EndOfAudio();
 	bool EndOfVideo();
+	void SetSeekCallback(std::function<void()>);
 
 	int GetAudioData(RingBuffer* pBuf, int want);
 	int GetImageData(RingBuffer* pBuf, FrameInfo& info);
 protected:
+	void InitAVDataBuffer(int second_data, int frame_video);
 	inline void CacheAudioData();
 	inline void CacheImageData();
 protected:
 	std::unique_ptr<RingBuffer> m_pSoundBuf;
 	std::unique_ptr<RingBuffer> m_pImageBuf;
 	int m_iCachedImageCount;
-	CSimpleLock m_audioLock;
-	CSimpleLock m_videoLock;
+	std::mutex m_audioMutex;
+	std::mutex m_videoMutex;
+	std::condition_variable m_audioCV;
+	std::condition_variable m_videoCV;
 	FrameInfo m_frameDump;
+	std::function<void()> m_funcSeekCallback;
 };
