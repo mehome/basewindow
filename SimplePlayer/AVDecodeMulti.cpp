@@ -83,20 +83,25 @@ void AVDecodeMulti::ReadThread()
 			AVPacket temp{ 0 };
 			temp.stream_index = -1;
 
-			m_videoPackets.m_mutexPackets.lock();
-			m_videoPackets.ClearPacketQueue();
-			m_videoPackets.AddPacketBack(temp);
-			m_videoPackets.m_cvPackets.notify_one();
-			m_videoPackets.m_mutexPackets.unlock();
+			if (HasVideo())
+			{
+				m_videoPackets.m_mutexPackets.lock();
+				m_videoPackets.ClearPacketQueue();
+				m_videoPackets.AddPacketBack(temp);
+				m_videoPackets.m_cvPackets.notify_one();
+				m_iFlushVideoBufRequest = 2;
+				m_videoPackets.m_mutexPackets.unlock();
+			}
 
-			m_audioPackets.m_mutexPackets.lock();
-			m_audioPackets.ClearPacketQueue();
-			m_audioPackets.AddPacketBack(temp);
-			m_audioPackets.m_cvPackets.notify_one();
-			m_audioPackets.m_mutexPackets.unlock();
-
-			if (HasVideo())m_iFlushAudioBufRequest = 2;
-			if (HasAudio())m_iFlushVideoBufRequest = 2;
+			if (HasAudio())
+			{
+				m_audioPackets.m_mutexPackets.lock();
+				m_audioPackets.ClearPacketQueue();
+				m_audioPackets.AddPacketBack(temp);
+				m_audioPackets.m_cvPackets.notify_one();
+				m_iFlushAudioBufRequest = 2;
+				m_audioPackets.m_mutexPackets.unlock();
+			}
 			continue;
 		}
 
@@ -109,7 +114,7 @@ void AVDecodeMulti::ReadThread()
 
 		if (ReadPacket(&packet) < 0)
 		{
-			m_bRunning = false;
+			//m_bRunning = false;
 			break;
 		}
 
