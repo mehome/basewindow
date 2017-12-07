@@ -155,6 +155,7 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 	}
 
 	int lowres;
+	AVDictionary* opts = NULL;
 	if (m_iVideoIndex != -1)
 	{
 		m_pVCodecContext = avcodec_alloc_context3(NULL);
@@ -165,9 +166,13 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		if (lowres > av_codec_get_max_lowres(m_pVCodec))
 			lowres = av_codec_get_max_lowres(m_pVCodec);
 		av_codec_set_lowres(m_pVCodecContext, lowres);
-		avcodec_open2(m_pVCodecContext, m_pVCodec, NULL);
+
+		av_dict_set(&opts, "threads", "auto", 0);
+		avcodec_open2(m_pVCodecContext, m_pVCodec, &opts);
 		m_dVideotb = av_q2d(m_pFormatContext->streams[m_iVideoIndex]->time_base);
 		m_videoPackets.SetPacketTimebase(m_pFormatContext->streams[m_iVideoIndex]->time_base);
+		av_dict_free(&opts);
+
 	}
 	if (m_iAudioIndex != -1)
 	{
@@ -179,8 +184,11 @@ bool CSimpleDecoder::LoadFile(std::string fileName)
 		if (lowres > av_codec_get_max_lowres(m_pACodec))
 			lowres = av_codec_get_max_lowres(m_pACodec);
 		av_codec_set_lowres(m_pACodecContext, lowres);
-		avcodec_open2(m_pACodecContext, m_pACodec, NULL);
+
+		av_dict_set(&opts, "threads", "auto", 0);
+		avcodec_open2(m_pACodecContext, m_pACodec, &opts);
 		m_audioPackets.SetPacketTimebase(m_pFormatContext->streams[m_iAudioIndex]->time_base);
+		av_dict_free(&opts);
 	}
 	m_bEndOf = false;
 	return true;

@@ -227,7 +227,9 @@ LRESULT CMovieWindow::CustomProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		m_pShow = new CMoveShow2D();
 		m_pDir->RunScene(m_pShow);
 
-		OpenFile("e:\\video\\BBCW_SavingOurSeabirds_1自然世界 拯救我们的海鸟.flv");
+		//OpenFile("e:\\video\\BBCW_SavingOurSeabirds_1自然世界 拯救我们的海鸟.flv");
+		//OpenFile("e:\\Prometheus.2012.普罗米修斯.国英双语.HR-HDTV.AC3.1024X576-人人影视制作.mkv");
+		OpenFile("E:\\zhuozhou\\1\\安史之乱.flv");
 	}
 	else if (message == WM_CLOSE)
 	{

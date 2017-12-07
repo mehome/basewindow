@@ -340,7 +340,7 @@ void AVDecodeMulti::VideoThread()
 		if (m_videoPackets.m_packets.empty())
 		{
 			m_cvRead.notify_one();
-			m_videoCV.wait_for(guard_packet, std::chrono::milliseconds(10));
+			m_videoPackets.m_cvPackets.wait_for(guard_packet, std::chrono::microseconds(10));
 			guard_packet.unlock();
 			continue;
 		}
