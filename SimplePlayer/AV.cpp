@@ -734,7 +734,27 @@ std::pair<int, int> CSimpleDecoder::GetFrameSize()
 {
 	if (m_iVideoIndex != -1)
 	{
-		return std::make_pair(m_pVCodecContext->width, m_pVCodecContext->height);
+		if (this->m_pVCodecContext->sample_aspect_ratio.num != 0)
+		{
+			int w = m_pVCodecContext->width;
+			int h = m_pVCodecContext->height;
+			float aspect_ratio = av_q2d(m_pVCodecContext->sample_aspect_ratio);
+			if (aspect_ratio <= 0.0)
+				aspect_ratio = 1.0;
+			aspect_ratio *= (float)w / (float)h;
+			h = m_pVCodecContext->height;
+			w = lrint(h * aspect_ratio) & ~1;
+			if (w > m_pVCodecContext->width) {
+				w = m_pVCodecContext->width;
+				h = lrint(m_pVCodecContext->width / aspect_ratio) & ~1;
+			}
+
+			return std::make_pair(w, h);
+		}
+		else
+		{
+			return std::make_pair(m_pVCodecContext->width, m_pVCodecContext->height);
+		}
 	}
 	return std::make_pair(0, 0);
 }
